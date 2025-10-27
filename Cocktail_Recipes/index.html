@@ -437,6 +437,66 @@
             font-weight: 500;
         }
 
+        /* 熱門標籤搜索欄 */
+        .popular-tags-section {
+            background: rgba(255, 255, 255, .08);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid rgba(255, 255, 255, .1);
+        }
+
+        .popular-tags-title {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .popular-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .tag-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .tag-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            border-color: rgba(102, 126, 234, 1);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .tag-count {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            font-weight: 600;
+        }
+
         details {
             margin-bottom: 8px;
         }
@@ -480,6 +540,22 @@
         .nav-btn.active {
             background: rgba(255, 255, 255, .4);
             box-shadow: 0 4px 15px rgba(0, 0, 0, .2);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: auto;
+        }
+
+        .nav-btn:disabled:hover {
+            background: rgba(255, 255, 255, .2);
+            transform: none;
+        }
+
+        .nav-btn.edit-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .page {
@@ -820,6 +896,15 @@
             .drawer-actions .btn {
                 width: 100%;
             }
+
+            .popular-tags-container {
+                gap: 6px;
+            }
+
+            .tag-btn {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
         }
 
         @media (max-width:768px) {
@@ -871,6 +956,37 @@
         .hidden {
             display: none !important;
         }
+        /* 收藏按鈕樣式 */
+        .favorite-btn {
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .favorite-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .favorite-btn.active {
+            background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .favorite-btn.inactive {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+        
+        #favoriteCount {
+            animation: fadeIn 0.3s ease;
+        }
+
     </style>
 </head>
 
@@ -940,23 +1056,37 @@
             <p class="subtitle">探索經典調酒，享受品味時光</p>
             <div class="age-warning">⚠️ 未滿18歲請勿飲酒，飲酒過量有害健康</div>
             <nav class="nav-tabs">
-                <button class="nav-btn active" data-page="browse" type="button">📖 瀏覽酒譜</button>
+                <button class="nav-btn active" data-page="settings" type="button">⚙️ 設定</button>
+                <button class="nav-btn" data-page="browse" type="button">📖 瀏覽酒譜</button>
                 <button class="nav-btn" data-page="add" type="button">➕ 新增酒譜</button>
-                <button class="nav-btn" data-page="settings" type="button">⚙️ 設定</button>
             </nav>
         </header>
 
         <!-- 瀏覽區 -->
-        <div class="page active" id="browsePage">
+        <div class="page" id="browsePage">
             <div class="filters">
                 <div class="filter-row">
-                    <input type="text" id="searchInput" placeholder="🔍 搜尋雞尾酒、基酒或標籤..." />
+                    <input type="text" id="searchInput" placeholder="🔍 搜尋酒譜名稱、基酒或材料（如：鳳梨）..." />
                     <select id="categorySelect">
                         <option value="">📋 全部分類</option>
                     </select>
                     <div class="view-toggle">
                         <button class="view-btn active" data-view="grid" type="button">網格</button>
                         <button class="view-btn" data-view="list" type="button">列表</button>
+                    </div>
+                </div>
+                <div class="filter-row" style="margin-top: 12px;">
+                    <label style="display: flex; align-items: center; gap: 8px; color: #fff; cursor: pointer; background: rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); flex-wrap: wrap;">
+                        <input type="checkbox" id="favoriteOnlyFilter" onchange="app.filterCocktails()" style="cursor: pointer; width: 18px; height: 18px;">
+                        <span>⭐ 只顯示收藏</span>
+                    </label>
+                    <span id="favoriteCount" style="color: rgba(255,255,255,0.8); font-size: 0.9rem; margin-left: auto;"></span>
+                </div>
+                <!-- 熱門標籤搜索欄 -->
+                <div class="popular-tags-section">
+                    <div class="popular-tags-title">🏷️ 熱門標籤</div>
+                    <div class="popular-tags-container" id="popularTagsContainer">
+                        <div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">載入中...</div>
                     </div>
                 </div>
             </div>
@@ -1083,7 +1213,7 @@
         </div>
 
         <!-- 設定區 -->
-        <div class="page" id="settingsPage">
+        <div class="page active" id="settingsPage">
             <div class="form-section">
                 <h3>🌐 GAS 連線</h3>
                 <div class="form-group">
@@ -1690,10 +1820,11 @@
             
             updateEditButtons() {
                 const editButtons = document.querySelectorAll('[onclick*="editCocktail"]');
+                const browseButton = document.querySelector('[data-page="browse"]');
                 const addButton = document.querySelector('[data-page="add"]');
                 const deleteButtons = document.querySelectorAll('#deleteCocktail');
                 
-                const elements = [...editButtons, addButton, ...deleteButtons].filter(Boolean);
+                const elements = [...editButtons, browseButton, addButton, ...deleteButtons].filter(Boolean);
                 
                 elements.forEach(button => {
                     if (this.isAdmin) {
@@ -1703,7 +1834,7 @@
                     } else {
                         button.classList.add('edit-disabled');
                         button.setAttribute('disabled', 'disabled');
-                        button.title = '需要管理員權限';
+                        button.title = '需要管理員權限，請先登入';
                     }
                 });
             },
@@ -1808,10 +1939,17 @@
                 });
 
                 this.navButtons.forEach((btn) => { 
-                    btn.addEventListener('click', () => { 
+                    btn.addEventListener('click', () => {
+                        const pageKey = btn.dataset.page;
+                        
+                        // 檢查權限：訪客模式下不允許訪問瀏覽和新增頁面
+                        if (!adminAuth.isAdmin && (pageKey === 'browse' || pageKey === 'add')) {
+                            adminAuth.showLoginModal();
+                            return;
+                        }
+                        
                         this.navButtons.forEach(b => b.classList.remove('active')); 
                         btn.classList.add('active'); 
-                        const pageKey = btn.dataset.page; 
                         Object.values(this.pages).forEach(p => p.classList.remove('active')); 
                         if (this.pages[pageKey]) this.pages[pageKey].classList.add('active'); 
                         if (pageKey === 'add' && this.successMessage) this.successMessage.style.display = 'none'; 
@@ -1907,7 +2045,10 @@
                     const data = await gas.list();
                     const norm = data.map(normalizeRecord);
                     for (const c of norm) await this.storage.saveCocktail(c);
-                    this.cocktails = await this.storage.getAllCocktails();
+                    this.cocktails = (await this.storage.getAllCocktails()).map(c => ({
+                    ...c,
+                    favorite: c.favorite === true  // 确保favorite字段存在
+                }));
                     this.filteredCocktails = [...this.cocktails];
                     this.updateCategories();
                     this.render();
@@ -1919,7 +2060,10 @@
                     if (!silent) {
                         gas.showConnectionStatus('⚠️ 雲端連線失敗，顯示本機快取資料', 'warning');
                     }
-                    this.cocktails = await this.storage.getAllCocktails();
+                    this.cocktails = (await this.storage.getAllCocktails()).map(c => ({
+                    ...c,
+                    favorite: c.favorite === true  // 确保favorite字段存在
+                }));
                     this.filteredCocktails = [...this.cocktails];
                     this.updateCategories();
                     this.render();
@@ -1985,7 +2129,9 @@
                     const imageFile = document.getElementById('imageFile').files[0];
                     if (imageFile) { try { const saved = await this.storage.saveImage(imageFile, this.editTargetId); image_b64 = saved.dataUrl; } catch (e) { console.warn('圖片更新快取失敗：', e); } }
                     const updated = {
-                        ...this.cocktails[idx], title: f.title.value.trim(), category: f.category.value.trim(), glass_type: f.glass_type.value.trim(), alcohol_content: f.alcohol_content.value || '', difficulty: f.difficulty.value || '', tags: f.tags.value.trim(), ingredients: f.ingredients.value.trim().replace(/\n/g, '+'), instructions: f.instructions.value.trim().replace(/\n/g, '>'), servings: f.servings.value || '', image_b64
+                        ...this.cocktails[idx],
+                        favorite: this.cocktails[idx].favorite === true, title: f.title.value.trim(), category: f.category.value.trim(), glass_type: f.glass_type.value.trim(), alcohol_content: f.alcohol_content.value || '', difficulty: f.difficulty.value || '', tags: f.tags.value.trim(), ingredients: f.ingredients.value.trim().replace(/\n/g, '+'), instructions: f.instructions.value.trim().replace(/\n/g, '>'), servings: f.servings.value || '', image_b64,
+                    favorite: false
                     };
                     const updatedNorm = normalizeRecord(updated);
                     await gas.upsert(updatedNorm);
@@ -2027,11 +2173,150 @@
 
             updateCategories() { const sel = document.getElementById('categorySelect'); if (!sel) return; const categories = [...new Set(this.cocktails.map(r => (r.category || '').trim()).filter(Boolean))].sort(); sel.querySelectorAll('option:not(:first-child)').forEach(o => o.remove()); categories.forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.textContent = c; sel.appendChild(opt); }); }
 
-            filterCocktails() { const searchTerm = this.norm(document.getElementById('searchInput')?.value || ''); const selectedCategoryRaw = document.getElementById('categorySelect')?.value || ''; const selectedCategory = (selectedCategoryRaw || '').trim(); if (!Array.isArray(this.cocktails)) this.cocktails = []; this.filteredCocktails = this.cocktails.filter(r => { const title = this.norm(r?.title); const tags = this.norm(r?.tags); const ingredients = this.norm(r?.ingredients); const category = (r?.category || '').trim(); const matchesSearch = !searchTerm || title.includes(searchTerm) || tags.includes(searchTerm) || ingredients.includes(searchTerm); const matchesCategory = !selectedCategory || category === selectedCategory; return matchesSearch && matchesCategory; }); this.render(); }
+            filterCocktails() { 
+    const searchTerm = this.norm(document.getElementById('searchInput')?.value || ''); 
+    const selectedCategoryRaw = document.getElementById('categorySelect')?.value || ''; 
+    const selectedCategory = (selectedCategoryRaw || '').trim();
+    const favoriteOnly = document.getElementById('favoriteOnlyFilter')?.checked || false;
+    
+    if (!Array.isArray(this.cocktails)) this.cocktails = [];
+    
+    this.filteredCocktails = this.cocktails.filter(r => {
+        const title = this.norm(r?.title);
+        const tags = this.norm(r?.tags);
+        const ingredients = this.norm(r?.ingredients);
+        const category = (r?.category || '').trim();
+        
+        const matchesSearch = !searchTerm || 
+            title.includes(searchTerm) || 
+            tags.includes(searchTerm) || 
+            ingredients.includes(searchTerm);
+            
+        const matchesCategory = !selectedCategory || category === selectedCategory;
+        const matchesFavorite = !favoriteOnly || (r?.favorite === true);
+        
+        return matchesSearch && matchesCategory && matchesFavorite;
+    });
+    
+    // 更新收藏數量顯示
+    const favoriteCount = this.cocktails.filter(c => c.favorite === true).length;
+    const countEl = document.getElementById('favoriteCount');
+    if (countEl) {
+        countEl.textContent = favoriteCount > 0 ? `⭐ 共有 ${favoriteCount} 個收藏` : '';
+    }
+    
+    this.render(); 
+}
 
             updateViewClass() { const container = document.getElementById('cocktailsContainer'); container.className = this.currentView === 'grid' ? 'cocktails-grid' : 'cocktails-list'; }
 
             updateStats() { const stats = document.getElementById('stats'); const total = this.cocktails.length, showing = this.filteredCocktails.length; stats.textContent = `顯示 ${showing} / ${total} 道雞尾酒譜`; }
+
+            // 獲取熱門標籤
+            getPopularTags(limit = 15) {
+                const tagFrequency = {};
+                
+                // 統計所有標籤的使用頻率
+                this.cocktails.forEach(cocktail => {
+                    if (cocktail.tags) {
+                        const tags = String(cocktail.tags).split(';').map(t => t.trim()).filter(Boolean);
+                        tags.forEach(tag => {
+                            tagFrequency[tag] = (tagFrequency[tag] || 0) + 1;
+                        });
+                    }
+                });
+                
+                // 按頻率排序並返回前N個
+                return Object.entries(tagFrequency)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, limit)
+                    .map(([tag, count]) => ({ tag, count }));
+            }
+
+            // 渲染熱門標籤按鈕
+            renderPopularTags() {
+                const container = document.getElementById('popularTagsContainer');
+                if (!container) return;
+                
+                const popularTags = this.getPopularTags(15);
+                
+                if (popularTags.length === 0) {
+                    container.innerHTML = '<div style="color: rgba(255,255,255,0.6); font-size: 0.9rem;">暫無標籤數據</div>';
+                    return;
+                }
+                
+                const searchInput = document.getElementById('searchInput');
+                const currentSearchTerm = (searchInput?.value || '').toLowerCase().trim();
+                
+                container.innerHTML = popularTags.map(({ tag, count }) => {
+                    const isActive = currentSearchTerm.includes(tag.toLowerCase());
+                    return `
+                        <button 
+                            class="tag-btn ${isActive ? 'active' : ''}" 
+                            type="button"
+                            onclick="app.filterByTag('${tag.replace(/'/g, "\\'")}', this)"
+                            title="${tag} (${count} 道)"
+                        >
+                            #${tag}
+                            <span class="tag-count">(${count})</span>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            // 通過標籤過濾
+            filterByTag(tag, buttonEl) {
+                const searchInput = document.getElementById('searchInput');
+                const currentValue = searchInput.value.trim();
+                
+                if (currentValue.toLowerCase().includes(tag.toLowerCase())) {
+                    // 如果已經包含該標籤，則移除
+                    searchInput.value = currentValue
+                        .split(/\s+/)
+                        .filter(t => t.toLowerCase() !== tag.toLowerCase())
+                        .join(' ')
+                        .trim();
+                } else {
+                    // 添加標籤到搜索框
+                    searchInput.value = currentValue ? `${currentValue} ${tag}` : tag;
+                }
+                
+                // 觸發搜索
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+
+            // 更新熱門標籤顯示
+            updatePopularTags() {
+                this.renderPopularTags();
+            }
+
+
+            
+            async toggleFavorite(cocktailId) {
+                try {
+                    const idx = this.cocktails.findIndex(c => c.id === cocktailId);
+                    if (idx === -1) return;
+                    
+                    // 切換收藏狀態
+                    this.cocktails[idx].favorite = !this.cocktails[idx].favorite;
+                    
+                    // 保存到本機儲存
+                    await this.storage.saveCocktail(this.cocktails[idx]);
+                    
+                    // 嘗試同步到雲端
+                    if (this.cocktails[idx].favorite) {
+                        gas.showConnectionStatus('⭐ 已加入收藏', 'success');
+                    } else {
+                        gas.showConnectionStatus('🗑️ 已移除收藏', 'success');
+                    }
+                    
+                    // 重新篩選並渲染
+                    this.filterCocktails();
+                } catch (err) {
+                    console.error('切換收藏失敗：', err);
+                    gas.showConnectionStatus('⌫ 切換收藏失敗', 'error');
+                }
+            }
 
             renderCocktails() {
                 const container = document.getElementById('cocktailsContainer');
@@ -2045,8 +2330,9 @@
         <div class="cocktail-card">
           <div class="cocktail-image">${c.image_b64 ? `<img src="${c.image_b64}" alt="${c.title}">` : '🍸'}</div>
           <div class="cocktail-content">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-              <h3 class="cocktail-title">${c.title || ''}</h3>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap: 8px;">
+              <h3 class="cocktail-title" style="flex: 1;">${c.title || ''}</h3>
+              <button onclick="app.toggleFavorite('${c.id}')" class="btn" style="font-size:.8rem; padding:4px 8px; background: ${c.favorite ? '#ffc107' : 'rgba(255,255,255,0.2)'}; color: #fff; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s;" title="${c.favorite ? '移除收藏' : '加入收藏'}">⭐ ${c.favorite ? '已收藏' : '收藏'}</button>
               <button onclick="app.editCocktail('${c.id}')" class="btn edit-only" style="font-size:.8rem; padding:4px 8px;">編輯</button>
             </div>
             <div class="cocktail-meta">
@@ -2066,7 +2352,14 @@
             }
 
             render() { 
-                this.updateStats(); 
+                this.updateStats();
+                this.updatePopularTags();
+                // 更新收藏計數
+                const favoriteCount = this.cocktails.filter(c => c.favorite === true).length;
+                const countEl = document.getElementById('favoriteCount');
+                if (countEl) {
+                    countEl.textContent = favoriteCount > 0 ? `⭐ 共有 ${favoriteCount} 個收藏` : '';
+                } 
                 this.renderCocktails(); 
                 this.updateViewClass(); 
             }
@@ -2105,7 +2398,10 @@
                     const fixed = normalizeRecord(c); 
                     await this.storage.saveCocktail(fixed); 
                 } 
-                this.cocktails = await this.storage.getAllCocktails(); 
+                this.cocktails = (await this.storage.getAllCocktails()).map(c => ({
+                    ...c,
+                    favorite: c.favorite === true  // 确保favorite字段存在
+                })); 
                 this.filteredCocktails = [...this.cocktails]; 
                 this.render(); 
                 alert('✅ 已完成本機資料格式遷移'); 
