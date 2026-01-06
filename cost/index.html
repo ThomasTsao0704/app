@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>餐飲成本計算器 - 專業的毛利率分析工具</title>
+    <meta name="description" content="專業的餐飲成本計算系統，幫助你管理原物料、計算菜色成本、分析毛利率，做出更好的定價決策。" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+        .hero {
+            text-align: center;
+            padding: 80px 24px 60px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: 20px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .lead {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--muted);
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+
+        .hero-btns {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 60px;
+        }
+
+        .hero-btns .button {
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 2px solid var(--accent);
+        }
+
+        .hero-btns .primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .hero-btns .primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(122, 167, 255, 0.3);
+        }
+
+        .hero-btns .secondary {
+            background: transparent;
+            color: var(--accent);
+        }
+
+        .hero-btns .secondary:hover {
+            background: rgba(122, 167, 255, 0.1);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto 60px;
+            padding: 0 24px;
+        }
+
+        .feature-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.9;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .feature-card p {
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .steps {
+            max-width: 800px;
+            margin: 80px auto;
+            padding: 0 24px;
+        }
+
+        .steps h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 48px;
+        }
+
+        .step {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 40px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .step-content h3 {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .step-content p {
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .benefits {
+            background: var(--card2);
+            padding: 60px 24px;
+            margin: 80px 0;
+            border-top: 1px solid var(--line);
+            border-bottom: 1px solid var(--line);
+        }
+
+        .benefits h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 48px;
+        }
+
+        .benefits-list {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 32px;
+        }
+
+        .benefit {
+            text-align: center;
+        }
+
+        .benefit-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .benefit h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .benefit p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .cta-section {
+            text-align: center;
+            padding: 80px 24px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .cta-section h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .cta-section p {
+            color: var(--muted);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <h1>🍽️ 餐飲成本計算器</h1>
+        <p class="lead">
+            專業的原物料管理與菜色成本分析工具<br />
+            幫助你精確計算成本、掌握毛利率，做出更好的定價決策
+        </p>
+        <div class="hero-btns">
+            <a href="materials.html" class="button primary">開始使用 →</a>
+            <a href="#features" class="button secondary">了解更多</a>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <section id="features" class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">📦</div>
+            <h3>原物料管理</h3>
+            <p>建立你的原物料庫，設定採購價格與單位。系統自動計算每個基礎單位的成本，方便重複使用。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">🧮</div>
+            <h3>智能單位換算</h3>
+            <p>支援重量（kg/g）、體積（L/ml）、數量（顆/粒/個）自動換算。包裝內容量設定讓計算更精確。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>菜色成本計算</h3>
+            <p>從原物料庫選擇材料，輸入用量，系統自動計算總成本。一目了然掌握每道菜的成本結構。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">💰</div>
+            <h3>毛利率分析</h3>
+            <p>自動計算毛利率與成本率，提供產業參考標準。根據目標毛利率反推建議售價。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">💾</div>
+            <h3>本地儲存</h3>
+            <p>所有資料自動儲存到瀏覽器，無需註冊帳號。支援 CSV 格式匯出備份，資料完全掌控。</p>
+        </div>
+
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>即時計算</h3>
+            <p>輸入資料後即時更新計算結果。智能提示幫助你發現單位錯誤或不合理的毛利率。</p>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="steps">
+        <h2>使用流程</h2>
+
+        <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h3>建立原物料庫</h3>
+                <p>到「原物料管理」頁面，新增你常用的食材。填寫採購價格、採購量、單位，系統會自動計算單位成本。支援包裝內容量設定和可用率（損耗）計算。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h3>計算菜色成本</h3>
+                <p>到「菜色成本計算」頁面，選擇需要的原物料，輸入每道菜的用量。系統會自動換算單位並計算總成本。可以新增多個品項，看到完整的成本結構。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h3>分析毛利率</h3>
+                <p>輸入售價後，系統會自動計算毛利率、成本率、毛利額。還可以設定目標毛利率，反推建議售價。智能提示會告訴你毛利率是否合理。</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h3>匯出與備份</h3>
+                <p>原物料庫可以匯出成 CSV 檔案備份，菜色成本明細也能匯出。資料會自動儲存到瀏覽器，下次開啟直接使用。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="benefits">
+        <h2>為什麼選擇我們</h2>
+        <div class="benefits-list">
+            <div class="benefit">
+                <div class="benefit-icon">🎯</div>
+                <h3>精準計算</h3>
+                <p>自動單位換算，避免人工計算錯誤。可用率設定考慮食材損耗。</p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">⏱️</div>
+                <h3>節省時間</h3>
+                <p>原物料建立一次，重複使用。不用每次都重新計算成本。</p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">🔒</div>
+                <h3>資料安全</h3>
+                <p>所有資料存在本地瀏覽器，不會上傳到伺服器。隱私完全受保護。</p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">📱</div>
+                <h3>跨平台使用</h3>
+                <p>支援電腦、平板、手機。響應式設計，任何裝置都能流暢使用。</p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">💡</div>
+                <h3>智能提示</h3>
+                <p>自動檢查單位是否可換算，毛利率是否合理，提供產業參考標準。</p>
+            </div>
+
+            <div class="benefit">
+                <div class="benefit-icon">🆓</div>
+                <h3>完全免費</h3>
+                <p>無需註冊、無需付費、無廣告。開源專案，持續改進。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Industry Reference -->
+    <section class="steps">
+        <h2>產業參考標準</h2>
+        <div class="card" style="padding: 32px;">
+            <h3 style="margin-bottom: 20px; color: var(--accent);">毛利率參考區間</h3>
+            <div style="display: grid; gap: 16px;">
+                <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(122, 167, 255, 0.05); border-radius: 8px;">
+                    <span><b>精緻餐飲</b></span>
+                    <span class="mono" style="color: var(--good);">65-75%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(122, 167, 255, 0.05); border-radius: 8px;">
+                    <span><b>一般餐廳</b></span>
+                    <span class="mono" style="color: var(--good);">55-65%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(122, 167, 255, 0.05); border-radius: 8px;">
+                    <span><b>小吃/快餐</b></span>
+                    <span class="mono" style="color: var(--warn);">50-60%</span>
+                </div>
+            </div>
+            <p class="help" style="margin-top: 20px;">
+                💡 提示：毛利率 = (售價 - 成本) ÷ 售價 × 100%<br />
+                成本率 = 成本 ÷ 售價 × 100%<br />
+                毛利率 + 成本率 = 100%
+            </p>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2>準備開始了嗎？</h2>
+        <p>
+            立即使用餐飲成本計算器，精準掌握每道菜的成本結構，<br />
+            做出更明智的定價決策，提升餐廳獲利能力。
+        </p>
+        <div class="hero-btns">
+            <a href="materials.html" class="button primary">開始建立原物料庫 →</a>
+            <a href="dishes.html" class="button secondary">直接計算菜色成本</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p style="text-align: center; margin-bottom: 8px;">
+            <b>餐飲成本計算器</b> - 原物料管理 × 菜色成本分析 × 毛利率計算
+        </p>
+        <p style="text-align: center; opacity: 0.7;">
+            資料儲存於本地瀏覽器 · 支援 CSV 匯出 · 完全免費使用
+        </p>
+    </footer>
+
+    <script>
+        // 平滑滾動
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

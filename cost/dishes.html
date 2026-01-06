@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>菜色成本計算 - 餐飲成本計算器</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>菜色成本計算 <span class="tag">毛利率 / 成本率</span></h1>
+        <p class="sub">
+            從原物料庫中選取材料，輸入用量，系統會自動計算每道菜的總成本、毛利率與成本率。<br />
+            小提醒：毛利率 + 成本率 = 100%（如果不是，通常是輸入單位有問題）。
+        </p>
+        <nav class="nav">
+            <a href="materials.html">原物料管理</a>
+            <a href="dishes.html" class="active">菜色成本計算</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Left: Editor -->
+        <section class="card">
+            <div class="hd">
+                <h2>① 菜色資料</h2>
+                <div class="btns">
+                    <button id="btnAddItem">＋新增品項</button>
+                    <button class="secondary" id="btnReset">重置</button>
+                </div>
+            </div>
+            <div class="bd">
+                <div class="row">
+                    <div>
+                        <label>菜名</label>
+                        <input id="dishName" placeholder="例如：紅酒燉牛肉" />
+                        <div class="help">建議：一份表只對應「一道菜」。</div>
+                    </div>
+                    <div>
+                        <label>備註（選填）</label>
+                        <input id="dishNote" placeholder="例如：含配菜、含醬汁，或版本：A/B" />
+                        <div class="help">備註會一起存到瀏覽器，你不會每次開都要重打。</div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div>
+                        <label>售價（選填，用於算毛利率/成本率）</label>
+                        <div class="inline">
+                            <input id="sellingPrice" type="number" inputmode="decimal" min="0" step="0.01"
+                                placeholder="例如：320" />
+                            <div class="pill"><span class="mono">TWD</span></div>
+                        </div>
+                        <div class="help">不填也能算成本；填了就能算毛利率、成本率、毛利額。</div>
+                    </div>
+                    <div>
+                        <label>目標毛利率（選填，用於反推建議售價）</label>
+                        <div class="inline">
+                            <input id="targetMargin" type="number" inputmode="decimal" min="0" max="99.9" step="0.1"
+                                placeholder="例如：60" />
+                            <div class="pill"><span class="mono">%</span></div>
+                        </div>
+                        <div class="help">填 60 表示目標毛利率 60%，系統會用總成本反推建議售價。</div>
+                    </div>
+                </div>
+
+                <div class="tableWrap" id="itemsTableWrap">
+                    <table id="itemsTable">
+                        <thead>
+                            <tr>
+                                <th style="min-width:200px;">原物料<br /><span class="small">(從原物料庫選擇)</span>
+                                </th>
+                                <th>每份用量</th>
+                                <th>用量單位</th>
+                                <th class="right">單位成本<br /><span class="small">(元/基礎單位)</span></th>
+                                <th class="right">單項成本<br /><span class="small">(元/份)</span></th>
+                                <th style="min-width:90px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTbody">
+                            <!-- 品項列表動態生成 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyItems" class="empty-state" style="display:none;">
+                    <p>📝 尚未新增任何品項</p>
+                    <p class="small">點擊上方「＋新增品項」按鈕開始選擇原物料</p>
+                </div>
+
+                <div id="noMaterials" class="status warn" style="display:none;">
+                    ⚠️ 尚未建立任何原物料，請先到「原物料管理」頁面建立原物料庫。
+                    <div style="margin-top:8px;">
+                        <a href="materials.html" style="color: var(--warn); text-decoration: underline;">前往原物料管理</a>
+                    </div>
+                </div>
+
+                <div class="hint">
+                    <div class="pill">計算說明</div>
+                    <ul>
+                        <li><b>選擇原物料</b>：從下拉選單選擇已建立的原物料，系統會自動帶入該原物料的單位成本。</li>
+                        <li><b>輸入用量</b>：填寫這道菜需要使用的份量，系統會自動換算成「元/份」。</li>
+                        <li><b>單位換算</b>：系統會自動處理單位轉換（例如：原物料單位是 g，你可以填 kg）。</li>
+                        <li><b>總成本</b>：所有品項的「單項成本」加總，就是這道菜的總成本。</li>
+                    </ul>
+                </div>
+
+                <div class="btns" style="margin-top:12px;">
+                    <button id="btnExportCSV">匯出 CSV</button>
+                    <button class="secondary" id="btnSaveDish">儲存此菜色</button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Right: Summary -->
+        <aside class="card">
+            <div class="hd">
+                <h2>② 結果總覽</h2>
+                <span class="pill">自動保存到瀏覽器</span>
+            </div>
+            <div class="bd">
+
+                <div class="kpi">
+                    <div class="box">
+                        <div class="title">總成本（元/份）</div>
+                        <div class="value mono" id="kpiCost">0.00</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">建議售價（依目標毛利率）</div>
+                        <div class="value mono" id="kpiSuggested">—</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">毛利率</div>
+                        <div class="value mono" id="kpiMargin">—</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">成本率</div>
+                        <div class="value mono" id="kpiCostRate">—</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">毛利額（元/份）</div>
+                        <div class="value mono" id="kpiProfit">—</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">售價</div>
+                        <div class="value mono" id="kpiPrice">—</div>
+                    </div>
+                </div>
+
+                <div id="statusBox" class="status">
+                    請填寫菜色資料與原物料用量
+                </div>
+
+                <div class="hint">
+                    <div class="pill">公式說明</div>
+                    <ul>
+                        <li><b>總成本</b> = Σ 單項成本</li>
+                        <li><b>毛利額</b> = 售價 - 總成本</li>
+                        <li><b>毛利率</b> = (售價 - 總成本) ÷ 售價 × 100%</li>
+                        <li><b>成本率</b> = 總成本 ÷ 售價 × 100%</li>
+                        <li><b>建議售價</b> = 總成本 ÷ (1 - 目標毛利率)</li>
+                    </ul>
+                    <p style="margin-top:8px; color: var(--muted);">
+                        💡 產業參考：<br />
+                        • 精緻餐飲：毛利率 65-75%<br />
+                        • 一般餐廳：毛利率 55-65%<br />
+                        • 小吃/快餐：毛利率 50-60%
+                    </p>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer class="footer">
+        <p>💡 提示：記得先到「原物料管理」建立原物料庫，才能在這裡選擇使用。</p>
+    </footer>
+
+    <script src="utils.js"></script>
+    <script src="dishes.js"></script>
+</body>
+
+</html>

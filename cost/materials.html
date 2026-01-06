@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>原物料管理 - 餐飲成本計算器</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>原物料管理 <span class="tag">單位成本換算</span></h1>
+        <p class="sub">
+            建立你的原物料庫，設定採購價格與單位，系統會自動計算每個基礎單位的成本。<br />
+            這些原物料可以在「菜色計算」頁面中重複使用，不用每次都重新輸入。
+        </p>
+        <nav class="nav">
+            <a href="materials.html" class="active">原物料管理</a>
+            <a href="dishes.html">菜色成本計算</a>
+        </nav>
+    </header>
+
+    <main class="single-col">
+        <section class="card">
+            <div class="hd">
+                <h2>原物料列表</h2>
+                <div class="btns">
+                    <button id="btnAddMaterial">＋新增原物料</button>
+                    <button class="secondary" id="btnExportCSV">匯出原物料庫 (CSV)</button>
+                    <button class="secondary" id="btnImportCSV">匯入原物料庫 (CSV)</button>
+                    <button class="danger" id="btnClearAll">清空全部</button>
+                    <input class="fileInput" id="fileCSV" type="file" accept=".csv,text/csv" />
+                </div>
+            </div>
+            <div class="bd">
+                <div class="tableWrap" id="materialsTableWrap">
+                    <table id="materialsTable">
+                        <thead>
+                            <tr>
+                                <th style="min-width:150px;">原物料名稱</th>
+                                <th style="min-width:130px;">計算方式</th>
+                                <th>採購價 (TWD)</th>
+                                <th>採購量</th>
+                                <th>採購單位</th>
+                                <th>包裝內容量<br /><span class="small">(包/瓶時填)</span></th>
+                                <th>內容單位</th>
+                                <th>可用率(%)</th>
+                                <th class="right">單位成本<br /><span class="small">(元/基礎單位)</span></th>
+                                <th style="min-width:90px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materialsTbody">
+                            <!-- 原物料列表動態生成 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyState" class="empty-state" style="display:none;">
+                    <p>📦 尚未新增任何原物料</p>
+                    <p class="small">點擊上方「＋新增原物料」按鈕開始建立你的原物料庫</p>
+                </div>
+
+                <div class="hint">
+                    <div class="pill">使用說明</div>
+                    <ul>
+                        <li><b>單位換算</b>：選擇「單位換算」後，系統會計算「元/基礎單位」，例如：100元買1kg，單位成本 = 100 / 1000 = 0.1 元/g。</li>
+                        <li><b>固定成本</b>：選擇「固定成本」可直接輸入成本，適合裝飾品、耗材等。</li>
+                        <li><b>包裝內容量</b>：當採購單位是「包」或「瓶」時，需填寫包裝內的實際內容量（例如：1瓶 = 1000ml）。</li>
+                        <li><b>可用率</b>：考慮食材處理損耗，例如：帶骨肉去骨後可用率 70%，代表實際可用量只有採購量的 70%。</li>
+                        <li><b>資料儲存</b>：原物料會自動儲存到瀏覽器，下次開啟會自動載入。也可以匯出成 CSV 檔案備份。</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>💡 提示：原物料建立後，可以到「菜色成本計算」頁面使用這些原物料來計算菜色成本。</p>
+    </footer>
+
+    <script src="utils.js"></script>
+    <script src="materials.js"></script>
+</body>
+
+</html>
