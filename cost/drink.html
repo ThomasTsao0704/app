@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>成本系統｜菜色成本＋酒水原物料庫＋酒水成本率（單檔）</title>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --card: #121a33;
+            --card2: #0f1730;
+            --text: #e8eeff;
+            --muted: #a9b6e6;
+            --line: rgba(232, 238, 255, .12);
+            --accent: #7aa7ff;
+            --good: #26d07c;
+            --warn: #f7b731;
+            --bad: #ff5c5c;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            --radius: 16px;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--sans);
+            background: radial-gradient(1200px 800px at 15% 10%, rgba(122, 167, 255, .18), transparent 55%),
+                radial-gradient(900px 600px at 80% 20%, rgba(38, 208, 124, .12), transparent 55%),
+                radial-gradient(900px 700px at 60% 90%, rgba(247, 183, 49, .10), transparent 50%),
+                var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 22px 18px 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: .3px;
+        }
+
+        .sub {
+            margin: 10px 0 0;
+            color: var(--muted);
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .tabbtn {
+            cursor: pointer;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, .06);
+            color: var(--text);
+            padding: 9px 12px;
+            font-weight: 700;
+            transition: .15s ease;
+            user-select: none;
+        }
+
+        .tabbtn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(122, 167, 255, .45)
+        }
+
+        .tabbtn.active {
+            background: rgba(122, 167, 255, .18);
+            border-color: rgba(122, 167, 255, .55);
+            box-shadow: 0 0 0 3px rgba(122, 167, 255, .12);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 18px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 980px) {
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, rgba(255, 255, 255, .03), transparent 45%), var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card .hd {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .card .hd h2 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: .2px;
+        }
+
+        .card .bd {
+            padding: 14px 16px
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        @media (max-width: 720px) {
+            .row {
+                grid-template-columns: 1fr
+            }
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0 0 6px;
+        }
+
+        input,
+        select,
+        button,
+        textarea {
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: var(--card2);
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: rgba(122, 167, 255, .55);
+            box-shadow: 0 0 0 3px rgba(122, 167, 255, .15);
+        }
+
+        .inline {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .inline>* {
+            flex: 1
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, .05);
+            font-size: 13px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .btns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            cursor: pointer;
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            background: rgba(122, 167, 255, .14);
+            color: var(--text);
+            padding: 10px 12px;
+            transition: .15s ease;
+            font-weight: 750;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            border-color: rgba(122, 167, 255, .45)
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, .06);
+        }
+
+        button.danger {
+            background: rgba(255, 92, 92, .15);
+        }
+
+        .tableWrap {
+            overflow: auto;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: rgba(255, 255, 255, .02);
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: rgba(18, 26, 51, .92);
+            backdrop-filter: blur(8px);
+            z-index: 2;
+            text-align: left;
+            font-size: 12px;
+            color: var(--muted);
+            padding: 10px 10px;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(232, 238, 255, .06);
+            vertical-align: top;
+        }
+
+        tbody tr:hover td {
+            background: rgba(122, 167, 255, .05)
+        }
+
+        .cellInput input,
+        .cellInput select {
+            padding: 8px 8px;
+            border-radius: 10px;
+            font-size: 13px;
+        }
+
+        .right {
+            text-align: right
+        }
+
+        .mono {
+            font-family: var(--mono)
+        }
+
+        .help {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            line-height: 1.45;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 12px;
+            line-height: 1.55;
+        }
+
+        .small {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .status {
+            margin-top: 10px;
+            border-radius: 14px;
+            padding: 10px 12px;
+            border: 1px dashed rgba(232, 238, 255, .18);
+            color: var(--muted);
+            line-height: 1.45;
+            font-size: 13px;
+        }
+
+        .status.good {
+            border-color: rgba(38, 208, 124, .35);
+            color: rgba(38, 208, 124, .95)
+        }
+
+        .status.warn {
+            border-color: rgba(247, 183, 49, .35);
+            color: rgba(247, 183, 49, .95)
+        }
+
+        .status.bad {
+            border-color: rgba(255, 92, 92, .35);
+            color: rgba(255, 92, 92, .95)
+        }
+
+        .kpi {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .kpi .box {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(255, 255, 255, .03);
+        }
+
+        .kpi .title {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 0 0 6px;
+        }
+
+        .kpi .value {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: .2px;
+        }
+
+        .fileInput {
+            display: none;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 18px 18px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .badText {
+            color: var(--bad)
+        }
+
+        .warnText {
+            color: var(--warn)
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>成本系統（單檔）<span class="pill" style="margin-left:10px;">菜色成本＋酒水原物料庫＋酒水成本率</span></h1>
+        <p class="sub">
+            先把「真相」放在資料庫（酒水原物料庫），再讓配方引用它算成本率。這樣你才不會每天在那邊「重算人生」。
+        </p>
+        <div class="tabs">
+            <a href="index.html" class="tabbtn" style="text-decoration: none;">← 返回首頁</a>
+            <div class="tabbtn" data-tab="tab-materials">酒水原物料庫</div>
+            <div class="tabbtn" data-tab="tab-drinks">酒水成本率</div>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- ============================= -->
+        <!-- TAB 1: MATERIALS LIBRARY      -->
+        <!-- ============================= -->
+        <section id="tab-materials" class="section">
+            <div class="grid">
+                <section class="card">
+                    <div class="hd">
+                        <h2>酒水原物料庫</h2>
+                        <div class="btns">
+                            <button class="secondary" id="btnAddMaterial">＋新增原料</button>
+                            <button class="secondary" id="btnExportMaterialsCSV">匯出原料 CSV</button>
+                            <button class="secondary" id="btnImportMaterialsCSV">匯入原料 CSV</button>
+                            <input class="fileInput" id="fileMaterialsCSV" type="file" accept=".csv,text/csv" />
+                        </div>
+                    </div>
+
+                    <div class="bd">
+                        <div class="help">
+                            原物料庫是酒水成本率的「真相來源」。你只要更新進貨價，所有配方成本會一起更新。
+                        </div>
+
+                        <div class="tableWrap" style="margin-top:12px;">
+                            <table id="materialsTable" style="min-width:980px;">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width:160px;">原料名稱</th>
+                                        <th style="min-width:120px;">分類</th>
+                                        <th>採購價</th>
+                                        <th>採購量</th>
+                                        <th>採購單位</th>
+                                        <th>包裝內容量<br /><span class="small">（包/瓶才填）</span></th>
+                                        <th>內容單位</th>
+                                        <th>可用率(%)</th>
+                                        <th class="right">單位成本<br /><span class="small">（元/基礎單位）</span></th>
+                                        <th style="min-width:90px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="materialsTbody"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="hint">
+                            <div class="pill">原料 CSV 欄位</div>
+                            <div class="small mono" style="line-height:1.7;">
+                                material_name, category, purchase_price, purchase_qty, purchase_unit,<br />
+                                content_qty, content_unit, yield_rate
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="card">
+                    <div class="hd">
+                        <h2>原料庫小抄</h2>
+                        <span class="pill">建議做法</span>
+                    </div>
+                    <div class="bd">
+                        <div class="hint">
+                            <ul>
+                                <li>烈酒：通常用 <b>pack</b> + <b>700 ml / 750 ml / 1000 ml</b>。</li>
+                                <li>果汁/糖漿：用 <b>pack</b>（瓶）或 <b>ml / l</b> 都行。</li>
+                                <li>檸檬/薄荷：如果你想精準耗損，就把可用率寫進去（例如檸檬 65%）。</li>
+                                <li>單位成本是「用來被配方引用」的，不是拿來感動自己的。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+        <!-- ============================= -->
+        <!-- TAB 3: DRINK COST RATIO       -->
+        <!-- ============================= -->
+        <section id="tab-drinks" class="section">
+            <div class="grid">
+                <section class="card">
+                    <div class="hd">
+                        <h2>① 酒水配方（引用原物料庫）</h2>
+                        <div class="btns">
+                            <button class="secondary" id="btnAddDrink">＋新增酒水</button>
+                            <button class="danger" id="btnDeleteDrink">刪除此酒水</button>
+                            <span class="pill" id="drinkCountPill">共 1 杯</span>
+                        </div>
+                    </div>
+
+                    <div class="bd">
+                        <div class="row">
+                            <div>
+                                <label>選擇酒水（切換）</label>
+                                <select id="drinkSelect"></select>
+                                <div class="help">匯入配方時也會依 drink_name 分組（若你後續要我加配方 CSV）。</div>
+                            </div>
+                            <div>
+                                <label>酒水名稱（可編輯）</label>
+                                <input id="drinkName" placeholder="例如：Gin Tonic" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div>
+                                <label>售價（用於成本率/毛利率）</label>
+                                <div class="inline">
+                                    <input id="drinkSellingPrice" type="number" inputmode="decimal" min="0" step="0.01"
+                                        placeholder="例如：280" />
+                                    <div class="pill"><span class="mono">TWD</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label>目標成本率（選填，用於反推最低售價）</label>
+                                <div class="inline">
+                                    <input id="drinkTargetCostRatio" type="number" inputmode="decimal" min="0"
+                                        max="99.9" step="0.1" placeholder="例如：30" />
+                                    <div class="pill"><span class="mono">%</span></div>
+                                </div>
+                                <div class="help">例如 30% 表示你希望成本率 ≤ 30%，會反推最低售價。</div>
+                            </div>
+                        </div>
+
+                        <div class="btns" style="margin-bottom:10px;">
+                            <button class="secondary" id="btnAddDrinkRow">＋新增配方原料</button>
+                        </div>
+
+                        <div class="tableWrap">
+                            <table id="drinkRecipeTable" style="min-width:980px;">
+                                <thead>
+                                    <tr>
+                                        <th style="min-width:220px;">原料（從原物料庫選）</th>
+                                        <th style="min-width:120px;">用量</th>
+                                        <th style="min-width:120px;">用量單位</th>
+                                        <th class="right">單位成本</th>
+                                        <th class="right">單項成本</th>
+                                        <th style="min-width:90px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="drinkRecipeTbody"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="hint">
+                            <div class="pill">重要</div>
+                            <ul>
+                                <li>酒水成本率是「配方引用原物料庫」算出來的；先去原物料庫建好烈酒/糖漿/果汁。</li>
+                                <li>如果原料單位是瓶裝（pack），請在原物料庫填內容量（例如 700ml）。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="card">
+                    <div class="hd">
+                        <h2>② 酒水成本率（目前酒水）</h2>
+                        <span class="pill">自動保存</span>
+                    </div>
+                    <div class="bd">
+                        <div class="kpi">
+                            <div class="box">
+                                <div class="title">總成本（元/杯）</div>
+                                <div class="value mono" id="drinkKpiCost">0.00</div>
+                            </div>
+                            <div class="box">
+                                <div class="title">成本率（%）</div>
+                                <div class="value mono" id="drinkKpiCostRatio">—</div>
+                            </div>
+                            <div class="box">
+                                <div class="title">毛利率（%）</div>
+                                <div class="value mono" id="drinkKpiMargin">—</div>
+                            </div>
+                            <div class="box">
+                                <div class="title">毛利額（元/杯）</div>
+                                <div class="value mono" id="drinkKpiProfit">—</div>
+                            </div>
+                            <div class="box">
+                                <div class="title">最低售價（依目標成本率）</div>
+                                <div class="value mono" id="drinkKpiMinPrice">—</div>
+                                <div class="small" id="drinkKpiMinPriceNote">先填「目標成本率」</div>
+                            </div>
+                            <div class="box">
+                                <div class="title">檢核：成本率+毛利率</div>
+                                <div class="value mono" id="drinkKpiCheck">—</div>
+                            </div>
+                        </div>
+
+                        <div id="drinkStatusBox" class="status">尚未評估（請填售價）</div>
+
+                        <div class="hint">
+                            <div class="pill">成本率燈號（可改）</div>
+                            <ul>
+                                <li>≤ 25%：綠燈（健康）</li>
+                                <li>25–35%：黃燈（可接受）</li>
+                                <li>＞ 35%：紅燈（偏高，容易被成本吃掉）</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </section>
+
+    </main>
+
+    <div class="footer">
+        <b>備註：</b>資料會自動存在瀏覽器（localStorage）。若你要多人共用/跨裝置同步，我可以幫你加「匯入匯出一鍵備份」或接 Cloudflare/Google Sheet。
+    </div>
+
+    <script>
+        (() => {
+            // =========================
+            // Shared helpers & units
+            // =========================
+            const UNIT_META = {
+                g: { cat: "weight", toBase: 1, label: "g" },
+                kg: { cat: "weight", toBase: 1000, label: "kg" },
+                ml: { cat: "volume", toBase: 1, label: "ml" },
+                l: { cat: "volume", toBase: 1000, label: "l" },
+                pcs: { cat: "piece", toBase: 1, label: "顆" }
+            };
+
+            const PURCHASE_UNITS = [
+                { value: "g", label: "g" },
+                { value: "kg", label: "kg" },
+                { value: "ml", label: "ml" },
+                { value: "l", label: "l" },
+                { value: "pcs", label: "顆" },
+                { value: "pack", label: "包/瓶" }
+            ];
+
+            const USE_UNITS = [
+                { value: "g", label: "g" },
+                { value: "kg", label: "kg" },
+                { value: "ml", label: "ml" },
+                { value: "l", label: "l" },
+                { value: "pcs", label: "顆" }
+            ];
+
+            const METHOD = { UNIT: "unit", FIXED: "fixed" };
+
+            const fmt2 = (n) => (Number.isFinite(n) ? n : 0).toFixed(2);
+            const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
+            const parseNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+            const safeDiv = (a, b) => (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) ? 0 : a / b;
+
+            function id() { return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16); }
+
+            function toBaseQty(qty, unit) {
+                if (!UNIT_META[unit]) return { base: 0, cat: null };
+                return { base: qty * UNIT_META[unit].toBase, cat: UNIT_META[unit].cat };
+            }
+
+            // Tiny CSV parser for quoted CSV
+            function parseCSV(text) {
+                const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+                if (lines.length < 2) return { header: [], rows: [] };
+
+                const parseLine = (line) => {
+                    const out = [];
+                    let cur = "";
+                    let inQ = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const ch = line[i];
+                        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; continue; }
+                        if (ch === '"') { inQ = !inQ; continue; }
+                        if (ch === "," && !inQ) { out.push(cur); cur = ""; continue; }
+                        cur += ch;
+                    }
+                    out.push(cur);
+                    return out;
+                };
+
+                const header = parseLine(lines[0]).map(h => h.trim());
+                const rows = lines.slice(1).map(parseLine);
+                return { header, rows };
+            }
+
+            function downloadText(text, filename, mime) {
+                const blob = new Blob([text], { type: mime });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(a.href);
+            }
+
+            // =========================
+            // App State
+            // =========================
+            const STORAGE_KEY = "cost_system_tabs_v1";
+            const LEGACY_KEY = "dish_cost_calc_multi_v1";
+
+            function defaultMaterial(name = "") {
+                return {
+                    id: id(),
+                    name,
+                    category: "Spirit",
+                    purchasePrice: 0,
+                    purchaseQty: 1,
+                    purchaseUnit: "pack",
+                    contentQty: 700,
+                    contentUnit: "ml",
+                    yieldRate: 100
+                };
+            }
+
+            function defaultDrink(name = "新酒水") {
+                return {
+                    id: id(),
+                    name,
+                    sellingPrice: "",
+                    targetCostRatio: "",
+                    recipe: [defaultDrinkRow()]
+                };
+            }
+
+            function defaultDrinkRow() {
+                return {
+                    id: id(),
+                    materialId: "",  // references materials
+                    usedQty: 0,
+                    usedUnit: "ml"
+                };
+            }
+
+            function defaultState() {
+                const materials = [
+                    (() => { const m = defaultMaterial("Gin"); m.category = "Spirit"; m.purchasePrice = 650; m.purchaseQty = 1; m.purchaseUnit = "pack"; m.contentQty = 700; m.contentUnit = "ml"; m.yieldRate = 100; return m; })(),
+                    (() => { const m = defaultMaterial("Tonic Water"); m.category = "Mixer"; m.purchasePrice = 35; m.purchaseQty = 1; m.purchaseUnit = "pack"; m.contentQty = 330; m.contentUnit = "ml"; m.yieldRate = 100; return m; })(),
+                    (() => { const m = defaultMaterial("Lime Juice"); m.category = "Juice"; m.purchasePrice = 120; m.purchaseQty = 1; m.purchaseUnit = "pack"; m.contentQty = 1000; m.contentUnit = "ml"; m.yieldRate = 100; return m; })(),
+                ];
+
+                const drink = defaultDrink("Gin Tonic");
+                drink.sellingPrice = 280;
+                drink.recipe = [
+                    { ...defaultDrinkRow(), id: id(), materialId: materials[0].id, usedQty: 45, usedUnit: "ml" },
+                    { ...defaultDrinkRow(), id: id(), materialId: materials[1].id, usedQty: 150, usedUnit: "ml" },
+                    { ...defaultDrinkRow(), id: id(), materialId: materials[2].id, usedQty: 10, usedUnit: "ml" },
+                ];
+
+                return {
+                    tab: "tab-materials",
+                    // materials
+                    materials,
+                    // drinks
+                    currentDrinkId: drink.id,
+                    drinks: [drink],
+                };
+            }
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (!raw) return null;
+                    const s = JSON.parse(raw);
+                    if (!s) return null;
+                    // soft repair
+                    s.materials = Array.isArray(s.materials) ? s.materials : [];
+                    s.drinks = Array.isArray(s.drinks) ? s.drinks : [];
+                    return s;
+                } catch { return null; }
+            }
+
+            let state = loadState() || defaultState();
+
+            function saveState() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            }
+
+            // =========================
+            // Tabs
+            // =========================
+            const tabBtns = document.querySelectorAll(".tabbtn[data-tab]");
+            const sections = document.querySelectorAll(".section");
+
+            function setTab(tabId) {
+                state.tab = tabId;
+                tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
+                sections.forEach(s => s.classList.toggle("active", s.id === tabId));
+                saveState();
+            }
+
+            tabBtns.forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+            setTab(state.tab || "tab-materials"); // initial (changed from tab-dish)
+
+            // =========================
+            // Calculations: dish items
+            // =========================
+            function computeUnitCostFromPurchase(purchasePrice, purchaseQty, purchaseUnit, contentQty, contentUnit, yieldRatePct) {
+                const yieldRate = clamp(parseNum(yieldRatePct), 0, 100) / 100;
+
+                let totalBase = 0, cat = null;
+                if (purchaseUnit === "pack") {
+                    const contentBase = toBaseQty(parseNum(contentQty), contentUnit || "ml");
+                    totalBase = parseNum(purchaseQty) * contentBase.base;
+                    cat = contentBase.cat;
+                } else {
+                    const base = toBaseQty(parseNum(purchaseQty), purchaseUnit);
+                    totalBase = base.base;
+                    cat = base.cat;
+                }
+
+                const usableBase = totalBase * yieldRate;
+                const unitCost = safeDiv(parseNum(purchasePrice), usableBase);
+                return { unitCost, cat, usableBase };
+            }
+
+            // =========================
+            // Note: Dish 相關功能已全部移至 dishes.html
+            // =========================
+
+            // =========================
+            // Materials Library
+            // =========================
+            const materialsTbody = document.getElementById("materialsTbody");
+            const btnAddMaterial = document.getElementById("btnAddMaterial");
+            const btnExportMaterialsCSV = document.getElementById("btnExportMaterialsCSV");
+            const btnImportMaterialsCSV = document.getElementById("btnImportMaterialsCSV");
+            const fileMaterialsCSV = document.getElementById("fileMaterialsCSV");
+
+            function computeMaterialUnitCost(m) {
+                const { unitCost } = computeUnitCostFromPurchase(
+                    m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.contentQty, m.contentUnit, m.yieldRate
+                );
+                return unitCost;
+            }
+
+            function renderMaterials() {
+                materialsTbody.innerHTML = "";
+                for (const m of state.materials) {
+                    const tr = document.createElement("tr");
+
+                    tr.appendChild(tdInput(m.name, v => updateMaterial(m.id, { name: v }), "例如：Gin / Vodka / 糖漿"));
+                    tr.appendChild(tdInput(m.category, v => updateMaterial(m.id, { category: v }), "例如：Spirit/Mixer/Juice"));
+
+                    tr.appendChild(tdNumber(m.purchasePrice, v => updateMaterial(m.id, { purchasePrice: v }), "0", "0.01"));
+                    tr.appendChild(tdNumber(m.purchaseQty, v => updateMaterial(m.id, { purchaseQty: v }), "0", "0.001"));
+                    tr.appendChild(tdSelect(PURCHASE_UNITS, m.purchaseUnit, v => updateMaterial(m.id, { purchaseUnit: v })));
+
+                    tr.appendChild(tdNumber(m.contentQty, v => updateMaterial(m.id, { contentQty: v }), "0", "0.001"));
+                    tr.appendChild(tdSelect(USE_UNITS, m.contentUnit, v => updateMaterial(m.id, { contentUnit: v })));
+
+                    tr.appendChild(tdNumber(m.yieldRate, v => updateMaterial(m.id, { yieldRate: v }), "0", "0.1"));
+
+                    const unitCost = computeMaterialUnitCost(m);
+                    const unitCostText = unitCost > 0 ? fmt2(unitCost) : "—";
+                    const tdUC = tdTextRight(unitCostText, "");
+                    tr.appendChild(tdUC);
+
+                    const tdAct = document.createElement("td");
+                    tdAct.className = "cellInput";
+                    const del = document.createElement("button");
+                    del.className = "danger";
+                    del.textContent = "刪除";
+                    del.onclick = () => deleteMaterial(m.id);
+                    tdAct.appendChild(del);
+                    tr.appendChild(tdAct);
+
+                    // disable content fields if not pack
+                    setRowDisabledMaterial(tr, m);
+
+                    materialsTbody.appendChild(tr);
+                }
+
+                // rerender drinks because selects depend on materials
+                renderDrinks();
+
+                saveState();
+            }
+
+            function setRowDisabledMaterial(tr, m) {
+                const inputs = tr.querySelectorAll("input, select");
+                // 0 name,1 cat,2 price,3 qty,4 unit,5 contentQty,6 contentUnit,7 yield
+                const isPack = m.purchaseUnit === "pack";
+                inputs[5].disabled = !isPack; inputs[6].disabled = !isPack;
+                inputs[5].style.opacity = isPack ? 1 : .55;
+                inputs[6].style.opacity = isPack ? 1 : .55;
+            }
+
+            function addMaterial() {
+                state.materials.push(defaultMaterial(`Material ${state.materials.length + 1}`));
+                renderMaterials();
+            }
+
+            function updateMaterial(materialId, patch) {
+                state.materials = state.materials.map(m => m.id === materialId ? { ...m, ...patch } : m);
+                const m = state.materials.find(x => x.id === materialId);
+                if (m) m.yieldRate = clamp(parseNum(m.yieldRate), 0, 100);
+                renderMaterials();
+            }
+
+            function deleteMaterial(materialId) {
+                // remove from library
+                state.materials = state.materials.filter(m => m.id !== materialId);
+                // clean drink recipes referencing removed material
+                for (const d of state.drinks) {
+                    d.recipe = d.recipe.map(r => r.materialId === materialId ? { ...r, materialId: "" } : r);
+                }
+                renderMaterials();
+            }
+
+            // Materials CSV
+            function exportMaterialsCSV() {
+                const header = ["material_name", "category", "purchase_price", "purchase_qty", "purchase_unit", "content_qty", "content_unit", "yield_rate"];
+                const lines = [];
+                lines.push(header.map(h => `"${h}"`).join(","));
+                for (const m of state.materials) {
+                    const row = [
+                        (m.name || "").replaceAll('"', '""'),
+                        (m.category || "").replaceAll('"', '""'),
+                        m.purchasePrice ?? "",
+                        m.purchaseQty ?? "",
+                        m.purchaseUnit ?? "",
+                        m.contentQty ?? "",
+                        m.contentUnit ?? "",
+                        m.yieldRate ?? ""
+                    ].map(v => `"${String(v ?? "").replaceAll('"', '""')}"`).join(",");
+                    lines.push(row);
+                }
+                downloadText(lines.join("\n"), "materials.csv", "text/csv;charset=utf-8");
+            }
+
+            function importMaterialsCSVText(text) {
+                const { header, rows } = parseCSV(text);
+                const idx = (name) => header.indexOf(name);
+
+                const mats = rows.map(r => ({
+                    id: id(),
+                    name: (r[idx("material_name")] ?? "").trim(),
+                    category: (r[idx("category")] ?? "").trim() || "Other",
+                    purchasePrice: parseNum(r[idx("purchase_price")]),
+                    purchaseQty: parseNum(r[idx("purchase_qty")] || 1),
+                    purchaseUnit: (r[idx("purchase_unit")] ?? "pack") || "pack",
+                    contentQty: parseNum(r[idx("content_qty")] || 0),
+                    contentUnit: (r[idx("content_unit")] ?? "ml") || "ml",
+                    yieldRate: parseNum(r[idx("yield_rate")] ?? 100)
+                }));
+
+                state.materials = mats.length ? mats : state.materials;
+                renderMaterials();
+            }
+
+            btnAddMaterial.addEventListener("click", addMaterial);
+            btnExportMaterialsCSV.addEventListener("click", exportMaterialsCSV);
+            btnImportMaterialsCSV.addEventListener("click", () => fileMaterialsCSV.click());
+            fileMaterialsCSV.addEventListener("change", async (e) => {
+                const f = e.target.files?.[0]; if (!f) return;
+                const t = await f.text();
+                importMaterialsCSVText(t);
+                e.target.value = "";
+            });
+
+            // =========================
+            // Drinks (cost ratio)
+            // =========================
+            const drinkSelect = document.getElementById("drinkSelect");
+            const drinkCountPill = document.getElementById("drinkCountPill");
+            const drinkName = document.getElementById("drinkName");
+            const drinkSellingPrice = document.getElementById("drinkSellingPrice");
+            const drinkTargetCostRatio = document.getElementById("drinkTargetCostRatio");
+            const drinkRecipeTbody = document.getElementById("drinkRecipeTbody");
+
+            const drinkKpiCost = document.getElementById("drinkKpiCost");
+            const drinkKpiCostRatio = document.getElementById("drinkKpiCostRatio");
+            const drinkKpiMargin = document.getElementById("drinkKpiMargin");
+            const drinkKpiProfit = document.getElementById("drinkKpiProfit");
+            const drinkKpiMinPrice = document.getElementById("drinkKpiMinPrice");
+            const drinkKpiMinPriceNote = document.getElementById("drinkKpiMinPriceNote");
+            const drinkKpiCheck = document.getElementById("drinkKpiCheck");
+            const drinkStatusBox = document.getElementById("drinkStatusBox");
+
+            const btnAddDrink = document.getElementById("btnAddDrink");
+            const btnDeleteDrink = document.getElementById("btnDeleteDrink");
+            const btnAddDrinkRow = document.getElementById("btnAddDrinkRow");
+
+            function getCurrentDrink() {
+                let d = state.drinks.find(x => x.id === state.currentDrinkId);
+                if (!d && state.drinks.length) { state.currentDrinkId = state.drinks[0].id; d = state.drinks[0]; }
+                if (!d) { d = defaultDrink("新酒水"); state.drinks = [d]; state.currentDrinkId = d.id; }
+                return d;
+            }
+
+            function materialById(mid) {
+                return state.materials.find(m => m.id === mid) || null;
+            }
+
+            function computeDrinkRowCost(row) {
+                const m = materialById(row.materialId);
+                if (!m) return { unitCostText: "—", itemCostText: "—", itemCost: 0, unitCostClass: "", itemCostClass: "" };
+
+                const { unitCost, cat } = computeUnitCostFromPurchase(
+                    m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.contentQty, m.contentUnit, m.yieldRate
+                );
+                if (!Number.isFinite(unitCost) || unitCost <= 0) return { unitCostText: "—", itemCostText: "—", itemCost: 0, unitCostClass: "", itemCostClass: "" };
+
+                const usedBase = toBaseQty(parseNum(row.usedQty), row.usedUnit);
+                const mismatch = cat && usedBase.cat && cat !== usedBase.cat;
+                if (mismatch) {
+                    return { unitCostText: "單位類別不符", itemCostText: "—", itemCost: 0, unitCostClass: "badText", itemCostClass: "badText" };
+                }
+
+                const itemCost = unitCost * usedBase.base;
+                return { unitCostText: fmt2(unitCost), itemCostText: fmt2(itemCost), itemCost, unitCostClass: "", itemCostClass: "" };
+            }
+
+            function drinkTotalCost(drink) {
+                return (drink.recipe || []).reduce((sum, r) => sum + computeDrinkRowCost(r).itemCost, 0);
+            }
+
+            function renderDrinks() {
+                const d = getCurrentDrink();
+
+                drinkSelect.innerHTML = "";
+                for (const x of state.drinks) {
+                    const opt = document.createElement("option");
+                    opt.value = x.id;
+                    opt.textContent = x.name || "（未命名）";
+                    drinkSelect.appendChild(opt);
+                }
+                drinkSelect.value = d.id;
+                drinkCountPill.textContent = `共 ${state.drinks.length} 杯`;
+
+                drinkName.value = d.name ?? "";
+                drinkSellingPrice.value = d.sellingPrice ?? "";
+                drinkTargetCostRatio.value = d.targetCostRatio ?? "";
+
+                drinkRecipeTbody.innerHTML = "";
+                for (const r of d.recipe) {
+                    const tr = document.createElement("tr");
+
+                    // material select
+                    const tdMat = document.createElement("td");
+                    tdMat.className = "cellInput";
+                    const sel = document.createElement("select");
+                    const opt0 = document.createElement("option");
+                    opt0.value = "";
+                    opt0.textContent = "（請選擇原料）";
+                    sel.appendChild(opt0);
+                    for (const m of state.materials) {
+                        const o = document.createElement("option");
+                        o.value = m.id;
+                        o.textContent = `${m.name || "未命名"}  [${m.category || "Other"}]`;
+                        sel.appendChild(o);
+                    }
+                    sel.value = r.materialId || "";
+                    sel.addEventListener("change", e => updateDrinkRow(r.id, { materialId: e.target.value }));
+                    tdMat.appendChild(sel);
+                    tr.appendChild(tdMat);
+
+                    tr.appendChild(tdNumber(r.usedQty, v => updateDrinkRow(r.id, { usedQty: v }), "0", "0.1"));
+                    tr.appendChild(tdSelect(USE_UNITS, r.usedUnit, v => updateDrinkRow(r.id, { usedUnit: v })));
+
+                    const calc = computeDrinkRowCost(r);
+                    tr.appendChild(tdTextRight(calc.unitCostText, calc.unitCostClass));
+                    tr.appendChild(tdTextRight(calc.itemCostText, calc.itemCostClass));
+
+                    const tdAct = document.createElement("td");
+                    tdAct.className = "cellInput";
+                    const del = document.createElement("button");
+                    del.className = "danger";
+                    del.textContent = "刪除";
+                    del.onclick = () => deleteDrinkRow(r.id);
+                    tdAct.appendChild(del);
+                    tr.appendChild(tdAct);
+
+                    drinkRecipeTbody.appendChild(tr);
+                }
+
+                // KPI
+                const total = drinkTotalCost(d);
+                drinkKpiCost.textContent = fmt2(total);
+
+                const sp = parseNum(d.sellingPrice);
+                if (sp > 0) {
+                    const costRatio = safeDiv(total, sp) * 100;
+                    const margin = 100 - costRatio;
+                    const profit = sp - total;
+
+                    drinkKpiCostRatio.textContent = `${costRatio.toFixed(1)}%`;
+                    drinkKpiMargin.textContent = `${margin.toFixed(1)}%`;
+                    drinkKpiProfit.textContent = fmt2(profit);
+                    drinkKpiCheck.textContent = `${(costRatio + margin).toFixed(1)}%`;
+
+                    // threshold
+                    const cls = costRatio <= 25 ? "good" : costRatio <= 35 ? "warn" : "bad";
+                    drinkStatusBox.className = "status " + cls;
+                    drinkStatusBox.textContent =
+                        (total > sp)
+                            ? `🛑 總成本 ${fmt2(total)} 已大於售價 ${fmt2(sp)}（每賣一杯就虧一杯）`
+                            : (cls === "good" ? `✅ 成本率 ${costRatio.toFixed(1)}%（健康）`
+                                : cls === "warn" ? `🟡 成本率 ${costRatio.toFixed(1)}%（可接受）`
+                                    : `🛑 成本率 ${costRatio.toFixed(1)}%（偏高，建議調整配方/份量/售價）`);
+                } else {
+                    drinkKpiCostRatio.textContent = "—";
+                    drinkKpiMargin.textContent = "—";
+                    drinkKpiProfit.textContent = "—";
+                    drinkKpiCheck.textContent = "—";
+                    drinkStatusBox.className = "status";
+                    drinkStatusBox.textContent = "尚未評估（請填售價）";
+                }
+
+                // min price from target cost ratio
+                const tcr = parseNum(d.targetCostRatio);
+                if (tcr > 0 && tcr < 100 && total > 0) {
+                    const minPrice = safeDiv(total, (tcr / 100));
+                    drinkKpiMinPrice.textContent = fmt2(minPrice);
+                    drinkKpiMinPriceNote.textContent = `以目標成本率 ${tcr.toFixed(1)}% 反推`;
+                } else {
+                    drinkKpiMinPrice.textContent = "—";
+                    drinkKpiMinPriceNote.textContent = "先填「目標成本率」";
+                }
+
+                saveState();
+            }
+
+            function updateDrink(patch) {
+                const d = getCurrentDrink();
+                Object.assign(d, patch);
+                renderDrinks();
+            }
+
+            function updateDrinkRow(rowId, patch) {
+                const d = getCurrentDrink();
+                d.recipe = d.recipe.map(r => r.id === rowId ? { ...r, ...patch } : r);
+                renderDrinks();
+            }
+
+            function deleteDrinkRow(rowId) {
+                const d = getCurrentDrink();
+                d.recipe = d.recipe.filter(r => r.id !== rowId);
+                if (d.recipe.length === 0) d.recipe = [defaultDrinkRow()];
+                renderDrinks();
+            }
+
+            function addDrink() {
+                const nd = defaultDrink(`新酒水 ${state.drinks.length + 1}`);
+                state.drinks.push(nd);
+                state.currentDrinkId = nd.id;
+                renderDrinks();
+            }
+
+            function deleteCurrentDrink() {
+                if (state.drinks.length <= 1) {
+                    state.drinks = [defaultDrink("新酒水")];
+                    state.currentDrinkId = state.drinks[0].id;
+                    renderDrinks();
+                    return;
+                }
+                state.drinks = state.drinks.filter(d => d.id !== state.currentDrinkId);
+                state.currentDrinkId = state.drinks[0].id;
+                renderDrinks();
+            }
+
+            function addDrinkRow() {
+                const d = getCurrentDrink();
+                d.recipe.push(defaultDrinkRow());
+                renderDrinks();
+            }
+
+            // drink events
+            drinkSelect.addEventListener("change", (e) => { state.currentDrinkId = e.target.value; renderDrinks(); });
+            drinkName.addEventListener("input", (e) => updateDrink({ name: e.target.value }));
+            drinkSellingPrice.addEventListener("input", (e) => updateDrink({ sellingPrice: e.target.value }));
+            drinkTargetCostRatio.addEventListener("input", (e) => updateDrink({ targetCostRatio: e.target.value }));
+
+            btnAddDrink.addEventListener("click", addDrink);
+            btnDeleteDrink.addEventListener("click", deleteCurrentDrink);
+            btnAddDrinkRow.addEventListener("click", addDrinkRow);
+
+            // =========================
+            // Small UI helper cells
+            // =========================
+            function tdInput(value, onChange, placeholder = "") {
+                const td = document.createElement("td");
+                td.className = "cellInput";
+                const input = document.createElement("input");
+                input.type = "text";
+                input.value = value ?? "";
+                input.placeholder = placeholder;
+                input.addEventListener("input", e => onChange(e.target.value));
+                td.appendChild(input);
+                return td;
+            }
+            function tdNumber(value, onChange, min = "0", step = "0.01") {
+                const td = document.createElement("td");
+                td.className = "cellInput";
+                const input = document.createElement("input");
+                input.type = "number";
+                input.inputMode = "decimal";
+                input.min = min;
+                input.step = step;
+                input.value = (value ?? "");
+                input.addEventListener("input", e => onChange(parseNum(e.target.value)));
+                td.appendChild(input);
+                return td;
+            }
+            function tdSelect(options, value, onChange) {
+                const td = document.createElement("td");
+                td.className = "cellInput";
+                const sel = document.createElement("select");
+                for (const opt of options) {
+                    const o = document.createElement("option");
+                    o.value = opt.value;
+                    o.textContent = opt.label;
+                    sel.appendChild(o);
+                }
+                sel.value = value ?? options[0]?.value;
+                sel.addEventListener("change", e => onChange(e.target.value));
+                td.appendChild(sel);
+                return td;
+            }
+            function tdTextRight(text, extraClass = "") {
+                const td = document.createElement("td");
+                td.className = "right mono " + (extraClass || "");
+                td.textContent = text;
+                return td;
+            }
+
+            // =========================
+            // Initial renders
+            // =========================
+            // renderDish(); // Removed - dish功能已移至 dishes.html
+            renderMaterials();
+            renderDrinks();
+
+        })();
+    </script>
+</body>
+
+</html>
