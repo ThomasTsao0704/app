@@ -394,8 +394,15 @@
         <p class="sub">
             先把「真相」放在資料庫（酒水原物料庫），再讓配方引用它算成本率。這樣你才不會每天在那邊「重算人生」。
         </p>
-        <div class="tabs">
+        <nav class="nav" style="margin-bottom: 1rem;">
             <a href="index.html" class="tabbtn" style="text-decoration: none;">← 返回首頁</a>
+            <a href="materials.html">原物料管理</a>
+            <a href="analysis.html">採購分析</a>
+            <a href="dishes.html">菜色成本計算</a>
+            <a href="drink.html" class="active">酒水成本計算</a>
+            <a href="total.html">食材成本統計</a>
+        </nav>
+        <div class="tabs">
             <div class="tabbtn" data-tab="tab-materials">酒水原物料庫</div>
             <div class="tabbtn" data-tab="tab-drinks">酒水成本率</div>
         </div>
@@ -888,7 +895,32 @@
                 state.materials = state.materials.map(m => m.id === materialId ? { ...m, ...patch } : m);
                 const m = state.materials.find(x => x.id === materialId);
                 if (m) m.yieldRate = clamp(parseNum(m.yieldRate), 0, 100);
-                renderMaterials();
+
+                // Only update unit cost display and drinks, don't re-render entire table
+                updateMaterialUnitCostDisplay(materialId);
+                renderDrinks();
+                saveState();
+            }
+
+            function updateMaterialUnitCostDisplay(materialId) {
+                const m = state.materials.find(x => x.id === materialId);
+                if (!m) return;
+
+                const rows = materialsTbody.querySelectorAll('tr');
+                const idx = state.materials.findIndex(x => x.id === materialId);
+                if (idx >= 0 && idx < rows.length) {
+                    const tr = rows[idx];
+                    const unitCost = computeMaterialUnitCost(m);
+                    const unitCostText = unitCost > 0 ? fmt2(unitCost) : "—";
+                    const cells = tr.querySelectorAll('td');
+                    // Unit cost is the second-to-last column (before action column)
+                    if (cells.length >= 2) {
+                        cells[cells.length - 2].textContent = unitCostText;
+                    }
+
+                    // Update disabled state for content fields
+                    setRowDisabledMaterial(tr, m);
+                }
             }
 
             function deleteMaterial(materialId) {
@@ -1118,13 +1150,82 @@
             function updateDrink(patch) {
                 const d = getCurrentDrink();
                 Object.assign(d, patch);
-                renderDrinks();
+                // Only update KPIs, don't re-render entire form
+                updateDrinkKPIs();
+                saveState();
             }
 
             function updateDrinkRow(rowId, patch) {
                 const d = getCurrentDrink();
                 d.recipe = d.recipe.map(r => r.id === rowId ? { ...r, ...patch } : r);
-                renderDrinks();
+                // Only update the specific row's cost and KPIs
+                updateDrinkRowCostDisplay(rowId);
+                updateDrinkKPIs();
+                saveState();
+            }
+
+            function updateDrinkRowCostDisplay(rowId) {
+                const d = getCurrentDrink();
+                const rowIdx = d.recipe.findIndex(r => r.id === rowId);
+                if (rowIdx < 0) return;
+
+                const rows = drinkRecipeTbody.querySelectorAll('tr');
+                if (rowIdx >= rows.length) return;
+
+                const tr = rows[rowIdx];
+                const row = d.recipe[rowIdx];
+                const calc = computeDrinkRowCost(row);
+                const cells = tr.querySelectorAll('td');
+
+                // Update unit cost (3rd from end) and item cost (2nd from end) columns
+                if (cells.length >= 3) {
+                    cells[cells.length - 3].textContent = calc.unitCostText;
+                    cells[cells.length - 3].className = "right mono " + calc.unitCostClass;
+                    cells[cells.length - 2].textContent = calc.itemCostText;
+                    cells[cells.length - 2].className = "right mono " + calc.itemCostClass;
+                }
+            }
+
+            function updateDrinkKPIs() {
+                const d = getCurrentDrink();
+                const total = drinkTotalCost(d);
+                drinkKpiCost.textContent = fmt2(total);
+
+                const sp = parseNum(d.sellingPrice);
+                const tcr = parseNum(d.targetCostRatio);
+
+                if (tcr > 0 && tcr < 100 && total > 0) {
+                    const minPrice = safeDiv(total, (tcr / 100));
+                    drinkKpiMinPrice.textContent = fmt2(minPrice);
+                    drinkKpiMinPriceNote.textContent = `以目標成本率 ${tcr.toFixed(1)}% 反推`;
+                } else {
+                    drinkKpiMinPrice.textContent = "—";
+                    drinkKpiMinPriceNote.textContent = "先填「目標成本率」";
+                }
+
+                if (sp > 0) {
+                    const gp = sp - total;
+                    const costRatio = safeDiv(total, sp) * 100;
+                    const margin = safeDiv(gp, sp) * 100;
+                    drinkKpiProfit.textContent = fmt2(gp);
+                    drinkKpiCostRatio.textContent = `${costRatio.toFixed(1)}%`;
+                    drinkKpiMargin.textContent = `${margin.toFixed(1)}%`;
+                    drinkKpiCheck.textContent = `${(costRatio + margin).toFixed(1)}%`;
+
+                    drinkStatusBox.className = "status " + (costRatio <= 25 ? "good" : costRatio <= 35 ? "warn" : "bad");
+                    drinkStatusBox.textContent = (total > sp)
+                        ? `🛑 總成本 ${fmt2(total)} 已大於售價 ${fmt2(sp)}（每賣一杯就虧一杯）`
+                        : (costRatio <= 25 ? `✅ 成本率 ${costRatio.toFixed(1)}%（健康）`
+                            : costRatio <= 35 ? `🟡 成本率 ${costRatio.toFixed(1)}%（可接受）`
+                                : `🛑 成本率 ${costRatio.toFixed(1)}%（偏高，容易被成本吃掉）`);
+                } else {
+                    drinkKpiProfit.textContent = "—";
+                    drinkKpiCostRatio.textContent = "—";
+                    drinkKpiMargin.textContent = "—";
+                    drinkKpiCheck.textContent = "—";
+                    drinkStatusBox.className = "status";
+                    drinkStatusBox.textContent = "尚未評估（請填售價）";
+                }
             }
 
             function deleteDrinkRow(rowId) {

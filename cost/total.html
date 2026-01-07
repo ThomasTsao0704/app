@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>食材成本統計 - 餐飲成本計算器</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <header>
+        <h1>食材成本統計 <span class="tag">原物料總覽</span></h1>
+        <p class="sub">
+            整合食材與酒水原物料的完整統計，包含成本分析、庫存價值估算、單位成本排名等。<br />
+            可匯出完整統計報表，方便進行成本控管與採購決策。
+        </p>
+        <nav class="nav">
+            <a href="index.html" class="tabbtn" style="text-decoration: none;">← 返回首頁</a>
+            <a href="materials.html">原物料管理</a>
+            <a href="analysis.html">採購分析</a>
+            <a href="dishes.html">菜色成本計算</a>
+            <a href="drink.html">酒水成本計算</a>
+            <a href="total.html" class="active">食材成本統計</a>
+        </nav>
+    </header>
+
+    <main class="single-col">
+        <!-- 統計概覽 -->
+        <section class="card">
+            <div class="hd">
+                <h2>📊 統計概覽</h2>
+            </div>
+            <div class="bd">
+                <div class="kpi">
+                    <div class="box">
+                        <div class="title">食材原物料總數</div>
+                        <div class="value mono" id="totalFoodCount">0</div>
+                        <div class="small">種類</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">酒水原物料總數</div>
+                        <div class="value mono" id="totalDrinkCount">0</div>
+                        <div class="small">種類</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">總庫存價值估算</div>
+                        <div class="value mono" id="totalInventoryValue">0.00</div>
+                        <div class="small">TWD</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">平均單位成本（食材）</div>
+                        <div class="value mono" id="avgFoodUnitCost">0.00</div>
+                        <div class="small">元/g</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">平均單位成本（酒水）</div>
+                        <div class="value mono" id="avgDrinkUnitCost">0.00</div>
+                        <div class="small">元/ml</div>
+                    </div>
+                    <div class="box">
+                        <div class="title">最高單位成本原料</div>
+                        <div class="value" id="mostExpensiveMaterial" style="font-size:0.9rem;">—</div>
+                        <div class="small" id="mostExpensiveCost">—</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 食材原物料列表 -->
+        <section class="card">
+            <div class="hd">
+                <h2>🥬 食材原物料</h2>
+                <div class="btns">
+                    <button class="secondary" id="btnExportFoodCSV">匯出食材統計 (CSV)</button>
+                    <button class="secondary" id="btnSortFoodByCost">依單位成本排序</button>
+                </div>
+            </div>
+            <div class="bd">
+                <div class="tableWrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="min-width:150px;">原物料名稱</th>
+                                <th>計算方式</th>
+                                <th>採購價 (TWD)</th>
+                                <th>採購量</th>
+                                <th>採購單位</th>
+                                <th>可用率(%)</th>
+                                <th class="right">單位成本</th>
+                                <th class="right">庫存價值估算</th>
+                            </tr>
+                        </thead>
+                        <tbody id="foodMaterialsTbody">
+                            <tr>
+                                <td colspan="8" class="empty">目前沒有食材原物料，請前往「原物料管理」新增</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 酒水原物料列表 -->
+        <section class="card">
+            <div class="hd">
+                <h2>🍹 酒水原物料</h2>
+                <div class="btns">
+                    <button class="secondary" id="btnExportDrinkCSV">匯出酒水統計 (CSV)</button>
+                    <button class="secondary" id="btnSortDrinkByCost">依單位成本排序</button>
+                </div>
+            </div>
+            <div class="bd">
+                <div class="tableWrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="min-width:150px;">原物料名稱</th>
+                                <th>分類</th>
+                                <th>採購價 (TWD)</th>
+                                <th>採購量</th>
+                                <th>採購單位</th>
+                                <th>可用率(%)</th>
+                                <th class="right">單位成本</th>
+                                <th class="right">庫存價值估算</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drinkMaterialsTbody">
+                            <tr>
+                                <td colspan="8" class="empty">目前沒有酒水原物料，請前往「酒水成本計算」新增</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 成本分析 -->
+        <section class="card">
+            <div class="hd">
+                <h2>📈 成本分析</h2>
+            </div>
+            <div class="bd">
+                <div class="hint">
+                    <div class="pill">單位成本等級</div>
+                    <ul>
+                        <li><span class="good">●</span> 低成本：單位成本 ≤ 1 元</li>
+                        <li><span class="warn">●</span> 中等成本：單位成本 1-5 元</li>
+                        <li><span class="bad">●</span> 高成本：單位成本 > 5 元</li>
+                    </ul>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <div class="kpi">
+                        <div class="box">
+                            <div class="title">低成本原料</div>
+                            <div class="value mono" id="lowCostCount">0</div>
+                            <div class="small">種類</div>
+                        </div>
+                        <div class="box">
+                            <div class="title">中等成本原料</div>
+                            <div class="value mono" id="mediumCostCount">0</div>
+                            <div class="small">種類</div>
+                        </div>
+                        <div class="box">
+                            <div class="title">高成本原料</div>
+                            <div class="value mono" id="highCostCount">0</div>
+                            <div class="small">種類</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="footer">
+        <b>備註：</b>資料來源於「原物料管理」與「酒水成本計算」頁面。庫存價值為採購價估算，實際庫存需另行盤點。
+    </div>
+
+    <script>
+        (() => {
+            // Storage keys
+            const FOOD_STORAGE_KEY = "materials_library_v1";
+            const DRINK_STORAGE_KEY = "cost_system_tabs_v1";
+
+            // Helper functions
+            const fmt2 = (n) => (Number.isFinite(n) ? n : 0).toFixed(2);
+            const parseNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+            const safeDiv = (a, b) => (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) ? 0 : a / b;
+
+            const UNIT_META = {
+                g: { cat: "weight", toBase: 1, label: "g" },
+                kg: { cat: "weight", toBase: 1000, label: "kg" },
+                ml: { cat: "volume", toBase: 1, label: "ml" },
+                l: { cat: "volume", toBase: 1000, label: "l" },
+                pcs: { cat: "piece", toBase: 1, label: "顆" }
+            };
+
+            function toBaseQty(qty, unit) {
+                if (!UNIT_META[unit]) return { base: 0, cat: null };
+                return { base: qty * UNIT_META[unit].toBase, cat: UNIT_META[unit].cat };
+            }
+
+            function computeUnitCost(purchasePrice, purchaseQty, purchaseUnit, contentQty, contentUnit, yieldRate) {
+                const pp = parseNum(purchasePrice);
+                const pq = parseNum(purchaseQty);
+                const yr = parseNum(yieldRate) / 100;
+
+                if (pp <= 0 || pq <= 0 || yr <= 0) return 0;
+
+                let totalBase;
+                if (purchaseUnit === "pack") {
+                    const cq = parseNum(contentQty);
+                    const content = toBaseQty(cq, contentUnit);
+                    totalBase = pq * content.base;
+                } else {
+                    const purchase = toBaseQty(pq, purchaseUnit);
+                    totalBase = purchase.base;
+                }
+
+                if (totalBase <= 0) return 0;
+                const usableBase = totalBase * yr;
+                return safeDiv(pp, usableBase);
+            }
+
+            // Load data
+            function loadFoodMaterials() {
+                try {
+                    const raw = localStorage.getItem(FOOD_STORAGE_KEY);
+                    if (!raw) return [];
+                    const data = JSON.parse(raw);
+                    return Array.isArray(data) ? data : [];
+                } catch { return []; }
+            }
+
+            function loadDrinkMaterials() {
+                try {
+                    const raw = localStorage.getItem(DRINK_STORAGE_KEY);
+                    if (!raw) return [];
+                    const data = JSON.parse(raw);
+                    return Array.isArray(data.materials) ? data.materials : [];
+                } catch { return []; }
+            }
+
+            let foodMaterials = loadFoodMaterials();
+            let drinkMaterials = loadDrinkMaterials();
+            let sortFoodByUnitCost = false;
+            let sortDrinkByUnitCost = false;
+
+            // DOM elements
+            const totalFoodCount = document.getElementById("totalFoodCount");
+            const totalDrinkCount = document.getElementById("totalDrinkCount");
+            const totalInventoryValue = document.getElementById("totalInventoryValue");
+            const avgFoodUnitCost = document.getElementById("avgFoodUnitCost");
+            const avgDrinkUnitCost = document.getElementById("avgDrinkUnitCost");
+            const mostExpensiveMaterial = document.getElementById("mostExpensiveMaterial");
+            const mostExpensiveCost = document.getElementById("mostExpensiveCost");
+
+            const lowCostCount = document.getElementById("lowCostCount");
+            const mediumCostCount = document.getElementById("mediumCostCount");
+            const highCostCount = document.getElementById("highCostCount");
+
+            const foodMaterialsTbody = document.getElementById("foodMaterialsTbody");
+            const drinkMaterialsTbody = document.getElementById("drinkMaterialsTbody");
+
+            const btnExportFoodCSV = document.getElementById("btnExportFoodCSV");
+            const btnExportDrinkCSV = document.getElementById("btnExportDrinkCSV");
+            const btnSortFoodByCost = document.getElementById("btnSortFoodByCost");
+            const btnSortDrinkByCost = document.getElementById("btnSortDrinkByCost");
+
+            // Render functions
+            function renderStatistics() {
+                totalFoodCount.textContent = foodMaterials.length;
+                totalDrinkCount.textContent = drinkMaterials.length;
+
+                // Calculate total inventory value (purchase price)
+                let totalValue = 0;
+                foodMaterials.forEach(m => {
+                    totalValue += parseNum(m.purchasePrice);
+                });
+                drinkMaterials.forEach(m => {
+                    totalValue += parseNum(m.purchasePrice);
+                });
+                totalInventoryValue.textContent = fmt2(totalValue);
+
+                // Calculate average unit costs
+                let foodCosts = [];
+                let drinkCosts = [];
+                let allMaterials = [];
+
+                foodMaterials.forEach(m => {
+                    const unitCost = m.calcType === 'fixed'
+                        ? parseNum(m.purchasePrice)
+                        : computeUnitCost(m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.packageContent, m.contentUnit, m.usableRate);
+
+                    if (unitCost > 0) {
+                        foodCosts.push(unitCost);
+                        allMaterials.push({ name: m.name, unitCost, type: '食材' });
+                    }
+                });
+
+                drinkMaterials.forEach(m => {
+                    const unitCost = computeUnitCost(m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.contentQty, m.contentUnit, m.yieldRate);
+                    if (unitCost > 0) {
+                        drinkCosts.push(unitCost);
+                        allMaterials.push({ name: m.name, unitCost, type: '酒水' });
+                    }
+                });
+
+                const avgFood = foodCosts.length > 0 ? foodCosts.reduce((a, b) => a + b, 0) / foodCosts.length : 0;
+                const avgDrink = drinkCosts.length > 0 ? drinkCosts.reduce((a, b) => a + b, 0) / drinkCosts.length : 0;
+
+                avgFoodUnitCost.textContent = fmt2(avgFood);
+                avgDrinkUnitCost.textContent = fmt2(avgDrink);
+
+                // Find most expensive material
+                if (allMaterials.length > 0) {
+                    allMaterials.sort((a, b) => b.unitCost - a.unitCost);
+                    const top = allMaterials[0];
+                    mostExpensiveMaterial.textContent = `${top.name} (${top.type})`;
+                    mostExpensiveCost.textContent = `${fmt2(top.unitCost)} 元/單位`;
+                } else {
+                    mostExpensiveMaterial.textContent = "—";
+                    mostExpensiveCost.textContent = "—";
+                }
+
+                // Cost analysis
+                let low = 0, medium = 0, high = 0;
+                [...foodCosts, ...drinkCosts].forEach(cost => {
+                    if (cost <= 1) low++;
+                    else if (cost <= 5) medium++;
+                    else high++;
+                });
+
+                lowCostCount.textContent = low;
+                mediumCostCount.textContent = medium;
+                highCostCount.textContent = high;
+            }
+
+            function renderFoodMaterials() {
+                if (foodMaterials.length === 0) {
+                    foodMaterialsTbody.innerHTML = '<tr><td colspan="8" class="empty">目前沒有食材原物料，請前往「原物料管理」新增</td></tr>';
+                    return;
+                }
+
+                let materials = [...foodMaterials];
+                if (sortFoodByUnitCost) {
+                    materials.sort((a, b) => {
+                        const costA = a.calcType === 'fixed'
+                            ? parseNum(a.purchasePrice)
+                            : computeUnitCost(a.purchasePrice, a.purchaseQty, a.purchaseUnit, a.packageContent, a.contentUnit, a.usableRate);
+                        const costB = b.calcType === 'fixed'
+                            ? parseNum(b.purchasePrice)
+                            : computeUnitCost(b.purchasePrice, b.purchaseQty, b.purchaseUnit, b.packageContent, b.contentUnit, b.usableRate);
+                        return costB - costA;
+                    });
+                }
+
+                foodMaterialsTbody.innerHTML = "";
+                materials.forEach(m => {
+                    const tr = document.createElement("tr");
+
+                    const unitCost = m.calcType === 'fixed'
+                        ? parseNum(m.purchasePrice)
+                        : computeUnitCost(m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.packageContent, m.contentUnit, m.usableRate);
+
+                    const inventoryValue = parseNum(m.purchasePrice);
+
+                    let costClass = "";
+                    if (unitCost > 5) costClass = "badText";
+                    else if (unitCost > 1) costClass = "warnText";
+                    else if (unitCost > 0) costClass = "goodText";
+
+                    tr.innerHTML = `
+                        <td>${m.name || '（未命名）'}</td>
+                        <td>${m.calcType === 'fixed' ? '固定成本' : '單位換算'}</td>
+                        <td class="right mono">${fmt2(parseNum(m.purchasePrice))}</td>
+                        <td class="right mono">${parseNum(m.purchaseQty)}</td>
+                        <td>${m.purchaseUnit || '—'}</td>
+                        <td class="right mono">${parseNum(m.usableRate)}%</td>
+                        <td class="right mono ${costClass}">${unitCost > 0 ? fmt2(unitCost) : '—'}</td>
+                        <td class="right mono">${fmt2(inventoryValue)}</td>
+                    `;
+                    foodMaterialsTbody.appendChild(tr);
+                });
+            }
+
+            function renderDrinkMaterials() {
+                if (drinkMaterials.length === 0) {
+                    drinkMaterialsTbody.innerHTML = '<tr><td colspan="8" class="empty">目前沒有酒水原物料，請前往「酒水成本計算」新增</td></tr>';
+                    return;
+                }
+
+                let materials = [...drinkMaterials];
+                if (sortDrinkByUnitCost) {
+                    materials.sort((a, b) => {
+                        const costA = computeUnitCost(a.purchasePrice, a.purchaseQty, a.purchaseUnit, a.contentQty, a.contentUnit, a.yieldRate);
+                        const costB = computeUnitCost(b.purchasePrice, b.purchaseQty, b.purchaseUnit, b.contentQty, b.contentUnit, b.yieldRate);
+                        return costB - costA;
+                    });
+                }
+
+                drinkMaterialsTbody.innerHTML = "";
+                materials.forEach(m => {
+                    const tr = document.createElement("tr");
+
+                    const unitCost = computeUnitCost(m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.contentQty, m.contentUnit, m.yieldRate);
+                    const inventoryValue = parseNum(m.purchasePrice);
+
+                    let costClass = "";
+                    if (unitCost > 5) costClass = "badText";
+                    else if (unitCost > 1) costClass = "warnText";
+                    else if (unitCost > 0) costClass = "goodText";
+
+                    tr.innerHTML = `
+                        <td>${m.name || '（未命名）'}</td>
+                        <td>${m.category || '—'}</td>
+                        <td class="right mono">${fmt2(parseNum(m.purchasePrice))}</td>
+                        <td class="right mono">${parseNum(m.purchaseQty)}</td>
+                        <td>${m.purchaseUnit || '—'}</td>
+                        <td class="right mono">${parseNum(m.yieldRate)}%</td>
+                        <td class="right mono ${costClass}">${unitCost > 0 ? fmt2(unitCost) : '—'}</td>
+                        <td class="right mono">${fmt2(inventoryValue)}</td>
+                    `;
+                    drinkMaterialsTbody.appendChild(tr);
+                });
+            }
+
+            function render() {
+                renderStatistics();
+                renderFoodMaterials();
+                renderDrinkMaterials();
+            }
+
+            // CSV export functions
+            function downloadText(text, filename, mime) {
+                const blob = new Blob(["\uFEFF" + text], { type: mime });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(a.href);
+            }
+
+            function exportFoodCSV() {
+                const header = ["原物料名稱", "計算方式", "採購價", "採購量", "採購單位", "可用率", "單位成本", "庫存價值"];
+                const lines = [];
+                lines.push(header.map(h => `"${h}"`).join(","));
+
+                foodMaterials.forEach(m => {
+                    const unitCost = m.calcType === 'fixed'
+                        ? parseNum(m.purchasePrice)
+                        : computeUnitCost(m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.packageContent, m.contentUnit, m.usableRate);
+
+                    const row = [
+                        (m.name || '').replaceAll('"', '""'),
+                        m.calcType === 'fixed' ? '固定成本' : '單位換算',
+                        fmt2(parseNum(m.purchasePrice)),
+                        parseNum(m.purchaseQty),
+                        m.purchaseUnit || '',
+                        parseNum(m.usableRate),
+                        unitCost > 0 ? fmt2(unitCost) : '',
+                        fmt2(parseNum(m.purchasePrice))
+                    ].map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(",");
+                    lines.push(row);
+                });
+
+                downloadText(lines.join("\n"), "food_materials_statistics.csv", "text/csv;charset=utf-8");
+            }
+
+            function exportDrinkCSV() {
+                const header = ["原物料名稱", "分類", "採購價", "採購量", "採購單位", "可用率", "單位成本", "庫存價值"];
+                const lines = [];
+                lines.push(header.map(h => `"${h}"`).join(","));
+
+                drinkMaterials.forEach(m => {
+                    const unitCost = computeUnitCost(m.purchasePrice, m.purchaseQty, m.purchaseUnit, m.contentQty, m.contentUnit, m.yieldRate);
+
+                    const row = [
+                        (m.name || '').replaceAll('"', '""'),
+                        (m.category || '').replaceAll('"', '""'),
+                        fmt2(parseNum(m.purchasePrice)),
+                        parseNum(m.purchaseQty),
+                        m.purchaseUnit || '',
+                        parseNum(m.yieldRate),
+                        unitCost > 0 ? fmt2(unitCost) : '',
+                        fmt2(parseNum(m.purchasePrice))
+                    ].map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(",");
+                    lines.push(row);
+                });
+
+                downloadText(lines.join("\n"), "drink_materials_statistics.csv", "text/csv;charset=utf-8");
+            }
+
+            // Event listeners
+            btnExportFoodCSV.addEventListener("click", exportFoodCSV);
+            btnExportDrinkCSV.addEventListener("click", exportDrinkCSV);
+
+            btnSortFoodByCost.addEventListener("click", () => {
+                sortFoodByUnitCost = !sortFoodByUnitCost;
+                btnSortFoodByCost.textContent = sortFoodByUnitCost ? "取消排序" : "依單位成本排序";
+                renderFoodMaterials();
+            });
+
+            btnSortDrinkByCost.addEventListener("click", () => {
+                sortDrinkByUnitCost = !sortDrinkByUnitCost;
+                btnSortDrinkByCost.textContent = sortDrinkByUnitCost ? "取消排序" : "依單位成本排序";
+                renderDrinkMaterials();
+            });
+
+            // Initial render
+            render();
+
+        })();
+    </script>
+</body>
+
+</html>

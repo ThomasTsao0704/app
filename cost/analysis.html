@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>食材成本自動統計｜平均單價</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .wrap{ display:grid; grid-template-columns: 1.1fr 0.9fr; gap:16px; align-items:start; }
+    @media (max-width: 980px){ .wrap{ grid-template-columns: 1fr; } }
+    textarea{ width:100%; min-height: 260px; border:1px solid var(--line); border-radius:12px; padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; }
+    input[type="file"]{ width:100%; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-top:10px; }
+    .foot{ margin-top:10px; color: var(--textMuted); font-size:12px; }
+    .exportToLibrary {
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .exportToLibrary:hover {
+      background: #5a8ce8;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>食材成本分析 <span class="tag">採購平均單價統計</span></h1>
+    <p class="sub">
+      匯入採購 CSV 明細 → 自動統計每種食材的加權平均單價 → 一鍵匯出至原物料庫。<br />
+      <span class="pill">建議使用「加權平均」= 總金額 ÷ 總數量</span>
+    </p>
+    <nav class="nav">
+      <a href="index.html" class="tabbtn" style="text-decoration: none;">← 返回首頁</a>
+      <a href="materials.html">原物料管理</a>
+      <a href="dishes.html">菜色成本計算</a>
+      <a href="drink.html">酒水成本計算</a>
+      <a href="total.html">食材成本統計</a>
+      <a href="analysis.html" class="active">採購分析</a>
+    </nav>
+  </header>
+
+  <main class="single-col">
+    <div class="wrap">
+      <section class="card">
+        <div class="hd">
+          <h2>① 匯入採購資料</h2>
+        </div>
+        <div class="bd">
+          <div class="hint">支援日期格式：2025/5/14、2025/05/14、2025-5-14 等</div>
+
+          <div class="row">
+            <div style="min-width:260px; flex:1;">
+              <div class="small">選擇 CSV 檔</div>
+              <input id="file" type="file" accept=".csv,text/csv" />
+            </div>
+            <div>
+              <div class="small">檔案編碼</div>
+              <select id="fileEncoding">
+                <option value="utf-8" selected>UTF-8（推薦）</option>
+                <option value="big5">Big5（常見繁中舊系統）</option>
+              </select>
+            </div>
+            <button id="btnLoadSample">載入範例</button>
+          </div>
+
+          <hr style="border:none; border-top:1px solid var(--line); margin:14px 0;">
+
+          <div class="small" style="margin-bottom: 6px;">或直接貼上資料</div>
+          <div class="hint">支援 CSV（逗號）與 Tab/空白分隔。會自動忽略「總計」欄。</div>
+
+          <textarea id="raw" placeholder="把你的資料整段貼在這裡…&#10;&#10;範例格式：&#10;日期,品名,規格,數量,單位,單價,金額&#10;2025/5/14,九層塔,,0.19,台斤,100.00,19&#10;2025/5/14,紅椒,,1.18,台斤,125.00,148"></textarea>
+
+          <div class="row">
+            <div>
+              <div class="small">分組方式</div>
+              <select id="groupMode">
+                <option value="name_unit" selected>品名 + 單位（推薦）</option>
+                <option value="name_only">只用品名</option>
+              </select>
+            </div>
+
+            <div>
+              <div class="small">搜尋品名</div>
+              <input id="q" type="text" placeholder="例如：紅椒 / 九層塔" style="border:1px solid var(--line); border-radius:12px; padding:10px;" />
+            </div>
+
+            <div>
+              <div class="small">排序</div>
+              <select id="sortBy">
+                <option value="weightedAvg_desc" selected>加權平均單價（高→低）</option>
+                <option value="weightedAvg_asc">加權平均單價（低→高）</option>
+                <option value="simpleAvg_desc">簡單平均單價（高→低）</option>
+                <option value="simpleAvg_asc">簡單平均單價（低→高）</option>
+                <option value="count_desc">筆數（多→少）</option>
+                <option value="recent_desc">最近日期（新→舊）</option>
+                <option value="name_asc">品名（A→Z）</option>
+              </select>
+            </div>
+
+            <button class="primary" id="btnCalc">開始統計</button>
+            <button id="btnExport" disabled>匯出統計 CSV</button>
+            <button class="exportToLibrary" id="btnExportToLibrary" disabled>匯出至原物料庫 →</button>
+          </div>
+
+          <div id="msg" class="foot"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="hd">
+          <h2>② 統計摘要</h2>
+        </div>
+        <div class="bd">
+          <div class="hint">「加權平均單價」= 總金額 ÷ 總數量，比簡單平均更準確</div>
+
+          <div class="kpi">
+            <div class="box">
+              <div class="title">解析成功筆數</div>
+              <div class="value mono" id="k_ok">0</div>
+            </div>
+            <div class="box">
+              <div class="title">被略過筆數</div>
+              <div class="value mono" id="k_skip">0</div>
+            </div>
+            <div class="box">
+              <div class="title">品項組數</div>
+              <div class="value mono" id="k_groups">0</div>
+            </div>
+          </div>
+
+          <div id="skipHint" class="foot"></div>
+
+          <div class="tableWrap" style="max-height: 520px;">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:150px;">品名</th>
+                  <th>單位</th>
+                  <th class="right">筆數</th>
+                  <th class="right">總數量</th>
+                  <th class="right">總金額</th>
+                  <th class="right">簡單平均單價</th>
+                  <th class="right">加權平均單價</th>
+                  <th class="right">最低</th>
+                  <th class="right">最高</th>
+                  <th>最近日期</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                <tr>
+                  <td colspan="10" class="empty">請先匯入或貼上採購資料</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="hint" style="margin-top: 1rem;">
+            💡 提示：點擊「匯出至原物料庫」會自動將統計結果轉換為原物料格式並儲存
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="footer">
+    <b>說明：</b>此頁面用於分析歷史採購數據，計算平均單價後可直接匯出至原物料管理系統使用。
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  const sample = `日期,品名,規格,數量,單位,單價,金額,總計
+2025/5/14,001.九層塔,,0.19,台斤,100.00,19,"$1,136"
+2025/5/14,012.綠捲生菜,,0.19,台斤,300.00,56,
+2025/5/14,021.洋菇,,3.00,盒,85.00,255,
+2025/5/14,004.牛番茄,,1.00,台斤,80.00,80,
+2025/5/14,005.紅椒,,1.18,台斤,125.00,148,
+2025/5/14,006.黃椒,,1.00,台斤,120.00,120,
+2025/5/14,201.蛤蠣,,2.00,台斤,155.00,310,
+2025/5/14,007.洋蔥,,3.70,台斤,40.00,148,
+2025/5/16,001.九層塔,,0.25,台斤,100.00,25,"$1,358"
+2025/5/16,401.薄荷葉,,1.00,包,100.00,100,`;
+
+  function parseNum(x){
+    if (x == null) return NaN;
+    const s = String(x).trim().replace(/\$/g,'').replace(/,/g,'');
+    if (s === '') return NaN;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function normalizeDate(s){
+    const t = String(s ?? "").trim();
+    const m = t.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (!m) return null;
+    const y = m[1];
+    const mm = String(m[2]).padStart(2,"0");
+    const dd = String(m[3]).padStart(2,"0");
+    return `${y}-${mm}-${dd}`;
+  }
+
+  function isLikelyHeaderFields(fields){
+    const joined = fields.join("").replace(/\s+/g,'');
+    return joined.includes("日期") && joined.includes("品名") && joined.includes("單價");
+  }
+
+  function parseCSV(text){
+    const rows = [];
+    let row = [];
+    let cur = "";
+    let inQuotes = false;
+
+    for (let i=0; i<text.length; i++){
+      const ch = text[i];
+      if (inQuotes){
+        if (ch === '"'){
+          const next = text[i+1];
+          if (next === '"'){ cur += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          cur += ch;
+        }
+      } else {
+        if (ch === '"'){
+          inQuotes = true;
+        } else if (ch === ','){
+          row.push(cur);
+          cur = "";
+        } else if (ch === '\n'){
+          row.push(cur);
+          rows.push(row);
+          row = [];
+          cur = "";
+        } else if (ch === '\r'){
+          // ignore
+        } else {
+          cur += ch;
+        }
+      }
+    }
+    if (cur.length || row.length){
+      row.push(cur);
+      rows.push(row);
+    }
+    return rows.map(r => r.map(c => String(c ?? "").trim()));
+  }
+
+  function isCsvText(raw){
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return false;
+    const first = lines[0];
+    const commaCount = (first.match(/,/g) || []).length;
+    if (commaCount >= 5) return true;
+    const l1 = lines.find(l => (l.match(/,/g)||[]).length >= 5);
+    return !!l1;
+  }
+
+  function parseWhitespaceTable(raw){
+    const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const rows = [];
+    const skipped = [];
+
+    const isHeaderLine = (line) => {
+      const t = line.replace(/\s+/g,'').trim();
+      return t.includes("日期") && t.includes("品名") && t.includes("單價");
+    };
+
+    for (const line of lines){
+      if (!line) continue;
+      if (isHeaderLine(line)) continue;
+
+      const tokens = line.split(/\s+/).filter(Boolean);
+      if (tokens.length < 6){ skipped.push({ line, reason:"欄位太少" }); continue; }
+
+      const date = normalizeDate(tokens[0]);
+      if (!date){ skipped.push({ line, reason:"非日期開頭" }); continue; }
+
+      const name = tokens[1] ?? "";
+      if (!name){ skipped.push({ line, reason:"缺品名" }); continue; }
+
+      let idx = 2;
+      const specParts = [];
+
+      while (idx < tokens.length && !Number.isFinite(parseNum(tokens[idx]))){
+        specParts.push(tokens[idx]);
+        idx++;
+      }
+
+      const qty = parseNum(tokens[idx]);
+      if (!Number.isFinite(qty)){ skipped.push({ line, reason:"缺數量" }); continue; }
+      idx++;
+
+      const unit = tokens[idx] ?? "";
+      if (!unit){ skipped.push({ line, reason:"缺單位" }); continue; }
+      idx++;
+
+      const unitPrice = parseNum(tokens[idx]);
+      if (!Number.isFinite(unitPrice)){ skipped.push({ line, reason:"缺單價" }); continue; }
+      idx++;
+
+      const amount = parseNum(tokens[idx]);
+      if (!Number.isFinite(amount)){ skipped.push({ line, reason:"缺金額" }); continue; }
+
+      rows.push({ date, name, spec: specParts.join(" "), qty, unit, unitPrice, amount });
+    }
+
+    return { rows, skipped };
+  }
+
+  function parseCsvTable(raw){
+    const all = parseCSV(raw);
+    const cleaned = all.filter(r => r.some(c => String(c ?? "").trim() !== ""));
+    const rows = [];
+    const skipped = [];
+    if (!cleaned.length) return { rows, skipped };
+
+    let startIdx = 0;
+    let header = null;
+
+    if (isLikelyHeaderFields(cleaned[0])){
+      header = cleaned[0].map(h => h.replace(/\s+/g,'').trim());
+      startIdx = 1;
+    }
+
+    const idxOf = (name) => header ? header.findIndex(h => h.includes(name)) : -1;
+    const iDate = header ? idxOf("日期") : 0;
+    const iName = header ? idxOf("品名") : 1;
+    const iSpec = header ? idxOf("規格") : 2;
+    const iQty  = header ? idxOf("數量") : 3;
+    const iUnit = header ? idxOf("單位") : 4;
+    const iUP   = header ? idxOf("單價") : 5;
+    const iAmt  = header ? idxOf("金額") : 6;
+
+    for (let i=startIdx; i<cleaned.length; i++){
+      const r = cleaned[i];
+      const date = normalizeDate((r[iDate] ?? "").trim());
+      if (!date){
+        skipped.push({ line: r.join(","), reason:"非日期開頭" });
+        continue;
+      }
+
+      const name = (r[iName] ?? "").trim();
+      if (!name){ skipped.push({ line: r.join(","), reason:"缺品名" }); continue; }
+
+      const qty = parseNum(r[iQty]);
+      const unit = (r[iUnit] ?? "").trim();
+      const unitPrice = parseNum(r[iUP]);
+      const amount = parseNum(r[iAmt]);
+      const spec = (r[iSpec] ?? "").trim();
+
+      if (!Number.isFinite(qty) || !unit || !Number.isFinite(unitPrice) || !Number.isFinite(amount)){
+        skipped.push({ line: r.join(","), reason:"缺必要欄位(數量/單位/單價/金額)" });
+        continue;
+      }
+
+      rows.push({ date, name, spec, qty, unit, unitPrice, amount });
+    }
+
+    return { rows, skipped };
+  }
+
+  function parseRaw(raw){
+    return isCsvText(raw) ? parseCsvTable(raw) : parseWhitespaceTable(raw);
+  }
+
+  function fmt(n, digits=2){
+    if (!Number.isFinite(n)) return "";
+    return n.toLocaleString("zh-Hant", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  function fmt0(n){
+    if (!Number.isFinite(n)) return "";
+    return n.toLocaleString("zh-Hant", { maximumFractionDigits: 0 });
+  }
+
+  function groupRows(rows, mode){
+    const map = new Map();
+
+    for (const r of rows){
+      const key = mode === "name_only" ? r.name : `${r.name}||${r.unit}`;
+      if (!map.has(key)){
+        map.set(key, {
+          name: r.name,
+          unit: mode === "name_only" ? "(混合)" : r.unit,
+          count: 0,
+          sumQty: 0,
+          sumAmount: 0,
+          sumUnitPrice: 0,
+          minPrice: Infinity,
+          maxPrice: -Infinity,
+          recentDate: r.date
+        });
+      }
+      const g = map.get(key);
+      g.count += 1;
+      g.sumQty += r.qty;
+      g.sumAmount += r.amount;
+      g.sumUnitPrice += r.unitPrice;
+      g.minPrice = Math.min(g.minPrice, r.unitPrice);
+      g.maxPrice = Math.max(g.maxPrice, r.unitPrice);
+      if (r.date > g.recentDate) g.recentDate = r.date;
+    }
+
+    return [...map.values()].map(g => {
+      const simpleAvg = g.count ? g.sumUnitPrice / g.count : NaN;
+      const weightedAvg = g.sumQty ? g.sumAmount / g.sumQty : NaN;
+      return { ...g, simpleAvg, weightedAvg };
+    });
+  }
+
+  function applyFilterSort(groups){
+    const q = $("q").value.trim();
+    let out = groups;
+    if (q) out = out.filter(g => g.name.includes(q));
+
+    const sortBy = $("sortBy").value;
+    const cmpNum = (a,b,field)=> ( (a[field] ?? -Infinity) - (b[field] ?? -Infinity) );
+
+    out.sort((a,b)=>{
+      switch(sortBy){
+        case "weightedAvg_desc": return cmpNum(b,a,"weightedAvg");
+        case "weightedAvg_asc":  return cmpNum(a,b,"weightedAvg");
+        case "simpleAvg_desc":   return cmpNum(b,a,"simpleAvg");
+        case "simpleAvg_asc":    return cmpNum(a,b,"simpleAvg");
+        case "count_desc":       return (b.count - a.count);
+        case "recent_desc":      return (b.recentDate > a.recentDate ? 1 : b.recentDate < a.recentDate ? -1 : 0);
+        case "name_asc":         return a.name.localeCompare(b.name, "zh-Hant");
+        default: return 0;
+      }
+    });
+
+    return out;
+  }
+
+  function render(groups){
+    const tbody = $("tbody");
+    tbody.innerHTML = "";
+
+    if (groups.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="empty">沒有符合的資料</td></tr>';
+      return;
+    }
+
+    for (const g of groups){
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(g.name)}</td>
+        <td>${escapeHtml(g.unit)}</td>
+        <td class="right mono">${fmt0(g.count)}</td>
+        <td class="right mono">${fmt(g.sumQty, 2)}</td>
+        <td class="right mono">${fmt(g.sumAmount, 0)}</td>
+        <td class="right mono">${fmt(g.simpleAvg, 2)}</td>
+        <td class="right mono"><b>${fmt(g.weightedAvg, 2)}</b></td>
+        <td class="right mono">${fmt(g.minPrice, 2)}</td>
+        <td class="right mono">${fmt(g.maxPrice, 2)}</td>
+        <td class="mono">${escapeHtml(g.recentDate)}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  function toCSV(rows, headers){
+    const esc = (v) => {
+      const s = String(v ?? "");
+      if (/[,"\r\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+      return s;
+    };
+    const lines = [];
+    lines.push(headers.map(esc).join(","));
+    for (const r of rows){
+      lines.push(headers.map(h => esc(r[h])).join(","));
+    }
+    return lines.join("\r\n");
+  }
+
+  function downloadUTF8(filename, text){
+    const bom = "\ufeff";
+    const blob = new Blob([bom, text], { type:"text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // 單位對應表（台斤 → g, 包/盒 → pack）
+  function normalizeUnit(unit) {
+    const unitMap = {
+      '台斤': 'g',
+      '公斤': 'kg',
+      '克': 'g',
+      '公克': 'g',
+      '盒': 'pack',
+      '包': 'pack',
+      '瓶': 'pack',
+      '罐': 'pack',
+      '顆': 'pcs',
+      '粒': 'pcs',
+      '個': 'pcs'
+    };
+    return unitMap[unit] || unit;
+  }
+
+  // 數量換算（台斤 → g: 1台斤 = 600g）
+  function convertQuantity(qty, unit) {
+    if (unit === '台斤') {
+      return qty * 600; // 1台斤 = 600g
+    }
+    return qty;
+  }
+
+  function generateId() {
+    return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
+  }
+
+  // 匯出至原物料庫
+  function exportToMaterialsLibrary() {
+    const STORAGE_KEY = "materials_library_v1";
+
+    // 取得現有原物料庫
+    let existingMaterials = [];
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        existingMaterials = JSON.parse(raw);
+        if (!Array.isArray(existingMaterials)) existingMaterials = [];
+      }
+    } catch (e) {
+      console.error("讀取原物料庫失敗:", e);
+    }
+
+    // 將統計結果轉換為原物料格式
+    const groups = last.groups;
+    const newMaterials = [];
+
+    for (const g of groups) {
+      const weightedAvg = g.weightedAvg;
+      if (!Number.isFinite(weightedAvg) || weightedAvg <= 0) continue;
+
+      const normalizedUnit = normalizeUnit(g.unit);
+      const convertedQty = convertQuantity(g.sumQty / g.count, g.unit);
+
+      // 檢查是否已存在同名原物料
+      const existing = existingMaterials.find(m =>
+        m.name.toLowerCase().trim() === g.name.toLowerCase().trim()
+      );
+
+      if (existing) {
+        // 更新現有原物料的採購價（使用加權平均）
+        existing.purchasePrice = weightedAvg;
+        existing.purchaseQty = 1;
+        existing.purchaseUnit = normalizedUnit;
+        if (normalizedUnit === 'pack') {
+          existing.packageContent = convertedQty || 1;
+          existing.contentUnit = 'g';
+        }
+        existing.usableRate = existing.usableRate || 100;
+        existing.calcType = 'unit';
+      } else {
+        // 新增原物料
+        const material = {
+          id: generateId(),
+          name: g.name,
+          calcType: 'unit',
+          purchasePrice: weightedAvg,
+          purchaseQty: 1,
+          purchaseUnit: normalizedUnit,
+          packageContent: normalizedUnit === 'pack' ? (convertedQty || 1) : 0,
+          contentUnit: normalizedUnit === 'pack' ? 'g' : normalizedUnit,
+          usableRate: 100
+        };
+        newMaterials.push(material);
+      }
+    }
+
+    // 合併並儲存
+    const allMaterials = [...existingMaterials, ...newMaterials];
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allMaterials));
+
+      const msg = newMaterials.length > 0
+        ? `成功匯出 ${newMaterials.length} 筆新原物料，${existingMaterials.length - (allMaterials.length - newMaterials.length)} 筆已更新`
+        : `成功更新 ${existingMaterials.length} 筆原物料`;
+
+      alert(`✅ ${msg}\n\n請前往「原物料管理」頁面查看`);
+
+      // 詢問是否立即跳轉
+      if (confirm("是否立即前往原物料管理頁面？")) {
+        window.location.href = "materials.html";
+      }
+    } catch (e) {
+      console.error("儲存失敗:", e);
+      alert("❌ 儲存失敗：" + e.message);
+    }
+  }
+
+  let last = { rows:[], skipped:[], groups:[] };
+
+  function calc(){
+    const raw = $("raw").value.trim();
+    if (!raw){
+      $("msg").innerHTML = `<span class="warn">請先匯入 CSV 或貼上資料。</span>`;
+      return;
+    }
+
+    const { rows, skipped } = parseRaw(raw);
+    const mode = $("groupMode").value;
+    const groups = groupRows(rows, mode);
+    const out = applyFilterSort(groups);
+
+    last = { rows, skipped, groups };
+
+    $("k_ok").textContent = rows.length;
+    $("k_skip").textContent = skipped.length;
+    $("k_groups").textContent = groups.length;
+
+    $("btnExport").disabled = groups.length === 0;
+    $("btnExportToLibrary").disabled = groups.length === 0;
+
+    const skipTop = skipped.slice(0, 4).map(s =>
+      `• ${escapeHtml(s.reason)}：<span class="mono">${escapeHtml(String(s.line).slice(0, 90))}${String(s.line).length>90?"…":""}</span>`
+    ).join("<br>");
+
+    $("skipHint").innerHTML = skipped.length
+      ? `<span class="warn">被略過 ${skipped.length} 筆（常見原因：空行/缺欄位/日期格式不對）。前幾筆原因：</span><br>${skipTop}`
+      : `<span class="ok">沒有被略過的資料列 👍</span>`;
+
+    $("msg").innerHTML = `完成：解析 <b>${rows.length}</b> 筆明細，分成 <b>${groups.length}</b> 組。`;
+    render(out);
+  }
+
+  $("btnCalc").addEventListener("click", calc);
+  $("q").addEventListener("input", () => render(applyFilterSort(last.groups)));
+  $("sortBy").addEventListener("change", () => render(applyFilterSort(last.groups)));
+  $("groupMode").addEventListener("change", () => calc());
+
+  $("btnExport").addEventListener("click", () => {
+    const rows = applyFilterSort(last.groups).map(g => ({
+      "品名": g.name,
+      "單位": g.unit,
+      "筆數": g.count,
+      "總數量": Number(g.sumQty.toFixed(4)),
+      "總金額": Number(g.sumAmount.toFixed(2)),
+      "簡單平均單價": Number((g.simpleAvg ?? NaN).toFixed(4)),
+      "加權平均單價": Number((g.weightedAvg ?? NaN).toFixed(4)),
+      "最低單價": Number((g.minPrice ?? NaN).toFixed(4)),
+      "最高單價": Number((g.maxPrice ?? NaN).toFixed(4)),
+      "最近日期": g.recentDate
+    }));
+    const headers = ["品名","單位","筆數","總數量","總金額","簡單平均單價","加權平均單價","最低單價","最高單價","最近日期"];
+    downloadUTF8("食材_平均單價統計.csv", toCSV(rows, headers));
+  });
+
+  $("btnExportToLibrary").addEventListener("click", exportToMaterialsLibrary);
+
+  $("btnLoadSample").addEventListener("click", () => {
+    $("raw").value = sample;
+    $("q").value = "";
+    calc();
+  });
+
+  $("file").addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+
+    const enc = $("fileEncoding").value || "utf-8";
+    try{
+      const buf = await f.arrayBuffer();
+      const dec = new TextDecoder(enc);
+      const text = dec.decode(buf);
+
+      $("raw").value = text;
+      $("q").value = "";
+      calc();
+      $("msg").innerHTML = `已匯入檔案：<b>${escapeHtml(f.name)}</b>（${escapeHtml(enc)}）`;
+    }catch(err){
+      console.error(err);
+      $("msg").innerHTML = `<span class="warn">匯入失敗：${escapeHtml(err?.message || String(err))}</span>`;
+    }finally{
+      e.target.value = "";
+    }
+  });
+
+  // 初始載入範例
+  $("raw").value = sample;
+  calc();
+</script>
+</body>
+</html>
