@@ -1,1 +1,3406 @@
-gg
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Josefin+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://momentjs.com/downloads/moment-with-locales.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        /* Main Content Area */
+        .main-content {
+            margin-left: 300px;
+            padding: 20px;
+            min-height: 100vh;
+            background: #f1f5f9;
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        /* Stock Cards Dashboard Styles */
+        .upload-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .upload-zone h3 {
+            margin: 0 0 10px 0;
+            color: #0f172a;
+        }
+
+        .upload-zone p {
+            margin: 5px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .loaded-files {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .loaded-files h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .file-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .file-tag {
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .file-tag button {
+            background: none;
+            border: none;
+            color: #0369a1;
+            cursor: pointer;
+            padding: 0;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        #stockApp {
+            display: none;
+        }
+
+        #stockApp.active {
+            display: block;
+        }
+
+        .stock-page {
+            padding: 16px 20px 32px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-left h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #0f172a;
+        }
+
+        .toolbar-sub {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .toolbar-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            min-width: 220px;
+        }
+
+        .select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            cursor: pointer;
+        }
+
+        .stock-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+
+        .stock-card {
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            height: 160px;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .stock-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front,
+        .card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
+        .card-front {
+            transform: rotateY(0deg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 6px;
+        }
+
+        .stock-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .stock-title:hover {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+
+        .stock-date {
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        .main-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .main-left {
+            flex: 1.1;
+        }
+
+        .main-right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .price-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .price-change {
+            font-size: 14px;
+        }
+
+        .sub {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .candlestick-wrap {
+            position: relative;
+            width: 120px;
+            height: 60px;
+        }
+
+        .candlestick {
+            width: 120px;
+            height: 60px;
+            display: block;
+        }
+
+        .candle-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 10px;
+            line-height: 1.2;
+            padding: 4px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+            transform: translate(-50%, -115%);
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+            z-index: 10;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .back-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .flip-hint {
+            font-size: 10px;
+            color: #9ca3af;
+            text-align: center;
+            margin-top: auto;
+            padding-top: 6px;
+        }
+
+        /* Sidebar menu clickable */
+        .sidenav .main-buttons > li > ul.hidden li {
+            cursor: pointer;
+        }
+
+        .sidenav .main-buttons > li > ul.hidden li:hover {
+            background-color: #3b82f6;
+        }
+
+        /* ===== Stock Information Styles ===== */
+        .stock-info-shell {
+            width: 100%;
+            min-height: 620px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.7);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .stock-info-header {
+            padding: 18px 24px 12px;
+            border-bottom: 1px solid #1f2937;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .si-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .si-brand-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: radial-gradient(circle at 30% 20%, #facc15, #f97316, #f97316);
+            box-shadow: 0 0 18px rgba(249, 115, 22, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: #0f172a;
+        }
+
+        .si-brand-text-main {
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            font-size: 16px;
+            color: #e5e7eb;
+        }
+
+        .si-brand-text-sub {
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .si-header-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .si-mood-pill {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(22, 163, 74, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #bbf7d0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .si-mood-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
+        }
+
+        .si-tag-pill {
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #e0f2fe;
+        }
+
+        .stock-info-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: minmax(240px, 290px) minmax(0, 1fr);
+            overflow: hidden;
+        }
+
+        .si-sidebar {
+            border-right: 1px solid #1f2937;
+            background: radial-gradient(circle at top left, rgba(15, 118, 110, 0.35), #020617 48%);
+            padding: 16px 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .si-sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .si-sidebar-title {
+            font-size: 13px;
+            color: #9ca3af;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .si-stock-counter {
+            font-size: 11px;
+            color: #9ca3af;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(55, 65, 81, 0.85);
+        }
+
+        .si-stock-counter.highlight {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: rgba(56, 189, 248, 0.5);
+            color: #38bdf8;
+        }
+
+        .si-search-box {
+            position: relative;
+        }
+
+        .si-search-input {
+            width: 100%;
+            padding: 8px 10px 8px 32px;
+            border-radius: 999px;
+            border: 1px solid rgba(55, 65, 81, 0.85);
+            background: rgba(15, 23, 42, 0.9);
+            color: #e5e7eb;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .si-search-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        .si-search-input::placeholder {
+            color: #4b5563;
+        }
+
+        .si-search-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 11px;
+            color: #6b7280;
+            pointer-events: none;
+        }
+
+        .si-clear-search {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(55, 65, 81, 0.5);
+            border: none;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 10px;
+        }
+
+        .si-clear-search.visible {
+            display: flex;
+        }
+
+        .si-stock-list {
+            list-style: none;
+            margin-top: 4px;
+            overflow-y: auto;
+            padding-right: 4px;
+            flex: 1;
+        }
+
+        .si-stock-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .si-stock-list::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 999px;
+        }
+
+        .si-stock-item {
+            margin-bottom: 6px;
+        }
+
+        .si-stock-btn {
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 12px;
+            padding: 8px 10px;
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .si-stock-btn::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: #38bdf8;
+            transform: scaleY(0);
+            transition: transform 0.25s;
+        }
+
+        .si-stock-btn:hover {
+            background: rgba(15, 23, 42, 0.9);
+            border-color: rgba(31, 41, 55, 0.9);
+            transform: translateX(2px);
+        }
+
+        .si-stock-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.35);
+            transform: translateX(2px);
+        }
+
+        .si-stock-btn.active::before {
+            transform: scaleY(1);
+        }
+
+        .si-stock-main-row {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+
+        .si-stock-code {
+            font-weight: 600;
+            font-size: 13px;
+            color: #e5e7eb;
+        }
+
+        .si-stock-name {
+            font-size: 13px;
+            color: #9ca3af;
+        }
+
+        .si-stock-btn:hover .si-stock-name,
+        .si-stock-btn.active .si-stock-name {
+            color: #e5e7eb;
+        }
+
+        .si-stock-tag-row {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .si-chip {
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 4px;
+            background: rgba(55, 65, 81, 0.5);
+            color: #9ca3af;
+            border: 1px solid rgba(75, 85, 99, 0.35);
+            white-space: nowrap;
+        }
+
+        .si-chip.highlight {
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #86efac;
+        }
+
+        .si-content-area {
+            padding: 20px 28px 28px;
+            overflow-y: auto;
+            color: #e5e7eb;
+        }
+
+        .si-content-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .si-content-area::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 999px;
+        }
+
+        .si-empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            color: #9ca3af;
+            text-align: center;
+            gap: 12px;
+        }
+
+        .si-empty-icon {
+            font-size: 48px;
+            opacity: 0.5;
+        }
+
+        .si-empty-text {
+            font-size: 14px;
+        }
+
+        .si-loading {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+        }
+
+        .si-loading.active {
+            display: flex;
+        }
+
+        .si-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(56, 189, 248, 0.2);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: si-spin 0.8s linear infinite;
+        }
+
+        @keyframes si-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .si-no-results {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+            color: #9ca3af;
+            gap: 12px;
+        }
+
+        .si-no-results.visible {
+            display: flex;
+        }
+
+        .si-section-header {
+            margin-bottom: 16px;
+        }
+
+        .si-stock-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #c7d2fe;
+            margin-bottom: 8px;
+        }
+
+        .si-content-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #e5e7eb;
+        }
+
+        .si-content-subline {
+            font-size: 12px;
+            color: #9ca3af;
+            line-height: 1.5;
+        }
+
+        .si-pill-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .si-info-pill {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .si-info-pill.core {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: #c7d2fe;
+        }
+
+        .si-info-pill.income {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.4);
+            color: #bbf7d0;
+        }
+
+        .si-info-pill.cycles {
+            background: rgba(251, 191, 36, 0.1);
+            border-color: rgba(251, 191, 36, 0.4);
+            color: #fef3c7;
+        }
+
+        .si-info-pill.risk {
+            background: rgba(249, 115, 115, 0.1);
+            border-color: rgba(249, 115, 115, 0.4);
+            color: #fecaca;
+        }
+
+        .si-content-section {
+            margin: 24px 0;
+            padding: 18px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid #1f2937;
+        }
+
+        .si-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #38bdf8;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .si-section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: #38bdf8;
+            border-radius: 2px;
+        }
+
+        .si-section-text {
+            font-size: 13px;
+            color: #9ca3af;
+            line-height: 1.7;
+        }
+
+        .si-tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .si-mini-badge {
+            padding: 4px 10px;
+            font-size: 11px;
+            border-radius: 999px;
+            border: 1px solid;
+        }
+
+        .si-mini-badge.neutral {
+            background: rgba(107, 114, 128, 0.15);
+            border-color: rgba(107, 114, 128, 0.5);
+            color: #d1d5db;
+        }
+
+        .si-mini-badge.bad {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.45);
+            color: #fecaca;
+        }
+
+        .si-bullet-list {
+            list-style: none;
+            margin-top: 10px;
+            padding: 0;
+        }
+
+        .si-bullet-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #9ca3af;
+            line-height: 1.6;
+        }
+
+        .si-bullet-dot {
+            min-width: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            margin-top: 6px;
+        }
+
+        .si-bullet-dot.good {
+            background: #4ade80;
+            box-shadow: 0 0 8px #4ade80;
+        }
+
+        .si-bullet-dot.warn {
+            background: #facc15;
+            box-shadow: 0 0 8px #facc15;
+        }
+
+        .si-bullet-dot.bad {
+            background: #f97373;
+            box-shadow: 0 0 8px #f97373;
+        }
+
+        @media (max-width: 768px) {
+            .stock-info-body {
+                grid-template-columns: 1fr;
+            }
+
+            .si-sidebar {
+                border-right: none;
+                border-bottom: 1px solid #1f2937;
+                max-height: 300px;
+            }
+
+            .si-pill-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== Notes Styles - Optimized ===== */
+        .notes-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        .notes-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #3b7cb8 100%);
+            padding: 35px 40px;
+            color: #ffffff;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notes-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: shimmer 15s linear infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notes-header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .notes-header p {
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+        }
+
+        .notes-body {
+            padding: 30px 40px 40px;
+        }
+
+        .notes-form-group {
+            margin-bottom: 18px;
+        }
+
+        .notes-form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .notes-form-group input,
+        .notes-form-group select,
+        .notes-form-group textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            background: #ffffff;
+            color: #1e293b;
+            transition: all 0.2s ease;
+        }
+
+        .notes-form-group input:focus,
+        .notes-form-group select:focus,
+        .notes-form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        .notes-form-group input[type="range"] {
+            padding: 0;
+            height: 8px;
+            border: none;
+            background: #e2e8f0;
+            border-radius: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .notes-form-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+        }
+
+        .notes-form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .notes-form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .notes-form-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .notes-form-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .notes-form-grid, .notes-form-grid-2 { grid-template-columns: 1fr; }
+            .notes-body { padding: 20px; }
+        }
+
+        .notes-section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin: 32px 0 18px 0;
+            padding: 12px 16px;
+            background: linear-gradient(90deg, #f0f9ff 0%, transparent 100%);
+            border-left: 4px solid #3b82f6;
+            border-radius: 0 8px 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notes-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        .notes-calc-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 24px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 16px;
+            margin-top: 24px;
+            border: 1px solid #bae6fd;
+        }
+
+        .notes-calc-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .notes-calc-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .notes-calc-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .notes-btn {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .notes-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .notes-btn:active {
+            transform: translateY(0);
+        }
+
+        .notes-btn-secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+        }
+
+        .notes-btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(100, 116, 139, 0.4);
+        }
+
+        .notes-btn-small {
+            padding: 6px 14px;
+            font-size: 12px;
+            margin-right: 8px;
+            border-radius: 6px;
+        }
+
+        .notes-btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .notes-btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .notes-btn-full {
+            width: 100%;
+            padding: 18px 30px;
+            font-size: 16px;
+            margin-top: 32px;
+            border-radius: 12px;
+        }
+
+        .notes-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
+            margin: 32px 0;
+        }
+
+        /* Dashboard Stats */
+        .notes-stats-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 1000px) {
+            .notes-stats-container { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .notes-stats-container { grid-template-columns: 1fr; }
+        }
+
+        .notes-stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .notes-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+
+        .notes-stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        }
+
+        .notes-stat-card:nth-child(2)::before {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+
+        .notes-stat-card:nth-child(3)::before {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .notes-stat-card:nth-child(4)::before {
+            background: linear-gradient(90deg, #ec4899, #db2777);
+        }
+
+        .notes-stat-card h4 {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .notes-stat-card .value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1;
+        }
+
+        /* Alert */
+        .notes-alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .notes-alert-info {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .notes-alert-success {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        /* Table Styles */
+        .notes-table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            background: white;
+        }
+
+        .notes-strategy-table {
+            width: 100%;
+            min-width: 800px;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        .notes-strategy-table th {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 14px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .notes-strategy-table th:first-child {
+            border-radius: 12px 0 0 0;
+        }
+
+        .notes-strategy-table th:last-child {
+            border-radius: 0 12px 0 0;
+        }
+
+        .notes-strategy-table td {
+            padding: 14px;
+            font-size: 13px;
+            color: #475569;
+            border-bottom: 1px solid #f1f5f9;
+            white-space: nowrap;
+        }
+
+        .notes-strategy-table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+        .notes-strategy-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .notes-strategy-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Result badges */
+        .notes-result-win {
+            color: #166534;
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .notes-result-loss {
+            color: #991b1b;
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .notes-pnl-positive {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        .notes-pnl-negative {
+            color: #16a34a;
+            font-weight: 700;
+        }
+
+        /* Direction badges */
+        .notes-direction-long {
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .notes-direction-short {
+            color: #16a34a;
+            background: #f0fdf4;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        /* Analysis cards in dashboard */
+        .notes-analysis-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .notes-analysis-section h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Filter section */
+        .notes-filter-section {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 24px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .notes-filter-section h3 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 16px;
+        }
+
+        .notes-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .notes-filter-grid { grid-template-columns: 1fr; }
+        }
+
+        .notes-action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* Slider value display */
+        .notes-slider-value {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 28px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            border-radius: 6px;
+            margin-left: 12px;
+        }
+
+        /* 分析區塊三欄響應式 */
+        .notes-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1100px) {
+            .notes-analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 分析區塊內的表格簡化 */
+        .notes-analysis-section .notes-strategy-table {
+            min-width: auto;
+            font-size: 12px;
+        }
+
+        .notes-analysis-section .notes-strategy-table th,
+        .notes-analysis-section .notes-strategy-table td {
+            padding: 10px 8px;
+        }
+
+        .notes-analysis-section .notes-strategy-table th:first-child,
+        .notes-analysis-section .notes-strategy-table th:last-child {
+            border-radius: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="sidenav">
+        <ul class="main-buttons">
+            <li>
+                <i class="fa fa-circle fa-2x"></i>
+                Stocks
+                <ul class="hidden">
+                    <li data-page="stock-cards-dashboard">stock cards dashboard</li>
+                    <li data-page="stock-information">stock information</li>
+                    <li data-page="stock-news">stock news</li>
+                    <li data-page="stock">stock</li>
+                </ul>
+            </li>
+            <li>
+                <i class="fa fa-circle fa-2x"></i>
+                Notes
+                <ul class="hidden">
+                    <li data-page="notes-add">新增分析筆記</li>
+                    <li data-page="notes-browse">瀏覽 & 統計</li>
+                </ul>
+            </li>
+            <li>
+                <i class="fa fa-circle fa-2x"></i>
+                Consectetur
+                <ul class="hidden">
+                    <li>Lorem</li>
+                    <li>Ipsum</li>
+                    <li>Dolor</li>
+                </ul>
+            </li>
+        </ul>
+        <div class="calendar">
+                    <div class="calendar__month">
+                        <div class="cal-month__previous">&lt;</div>
+                        <div class="cal-month__current"></div>
+                        <div class="cal-month__next">&gt;</div>
+                    </div>
+                    <div class="calendar__head">
+                        <div class="cal-head__day"></div>
+                        <div class="cal-head__day"></div>
+                        <div class="cal-head__day"></div>
+                        <div class="cal-head__day"></div>
+                        <div class="cal-head__day"></div>
+                        <div class="cal-head__day"></div>
+                        <div class="cal-head__day"></div>
+                    </div>
+                    <div class="calendar__body">
+                        <div class="cal-body__week">
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                        </div>
+                        <div class="cal-body__week">
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                        </div>
+                        <div class="cal-body__week">
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                        </div>
+                        <div class="cal-body__week">
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                        </div>
+                        <div class="cal-body__week">
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                        </div>
+                        <div class="cal-body__week">
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                            <div class="cal-body__day"></div>
+                        </div>
+                    </div>
+                </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Stock Cards Dashboard Section -->
+        <div id="stock-cards-dashboard" class="page-section active">
+            <div id="uploadSection">
+                <h1 style="text-align: center; color: #0f172a;">📈 Stock Cards Dashboard</h1>
+                <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
+                    CSV 上傳版 - 完全離線運行 - 不需要任何伺服器
+                </p>
+
+                <div class="upload-zone" id="uploadZone">
+                    <h3>📁 拖放 CSV 檔案到這裡</h3>
+                    <p>或點擊選擇檔案</p>
+                    <p style="font-size: 12px; color: #9ca3af;">
+                        支援多個 CSV 檔案，命名格式: YYYYMMDD.csv
+                    </p>
+                    <button class="btn" onclick="document.getElementById('fileInput').click()">
+                        選擇檔案
+                    </button>
+                    <input type="file" id="fileInput" class="file-input" accept=".csv" multiple />
+                </div>
+
+                <div id="loadedFilesSection" style="display: none;" class="loaded-files">
+                    <h4>已載入的檔案:</h4>
+                    <div class="file-list" id="fileList"></div>
+                </div>
+            </div>
+
+            <div id="stockApp">
+                <div class="stock-page">
+                    <header class="toolbar">
+                        <div class="toolbar-left">
+                            <h2>📈 Stock Cards Dashboard</h2>
+                            <div class="toolbar-sub">CSV 上傳版 - 資料已載入</div>
+                        </div>
+                        <div class="toolbar-right">
+                            <button class="btn" onclick="resetStockDashboard()">重新上傳</button>
+                            <select id="dataFileSelect" class="select">
+                                <option value="">選擇日期...</option>
+                            </select>
+                            <input id="searchInput" class="search-input" placeholder="Search by Symbol or Name..." type="text" />
+                            <select id="sortField" class="select">
+                                <option value="ChangePct">Change % (漲跌幅)</option>
+                                <option value="Volume">Volume (成交量)</option>
+                                <option value="Turnover">Turnover (成交金額)</option>
+                            </select>
+                            <select id="sortOrder" class="select">
+                                <option value="desc">Desc ↓</option>
+                                <option value="asc">Asc ↑</option>
+                            </select>
+                        </div>
+                    </header>
+                    <div id="stockGrid" class="stock-grid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Information Section -->
+        <div id="stock-information" class="page-section">
+            <div class="stock-info-shell">
+                <header class="stock-info-header">
+                    <div class="si-brand">
+                        <div class="si-brand-icon">📊</div>
+                        <div>
+                            <div class="si-brand-text-main">個股知識小百科</div>
+                            <div class="si-brand-text-sub">Stock Knowledge Base</div>
+                        </div>
+                    </div>
+                    <div class="si-header-right">
+                        <div class="si-mood-pill">
+                            <span class="si-mood-dot"></span>
+                            <span>即時資料</span>
+                        </div>
+                        <div class="si-tag-pill">v1.0</div>
+                    </div>
+                </header>
+
+                <div class="stock-info-body">
+                    <aside class="si-sidebar">
+                        <div class="si-sidebar-header">
+                            <h2 class="si-sidebar-title">個股清單</h2>
+                            <div class="si-stock-counter" id="si-stock-count">0</div>
+                        </div>
+
+                        <div class="si-search-box">
+                            <input type="text" class="si-search-input" id="si-search-input" placeholder="搜尋代碼或名稱..." />
+                            <span class="si-search-icon">🔍</span>
+                            <button class="si-clear-search" id="si-clear-search">✕</button>
+                        </div>
+
+                        <ul class="si-stock-list" id="si-stock-list"></ul>
+
+                        <div class="si-no-results" id="si-no-results">
+                            <div style="font-size: 48px; opacity: 0.5;">🔍</div>
+                            <div>找不到相關股票</div>
+                        </div>
+                    </aside>
+
+                    <section class="si-content-area" id="si-content-area">
+                        <div class="si-empty-state" id="si-empty-state">
+                            <div class="si-empty-icon">📈</div>
+                            <div class="si-empty-text">請從左側選擇一檔股票查看詳細資訊</div>
+                        </div>
+
+                        <div class="si-loading" id="si-loading">
+                            <div class="si-spinner"></div>
+                        </div>
+
+                        <div id="si-detail-content" style="display: none;">
+                            <div class="si-section-header">
+                                <div class="si-stock-badge" id="si-content-badge">2330 · 上市</div>
+                                <h1 class="si-content-title" id="si-content-title">台積電｜護國神山</h1>
+                                <p class="si-content-subline">以下是從「公司定位 → 商業模式 → 指標重點 → 風險地雷」的思考學式整理，你可以依照自己的理解進一步修改。</p>
+                            </div>
+
+                            <div class="si-pill-row">
+                                <div class="si-info-pill core" id="si-pill-core">核心定位：...</div>
+                                <div class="si-info-pill income" id="si-pill-income">配息輪廓：...</div>
+                                <div class="si-info-pill cycles" id="si-pill-cycles">景氣敏感度：...</div>
+                                <div class="si-info-pill risk" id="si-pill-risk">風險標籤：...</div>
+                            </div>
+
+                            <div class="si-content-section">
+                                <h3 class="si-section-title">💡 公司簡介</h3>
+                                <p class="si-section-text" id="si-intro">...</p>
+                            </div>
+
+                            <div class="si-content-section">
+                                <h3 class="si-section-title">🏢 商業模式</h3>
+                                <p class="si-section-text" id="si-business">...</p>
+                                <div class="si-tag-group" id="si-business-tags"></div>
+                            </div>
+
+                            <div class="si-content-section">
+                                <h3 class="si-section-title">📊 關鍵觀察指標</h3>
+                                <ul class="si-bullet-list" id="si-key-points"></ul>
+                            </div>
+
+                            <div class="si-content-section">
+                                <h3 class="si-section-title">🤔 適合對象建議</h3>
+                                <ul class="si-bullet-list" id="si-profile-points"></ul>
+                            </div>
+
+                            <div class="si-content-section">
+                                <h3 class="si-section-title">⚠️ 風險地雷提醒</h3>
+                                <ul class="si-bullet-list" id="si-risk-points"></ul>
+                                <div class="si-tag-group" id="si-risk-tags"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+
+        <div id="stock-news" class="page-section">
+            <h1 style="color: #0f172a;">Stock News</h1>
+            <p style="color: #6b7280;">Coming soon...</p>
+        </div>
+
+        <div id="stock" class="page-section">
+            <h1 style="color: #0f172a;">Stock</h1>
+            <p style="color: #6b7280;">Coming soon...</p>
+        </div>
+
+        <!-- Notes Add Section - 新增紀錄 -->
+        <div id="notes-add" class="page-section">
+            <div class="notes-container">
+                <div class="notes-header">
+                    <h1>📝 交易紀錄系統</h1>
+                    <p>策略 × 行為 × 心理</p>
+                </div>
+
+                <div class="notes-body">
+                    <form id="notesRecordForm">
+                        <!-- 基本資料 -->
+                        <h3 class="notes-section-title">📋 基本資料</h3>
+                        <div class="notes-form-grid">
+                            <div class="notes-form-group">
+                                <label>交易日期 <span style="color: #ef4444;">*</span></label>
+                                <input type="date" id="notesTradeDate" required>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>股票代碼 <span style="color: #ef4444;">*</span></label>
+                                <input type="text" id="notesSymbol" placeholder="例: 2330" required>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>股票名稱</label>
+                                <input type="text" id="notesName" placeholder="例: 台積電">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>方向 <span style="color: #ef4444;">*</span></label>
+                                <select id="notesDirection" required>
+                                    <option value="">請選擇</option>
+                                    <option value="多">多</option>
+                                    <option value="空">空</option>
+                                    <option value="觀望">觀望</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>交易類型</label>
+                                <select id="notesTradeType">
+                                    <option value="當沖">當沖</option>
+                                    <option value="隔日沖">隔日沖</option>
+                                    <option value="波段">波段</option>
+                                    <option value="長線">長線</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>信心度</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="notesConfidence" min="1" max="5" value="3"
+                                        oninput="document.getElementById('notesConfidenceValue').textContent = this.value"
+                                        style="flex: 1;">
+                                    <span class="notes-slider-value" id="notesConfidenceValue">3</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 預判理由 -->
+                        <h3 class="notes-section-title">💡 預判理由</h3>
+                        <div class="notes-form-grid-2">
+                            <div class="notes-form-group">
+                                <label>預判理由類型</label>
+                                <select id="notesPreReasonType">
+                                    <option value="資金">資金</option>
+                                    <option value="籌碼">籌碼</option>
+                                    <option value="技術">技術</option>
+                                    <option value="題材">題材</option>
+                                    <option value="財報">財報</option>
+                                    <option value="事件">事件</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>進場設立</label>
+                                <select id="notesEntryPlan">
+                                    <option value="過壓">過壓</option>
+                                    <option value="回測">回測</option>
+                                    <option value="突破">突破</option>
+                                    <option value="摸底">摸底</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="notes-form-group">
+                            <label>預判理由說明</label>
+                            <textarea id="notesPreReasonText" placeholder="簡述你的進場理由" style="min-height: 70px;"></textarea>
+                        </div>
+
+                        <!-- 價格設定 -->
+                        <h3 class="notes-section-title">💰 價格設定</h3>
+                        <div class="notes-form-grid">
+                            <div class="notes-form-group">
+                                <label>目標價</label>
+                                <input type="number" id="notesTargetPrice" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>停損價</label>
+                                <input type="number" id="notesStopPrice" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>部位大小 (張)</label>
+                                <input type="number" id="notesSize" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>實際進場價</label>
+                                <input type="number" id="notesEntryPrice" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>實際出場價</label>
+                                <input type="number" id="notesExitPrice" step="0.01" min="0" placeholder="未出場填 0">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>結果分類</label>
+                                <select id="notesResultType">
+                                    <option value="策略對">策略對</option>
+                                    <option value="策略錯">策略錯</option>
+                                    <option value="執行錯">執行錯</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 自動計算區 -->
+                        <div class="notes-calc-section">
+                            <div class="notes-calc-item">
+                                <span class="notes-calc-label">報酬率</span>
+                                <span class="notes-calc-value" id="notesPnlDisplay">-</span>
+                            </div>
+                            <div class="notes-calc-item">
+                                <span class="notes-calc-label">RR 值</span>
+                                <span class="notes-calc-value" id="notesRRDisplay">-</span>
+                            </div>
+                        </div>
+
+                        <div class="notes-divider"></div>
+
+                        <!-- 執行細節 -->
+                        <h3 class="notes-section-title">📊 執行細節</h3>
+                        <div class="notes-form-grid">
+                            <div class="notes-form-group">
+                                <label>最高價</label>
+                                <input type="number" id="notesHighestPrice" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>最低價</label>
+                                <input type="number" id="notesLowestPrice" step="0.01" min="0" placeholder="0.00">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>持有天數</label>
+                                <input type="number" id="notesHoldingDays" min="0" value="1">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>執行品質</label>
+                                <div style="display: flex; align-items: center;">
+                                    <input type="range" id="notesExecutionQuality" min="1" max="5" value="3"
+                                        oninput="document.getElementById('notesExecQualityValue').textContent = this.value"
+                                        style="flex: 1;">
+                                    <span class="notes-slider-value" id="notesExecQualityValue">3</span>
+                                </div>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>市場環境</label>
+                                <select id="notesMarketEnv">
+                                    <option value="趨勢">趨勢</option>
+                                    <option value="盤整">盤整</option>
+                                    <option value="波動大">波動大</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 心理狀態 -->
+                        <h3 class="notes-section-title">🧠 心理狀態</h3>
+                        <div class="notes-form-grid">
+                            <div class="notes-form-group">
+                                <label>進場情緒</label>
+                                <select id="notesEmotionEntry">
+                                    <option value="冷靜">冷靜</option>
+                                    <option value="興奮">興奮</option>
+                                    <option value="焦慮">焦慮</option>
+                                    <option value="害怕">害怕</option>
+                                    <option value="貪婪">貪婪</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>出場情緒</label>
+                                <select id="notesEmotionExit">
+                                    <option value="冷靜">冷靜</option>
+                                    <option value="興奮">興奮</option>
+                                    <option value="焦慮">焦慮</option>
+                                    <option value="害怕">害怕</option>
+                                    <option value="貪婪">貪婪</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>行為偏誤</label>
+                                <select id="notesBehaviorError">
+                                    <option value="無">無</option>
+                                    <option value="追高">追高</option>
+                                    <option value="太早獲利">太早獲利</option>
+                                    <option value="不停損">不停損</option>
+                                    <option value="過度交易">過度交易</option>
+                                    <option value="其他">其他</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 分析與改進 -->
+                        <h3 class="notes-section-title">📝 分析與改進</h3>
+                        <div class="notes-form-grid-2">
+                            <div class="notes-form-group">
+                                <label>成功因素</label>
+                                <input type="text" id="notesSuccessFactor" placeholder="技術/資金/風控...">
+                            </div>
+                            <div class="notes-form-group">
+                                <label>失敗原因</label>
+                                <input type="text" id="notesFailureFactor" placeholder="假設錯/執行錯/心理錯...">
+                            </div>
+                        </div>
+                        <div class="notes-form-group">
+                            <label>改進點</label>
+                            <textarea id="notesImprovement" placeholder="下次要怎麼做..." style="min-height: 70px;"></textarea>
+                        </div>
+                        <div class="notes-form-group">
+                            <label>備註</label>
+                            <textarea id="notesNote" placeholder="其他想記的..." style="min-height: 70px;"></textarea>
+                        </div>
+
+                        <button type="submit" class="notes-btn notes-btn-full">💾 儲存紀錄</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes Browse Section - 瀏覽分析 -->
+        <div id="notes-browse" class="page-section">
+            <div class="notes-container">
+                <div class="notes-header">
+                    <h1>📊 交易紀錄 Dashboard</h1>
+                    <p>策略 × 行為 × 心理</p>
+                </div>
+
+                <div class="notes-body">
+                    <!-- 核心統計卡片 -->
+                    <div id="notesDashboardInfo" class="notes-alert notes-alert-info">
+                        📦 共 <strong id="notesTotalRecords">0</strong> 筆交易
+                    </div>
+
+                    <div class="notes-stats-container">
+                        <div class="notes-stat-card">
+                            <h4>勝率</h4>
+                            <div class="value" id="notesWinRate">--%</div>
+                        </div>
+                        <div class="notes-stat-card">
+                            <h4>平均 RR</h4>
+                            <div class="value" id="notesAvgRR">--</div>
+                        </div>
+                        <div class="notes-stat-card">
+                            <h4>平均報酬率</h4>
+                            <div class="value" id="notesAvgPnl">--%</div>
+                        </div>
+                        <div class="notes-stat-card">
+                            <h4>執行品質</h4>
+                            <div class="value" id="notesAvgExecQuality">--</div>
+                        </div>
+                    </div>
+
+                    <div class="notes-divider"></div>
+
+                    <!-- 分析區塊 - 三欄並排 -->
+                    <div class="notes-analysis-grid">
+                        <!-- 策略統計 -->
+                        <div class="notes-analysis-section">
+                            <h3>🎯 策略面</h3>
+                            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">預判理由類型 vs 勝率</p>
+                            <div id="notesStrategyStats"></div>
+                        </div>
+
+                        <!-- 行為統計 -->
+                        <div class="notes-analysis-section">
+                            <h3>🧠 行為面</h3>
+                            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">行為偏誤 vs 報酬</p>
+                            <div id="notesBehaviorStats"></div>
+                        </div>
+
+                        <!-- 心理統計 -->
+                        <div class="notes-analysis-section">
+                            <h3>💭 心理面</h3>
+                            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">進場情緒 vs 勝率</p>
+                            <div id="notesEmotionStats"></div>
+                        </div>
+                    </div>
+
+                    <!-- 篩選區 -->
+                    <div class="notes-filter-section">
+                        <h3>🔍 篩選條件</h3>
+                        <div class="notes-filter-grid">
+                            <div class="notes-form-group">
+                                <label>股票代碼</label>
+                                <select id="notesFilterSymbol" onchange="notesUpdateDashboard()">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>預判理由類型</label>
+                                <select id="notesFilterReasonType" onchange="notesUpdateDashboard()">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+                            <div class="notes-form-group">
+                                <label>市場環境</label>
+                                <select id="notesFilterMarketEnv" onchange="notesUpdateDashboard()">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="notes-action-buttons">
+                            <button class="notes-btn notes-btn-secondary" onclick="notesExportCSV()">📤 匯出 CSV</button>
+                            <button class="notes-btn" onclick="notesExportJSON()">💾 備份 JSON</button>
+                            <button class="notes-btn notes-btn-secondary" onclick="document.getElementById('notesImportJsonInput').click()">
+                                📥 匯入還原
+                            </button>
+                            <input type="file" id="notesImportJsonInput" accept="application/json" style="display:none"
+                                onchange="notesImportJSON(event)">
+                        </div>
+                    </div>
+
+                    <!-- 交易明細 -->
+                    <div class="notes-analysis-section" style="padding: 0; overflow: hidden;">
+                        <div style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0;">
+                            <h3 style="margin: 0;">📋 交易明細</h3>
+                        </div>
+                        <div class="notes-table-wrapper" style="margin: 0; border: none; border-radius: 0;">
+                            <table class="notes-strategy-table" id="notesRecordsTable" style="margin: 0;">
+                                <thead>
+                                    <tr>
+                                        <th>日期</th>
+                                        <th>代碼</th>
+                                        <th>名稱</th>
+                                        <th>方向</th>
+                                        <th>類型</th>
+                                        <th>理由</th>
+                                        <th>進場價</th>
+                                        <th>出場價</th>
+                                        <th>報酬%</th>
+                                        <th>RR</th>
+                                        <th>結果</th>
+                                        <th>偏誤</th>
+                                        <th>情緒</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notesRecordsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Calendar {
+            constructor() {
+                this.monthDiv = document.querySelector('.cal-month__current');
+                this.headDivs = document.querySelectorAll('.cal-head__day');
+                this.bodyDivs = document.querySelectorAll('.cal-body__day');
+                this.nextDiv = document.querySelector('.cal-month__next');
+                this.prevDiv = document.querySelector('.cal-month__previous');
+            }
+
+            init() {
+                moment.locale(window.navigator.userLanguage || window.navigator.language);
+
+                this.month = moment();
+                this.today = this.selected = this.month.clone();
+                this.weekDays = moment.weekdaysShort(true);
+
+                this.headDivs.forEach((day, index) => {
+                    day.innerText = this.weekDays[index];
+                });
+
+                this.nextDiv.addEventListener('click', _ => { this.addMonth(); });
+                this.prevDiv.addEventListener('click', _ => { this.removeMonth(); });
+
+                this.bodyDivs.forEach(day => {
+                    day.addEventListener('click', e => {
+                        const date = +e.target.innerHTML < 10 ? `0${e.target.innerHTML}` : e.target.innerHTML;
+
+                        if (e.target.classList.contains('cal-day__month--next')) {
+                            this.selected = moment(`${this.month.add(1, 'month').format('YYYY-MM')}-${date}`);
+                        } else if (e.target.classList.contains('cal-day__month--previous')) {
+                            this.selected = moment(`${this.month.subtract(1, 'month').format('YYYY-MM')}-${date}`);
+                        } else {
+                            this.selected = moment(`${this.month.format('YYYY-MM')}-${date}`);
+                        }
+
+                        this.update();
+                    });
+                });
+
+                this.update();
+            }
+
+            update() {
+                this.calendarDays = {
+                    first: this.month.clone().startOf('month').startOf('week').date(),
+                    last: this.month.clone().endOf('month').date()
+                };
+
+                this.monthDays = {
+                    lastPrevious: this.month.clone().subtract(1, 'months').endOf('month').date(),
+                    lastCurrent: this.month.clone().endOf('month').date()
+                };
+
+                this.monthString = this.month.clone().format('MMMM YYYY');
+
+                this.draw();
+            }
+
+            addMonth() {
+                this.month.add(1, 'month');
+                this.update();
+            }
+
+            removeMonth() {
+                this.month.subtract(1, 'month');
+                this.update();
+            }
+
+            draw() {
+                this.monthDiv.innerText = this.monthString;
+
+                let index = 0;
+
+                if (this.calendarDays.first > 1) {
+                    for (let day = this.calendarDays.first; day <= this.monthDays.lastPrevious; index++) {
+                        this.bodyDivs[index].innerText = day++;
+                        this.cleanCssClasses(false, index);
+                        this.bodyDivs[index].classList.add('cal-day__month--previous');
+                    }
+                }
+
+                let isNextMonth = false;
+                for (let day = 1; index <= this.bodyDivs.length - 1; index++) {
+                    if (day > this.monthDays.lastCurrent) {
+                        day = 1;
+                        isNextMonth = true;
+                    }
+
+                    this.cleanCssClasses(true, index);
+
+                    if (!isNextMonth) {
+                        if (day === this.today.date() && this.today.isSame(this.month, 'month')) {
+                            this.bodyDivs[index].classList.add('cal-day__day--today');
+                        }
+
+                        if (day === this.selected.date() && this.selected.isSame(this.month, 'month')) {
+                            this.bodyDivs[index].classList.add('cal-day__day--selected');
+                        }
+
+                        this.bodyDivs[index].classList.add('cal-day__month--current');
+                    } else {
+                        this.bodyDivs[index].classList.add('cal-day__month--next');
+                    }
+
+                    this.bodyDivs[index].innerText = day++;
+                }
+            }
+
+            cleanCssClasses(selected, index) {
+                this.bodyDivs[index].classList.remove('cal-day__month--next');
+                this.bodyDivs[index].classList.remove('cal-day__month--previous');
+                this.bodyDivs[index].classList.remove('cal-day__month--current');
+                this.bodyDivs[index].classList.remove('cal-day__day--today');
+                if (selected) {
+                    this.bodyDivs[index].classList.remove('cal-day__day--selected');
+                }
+            }
+        }
+
+        const cal = new Calendar();
+        cal.init();
+
+        // ===== Page Navigation =====
+        document.querySelectorAll('.hidden li[data-page]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const pageId = e.target.getAttribute('data-page');
+                document.querySelectorAll('.page-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.add('active');
+                }
+            });
+        });
+
+        // ===== Stock Cards Dashboard =====
+        let uploadedData = {};
+        let availableFiles = [];
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const loadedFilesSection = document.getElementById('loadedFilesSection');
+        const uploadSection = document.getElementById('uploadSection');
+        const stockApp = document.getElementById('stockApp');
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => {
+                uploadZone.classList.remove('dragover');
+            }, false);
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            const csvFiles = Array.from(files).filter(f => f.name.endsWith('.csv'));
+            if (csvFiles.length === 0) {
+                alert('請選擇 CSV 檔案！');
+                return;
+            }
+
+            let processedCount = 0;
+            csvFiles.forEach(file => {
+                Papa.parse(file, {
+                    header: true,
+                    complete: (results) => {
+                        const fileName = file.name;
+                        const dateKey = fileName.replace('.csv', '');
+                        uploadedData[dateKey] = results.data.filter(r => r && r.Symbol && r.Date);
+                        if (!availableFiles.includes(fileName)) {
+                            availableFiles.push(fileName);
+                        }
+                        processedCount++;
+                        if (processedCount === csvFiles.length) {
+                            availableFiles.sort();
+                            updateFileList();
+                            showStockApp();
+                        }
+                    },
+                    error: (err) => {
+                        console.error('解析錯誤:', err);
+                        alert(`檔案 ${file.name} 解析失敗！`);
+                    }
+                });
+            });
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            availableFiles.forEach(file => {
+                const tag = document.createElement('div');
+                tag.className = 'file-tag';
+                tag.innerHTML = `${file.replace('.csv', '')} <button onclick="removeFile('${file}')">×</button>`;
+                fileList.appendChild(tag);
+            });
+            loadedFilesSection.style.display = 'block';
+        }
+
+        function removeFile(fileName) {
+            const dateKey = fileName.replace('.csv', '');
+            delete uploadedData[dateKey];
+            availableFiles = availableFiles.filter(f => f !== fileName);
+            if (availableFiles.length === 0) {
+                resetStockDashboard();
+            } else {
+                updateFileList();
+                initializeStockApp();
+            }
+        }
+
+        function resetStockDashboard() {
+            uploadedData = {};
+            availableFiles = [];
+            uploadSection.style.display = 'block';
+            stockApp.classList.remove('active');
+            loadedFilesSection.style.display = 'none';
+            fileList.innerHTML = '';
+            fileInput.value = '';
+        }
+
+        function showStockApp() {
+            uploadSection.style.display = 'none';
+            stockApp.classList.add('active');
+            initializeStockApp();
+        }
+
+        const stockState = {
+            rows: [],
+            history: {},
+            search: '',
+            sortField: 'ChangePct',
+            sortOrder: 'desc'
+        };
+
+        const CHART_WIDTH = 120;
+        const CHART_HEIGHT = 60;
+        const CHART_PADDING = 4;
+        const MAX_CANDLES = 6;
+
+        function initializeStockApp() {
+            populateFileSelect();
+            const latestFile = availableFiles[availableFiles.length - 1];
+            document.getElementById('dataFileSelect').value = latestFile;
+            loadDataFile(latestFile);
+            setupStockEventListeners();
+        }
+
+        function populateFileSelect() {
+            const select = document.getElementById('dataFileSelect');
+            select.innerHTML = '';
+            availableFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file;
+                option.textContent = file.replace('.csv', '');
+                select.appendChild(option);
+            });
+        }
+
+        function loadDataFile(filename) {
+            const dateKey = filename.replace('.csv', '');
+            const dateIndex = availableFiles.indexOf(filename);
+            const startIndex = Math.max(0, dateIndex - 5);
+            const filesToLoad = availableFiles.slice(startIndex, dateIndex + 1);
+
+            const allData = [];
+            const loadedDates = [];
+
+            filesToLoad.forEach(file => {
+                const fileKey = file.replace('.csv', '');
+                const data = uploadedData[fileKey];
+                if (data && data.length > 0) {
+                    const fileDate = data[0].Date;
+                    loadedDates.push(fileDate);
+                    allData.push(...data);
+                }
+            });
+
+            const needPadding = 6 - loadedDates.length;
+            if (needPadding > 0 && loadedDates.length > 0) {
+                const firstDate = loadedDates[0];
+                const firstDayData = allData.filter(r => r.Date === firstDate);
+                for (let i = 1; i <= needPadding; i++) {
+                    const padDate = `${firstDate}_pad${i}`;
+                    firstDayData.forEach(row => {
+                        allData.push({ ...row, Date: padDate });
+                    });
+                    loadedDates.unshift(padDate);
+                }
+            }
+
+            const historyMap = {};
+            for (const r of allData) {
+                const sym = r.Symbol;
+                if (!historyMap[sym]) historyMap[sym] = [];
+                historyMap[sym].push({
+                    Date: r.Date,
+                    Open: r.Open,
+                    High: r.High,
+                    Low: r.Low,
+                    Avg: r.Avg,
+                    Close: r.Close
+                });
+            }
+
+            Object.keys(historyMap).forEach(sym => {
+                historyMap[sym].sort((a, b) => (a.Date > b.Date ? 1 : -1));
+            });
+
+            const selectedDate = loadedDates[loadedDates.length - 1 - needPadding];
+            const latestRows = allData.filter(r => r.Date === selectedDate);
+
+            stockState.rows = latestRows;
+            stockState.history = historyMap;
+
+            renderStockGrid();
+        }
+
+        function getFilteredRows() {
+            return stockState.rows.filter(r => {
+                if (!stockState.search.trim()) return true;
+                const q = stockState.search.trim().toLowerCase();
+                const sym = (r.Symbol || '').toString().toLowerCase();
+                const name = (r.Name || '').toString().toLowerCase();
+                return sym.includes(q) || name.includes(q);
+            });
+        }
+
+        function getSortedRows(filtered) {
+            return [...filtered].sort((a, b) => {
+                const dir = stockState.sortOrder === 'asc' ? 1 : -1;
+                let va = 0, vb = 0;
+                if (stockState.sortField === 'ChangePct') {
+                    va = parseFloat(String(a.ChangePct || '0').replace('%', ''));
+                    vb = parseFloat(String(b.ChangePct || '0').replace('%', ''));
+                } else if (stockState.sortField === 'Volume') {
+                    va = Number(a.Volume || 0);
+                    vb = Number(b.Volume || 0);
+                } else if (stockState.sortField === 'Turnover') {
+                    va = Number(a.Turnover || 0);
+                    vb = Number(b.Turnover || 0);
+                }
+                if (isNaN(va)) va = 0;
+                if (isNaN(vb)) vb = 0;
+                return (vb - va) * dir;
+            });
+        }
+
+        function createStockCard(row, history) {
+            const pct = row.ChangePct || '0%';
+            const sign = pct.includes('-') ? '▼' : '▲';
+            const color = pct.includes('-') ? '#00a508' : '#ca1414e5';
+
+            const card = document.createElement('div');
+            card.className = 'stock-card';
+
+            const parsedHistory = (history || [])
+                .map(h => ({
+                    date: h.Date,
+                    open: parseFloat(h.Open),
+                    high: parseFloat(h.High),
+                    low: parseFloat(h.Low),
+                    avg: parseFloat(h.Avg),
+                    close: parseFloat(h.Close)
+                }))
+                .filter(h => [h.open, h.high, h.low, h.close].every(v => !isNaN(v)));
+
+            const candles = parsedHistory.slice(-MAX_CANDLES);
+            const hasHistory = candles.length >= 1;
+
+            const close = parseFloat(row.Close) || 0;
+            const volume = Number(row.Volume || 0);
+            const turnover = Number(row.Turnover || 0);
+            const netvolume = Number(row.NetVolume || 0);
+
+            card.innerHTML = `
+                <div class="card-front">
+                    <div class="card-header">
+                        <div class="stock-title" data-flip-trigger>${row.Symbol} ${row.Name} (${row.Market})</div>
+                        <div class="stock-date">${row.Date}</div>
+                    </div>
+                    <div class="main-row">
+                        <div class="main-left">
+                            <div class="price-row">
+                                <div class="price-value">${close}</div>
+                                <div class="price-change" style="color: ${color}">${pct} ${sign}</div>
+                            </div>
+                            <div class="sub">Volume: ${volume.toLocaleString()}</div>
+                            <div class="sub">NetVolume%: ${(netvolume / turnover * 100).toFixed(2)}%</div>
+                        </div>
+                        <div class="main-right">
+                            ${hasHistory ? createCandlestickChart(candles) : '<div style="color: #cbd5e1; font-size: 10px;">No history</div>'}
+                        </div>
+                    </div>
+                </div>
+                <div class="card-back">
+                    <div class="back-header" data-flip-trigger>${row.Symbol} ${row.Name}</div>
+                    <div class="info-row">
+                        <span class="info-label">開盤 (Open)</span>
+                        <span class="info-value">${parseFloat(row.Open).toFixed(2)}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">最高 (High)</span>
+                        <span class="info-value">${parseFloat(row.High).toFixed(2)}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">最低 (Low)</span>
+                        <span class="info-value">${parseFloat(row.Low).toFixed(2)}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">收盤 (Close)</span>
+                        <span class="info-value">${close.toFixed(2)}</span>
+                    </div>
+                    <div class="flip-hint">點擊標題返回</div>
+                </div>
+            `;
+
+            setupCardFlip(card);
+            if (hasHistory) setupCandlestickInteraction(card, candles);
+
+            return card;
+        }
+
+        function setupCardFlip(card) {
+            card.querySelectorAll('[data-flip-trigger]').forEach(trigger => {
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    card.classList.toggle('flipped');
+                });
+            });
+        }
+
+        function createCandlestickChart(candles) {
+            const highs = candles.map(c => c.high);
+            const lows = candles.map(c => c.low);
+            const minLow = Math.min(...lows);
+            const maxHigh = Math.max(...highs);
+            const range = maxHigh - minLow || 1;
+            const candleWidth = CHART_WIDTH / candles.length;
+            const bodyWidth = Math.max(1, candleWidth * 0.6);
+
+            const scaleY = value =>
+                CHART_PADDING + ((maxHigh - value) / range) * (CHART_HEIGHT - CHART_PADDING * 2);
+
+            let svgContent = '';
+            candles.forEach((c, i) => {
+                const xCenter = i * candleWidth + candleWidth / 2;
+                const yOpen = scaleY(c.open);
+                const yClose = scaleY(c.close);
+                const yHigh = scaleY(c.high);
+                const yLow = scaleY(c.low);
+                const isUp = c.close >= c.open;
+                const candleColor = isUp ? '#c52222' : '#44ef77be';
+                const bodyTop = Math.min(yOpen, yClose);
+                const bodyHeight = Math.max(1, Math.abs(yOpen - yClose));
+
+                svgContent += `
+                    <g class="candle-group" data-index="${i}">
+                        <line x1="${xCenter}" x2="${xCenter}" y1="${yHigh}" y2="${yLow}" stroke="${candleColor}" stroke-width="1" />
+                        <rect x="${xCenter - bodyWidth / 2}" y="${bodyTop}" width="${bodyWidth}" height="${bodyHeight}" fill="${candleColor}" />
+                    </g>
+                `;
+            });
+
+            return `
+                <div class="candlestick-wrap">
+                    <svg class="candlestick" viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}">${svgContent}</svg>
+                </div>
+            `;
+        }
+
+        function setupCandlestickInteraction(card, candles) {
+            const wrap = card.querySelector('.candlestick-wrap');
+            const svg = card.querySelector('.candlestick');
+            const groups = svg.querySelectorAll('.candle-group');
+            let tooltip = null;
+
+            const showTooltip = (c, x, y) => {
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'candle-tooltip';
+                    wrap.appendChild(tooltip);
+                }
+                tooltip.innerHTML = `<div style="font-weight: 600; margin-bottom: 2px;">${c.date}</div><div>O:${c.open} H:${c.high} L:${c.low} C:${c.close}</div>`;
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${Math.max(CHART_PADDING, y)}px`;
+                tooltip.style.display = 'block';
+            };
+
+            const hideTooltip = () => {
+                if (tooltip) tooltip.style.display = 'none';
+            };
+
+            groups.forEach((group, index) => {
+                const candle = candles[index];
+                const candleWidth = CHART_WIDTH / candles.length;
+                const xCenter = index * candleWidth + candleWidth / 2;
+                const highs = candles.map(c => c.high);
+                const lows = candles.map(c => c.low);
+                const minLow = Math.min(...lows);
+                const maxHigh = Math.max(...highs);
+                const range = maxHigh - minLow || 1;
+                const yHigh = CHART_PADDING + ((maxHigh - candle.high) / range) * (CHART_HEIGHT - CHART_PADDING * 2);
+
+                group.addEventListener('mouseenter', () => showTooltip(candle, xCenter, yHigh));
+                group.addEventListener('mousemove', () => showTooltip(candle, xCenter, yHigh));
+            });
+
+            svg.addEventListener('mouseleave', hideTooltip);
+        }
+
+        function renderStockGrid() {
+            const filtered = getFilteredRows();
+            const sorted = getSortedRows(filtered);
+            const gridEl = document.getElementById('stockGrid');
+
+            gridEl.innerHTML = '';
+            sorted.forEach(row => {
+                const card = createStockCard(row, stockState.history[row.Symbol] || []);
+                gridEl.appendChild(card);
+            });
+        }
+
+        function setupStockEventListeners() {
+            document.getElementById('dataFileSelect').addEventListener('change', (e) => {
+                loadDataFile(e.target.value);
+            });
+
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                stockState.search = e.target.value;
+                renderStockGrid();
+            });
+
+            document.getElementById('sortField').addEventListener('change', (e) => {
+                stockState.sortField = e.target.value;
+                renderStockGrid();
+            });
+
+            document.getElementById('sortOrder').addEventListener('change', (e) => {
+                stockState.sortOrder = e.target.value;
+                renderStockGrid();
+            });
+        }
+
+        // ===== Stock Information =====
+        const siStockData = {
+            "2330": {
+                code: "2330",
+                name: "台積電",
+                market: "上市",
+                coreRole: "晶圓代工龍頭 · 護國神山",
+                incomeProfile: "穩定配息，股價波動屬於成長股範疇",
+                cycleProfile: "半導體景氣週期有影響，但長期趨勢向上",
+                riskProfile: "技術領先優勢若被追趕，可能影響估值與獲利",
+                intro: "台積電是全球最大的晶圓代工公司，幫各大廠的設計公司（如 Apple、Nvidia、AMD 等）生產晶片，本身不設計產品，只負責製造。",
+                business: "收入主要依賴代工費用，技術越先進（例如 3nm、5nm 製程），利潤率越高。因為資本支出極大（新廠單價數千億），進入門檻非常高，形成寡占市場。",
+                businessTags: ["晶圓代工", "高資本密集", "技術護城河", "全球化布局"],
+                keyPoints: [
+                    "觀察先進製程（7nm 以下）的產能利用率與訂單。",
+                    "留意資本支出計劃，通常會提前數年佈局新廠與新製程。",
+                    "注意客戶結構，是否過度依賴單一客戶。",
+                    "關注地緣政治風險，例如美中科技戰、台海局勢等。"
+                ],
+                profilePoints: [
+                    "適合長期投資、相信科技產業成長趨勢的人。",
+                    "能承受短期股價波動，不會因為修正 20%～30% 就恐慌。",
+                    "願意花時間了解半導體產業動態與技術趨勢。"
+                ],
+                riskPoints: [
+                    "技術領先優勢若被三星或英特爾追趕，可能影響毛利率。",
+                    "地緣政治風險，台海局勢、美中貿易戰、技術出口管制等。",
+                    "資本支出龐大，若景氣急轉直下，可能出現產能閒置或現金流吃緊。"
+                ],
+                riskTags: ["技術競爭", "地緣政治", "資本支出風險"]
+            },
+            "2886": {
+                code: "2886",
+                name: "兆豐金",
+                market: "上市",
+                coreRole: "綜合金控 · 銀行為主 + 壽險為輔",
+                incomeProfile: "穩定配息股，適合領股息的存股族",
+                cycleProfile: "金融股屬於景氣循環產業，獲利與景氣影響大",
+                riskProfile: "利率反轉變動、壽險虧損、景氣衰退皆須留意",
+                intro: "兆豐金是台灣前三大金控之一，旗下有兆豐銀行、兆豐證券、兆豐保險等子公司。主要賺利差（銀行）與手續費（證券），也有壽險投資收益。",
+                business: "銀行部分賺的是「存放款利差」與「手續費」，壽險部分則是保費收入與資產投資收益。金融股獲利會隨著利率環境、景氣好壞而上下波動。",
+                businessTags: ["銀行業務", "利差收入", "保險與投資收益", "景氣敏感"],
+                keyPoints: [
+                    "關注整體獲利是否穩定，而不是只看單一年份大賺或大虧。",
+                    "留意壽險部位的未實現損益與資本適足率。",
+                    "觀察股利政策是否穩定，是否有「特別股利」或一次性因素。",
+                    "留意利率環境變化，因為會影響利差與債券評價。"
+                ],
+                profilePoints: [
+                    "適合可以理解「金融獲利會跟景氣、利率一起上上下下」的投資人。",
+                    "對股價波動有一定承受度，不會金融股跌完就存。",
+                    "願意用 3～5 年的時間看一個完整景氣循環。"
+                ],
+                riskPoints: [
+                    "利率反轉變動可能造成債券評價大幅調整，影響獲利。",
+                    "壽險部位長年期負債，若資產配置不佳，有資本虧損風險。",
+                    "景氣衰退、失業率上升時，呆帳與逾放呆帳會增加。"
+                ],
+                riskTags: ["利率風險", "資本適足壓力", "景氣循環"]
+            },
+            "2603": {
+                code: "2603",
+                name: "長榮",
+                market: "上市",
+                coreRole: "貨櫃航運公司 · 典型景氣循環股",
+                incomeProfile: "獲利與配息高度依賴運價與景氣，波動很大",
+                cycleProfile: "極高景氣循環性，淡旺季差異大",
+                riskProfile: "容易出現「景氣好大賺翻、壞時大虧」的情況",
+                intro: "長榮是遠洋貨櫃航運公司，賺的是全球貨物運輸的運費。運價會隨著景氣、供給量、塞港狀況而劇烈波動。",
+                business: "收入主要依賴海運貨櫃運輸服務，船隊與航線佈局會影響成本與運價談判能力。景氣好時運價飆漲，獲利非常亮眼，景氣不好時運價崩盤，獲利可能大幅衰退。",
+                businessTags: ["貨櫃航運", "極端景氣循環", "運價波動", "資本密集產業"],
+                keyPoints: [
+                    "第一個要看的是貨櫃運價指數，例如全球運價指數、各航線運價。",
+                    "留意船隊供給量是否過多，以及新船交付狀況。",
+                    "注意公司在好景氣時如何運用現金（還債、配息、擴張船隊）。",
+                    "辨識自己是在「景氣高峰追價」還是「谷底慢慢佈局」。"
+                ],
+                profilePoints: [
+                    "適合清楚知道自己在玩景氣循環的人，而不是當存股。",
+                    "能接受大起大落、甚至幾個月內股價腰斬的風險。",
+                    "願意花時間追蹤運價指數、產業供需與景氣循環。"
+                ],
+                riskPoints: [
+                    "景氣反轉時，運價大跌，獲利可能從暴利變虧損。",
+                    "船隊投資週期長，若在高運價時大量擴張，可能埋下未來供給過多的種子。",
+                    "地緣政治、港口塞港、油價波動等都會影響營運成本與收益。"
+                ],
+                riskTags: ["高度景氣循環", "資本投資風險", "地緣政治與成本風險"]
+            }
+        };
+
+        let siState = {
+            currentCode: null,
+            filteredStocks: [],
+            selectedIndex: -1
+        };
+
+        function siEscapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function siRenderStockList(filterText = "") {
+            const normalizedFilter = filterText.trim().toLowerCase();
+            const stockList = document.getElementById("si-stock-list");
+            stockList.innerHTML = "";
+
+            siState.filteredStocks = Object.values(siStockData).filter(stock => {
+                if (!normalizedFilter) return true;
+                const target = `${stock.code}${stock.name}${stock.market}`.toLowerCase();
+                return target.includes(normalizedFilter);
+            });
+
+            document.getElementById("si-stock-count").textContent = siState.filteredStocks.length;
+            if (siState.filteredStocks.length > 0) {
+                document.getElementById("si-stock-count").classList.add('highlight');
+            } else {
+                document.getElementById("si-stock-count").classList.remove('highlight');
+            }
+
+            if (siState.filteredStocks.length === 0 && normalizedFilter) {
+                document.getElementById("si-no-results").classList.add('visible');
+            } else {
+                document.getElementById("si-no-results").classList.remove('visible');
+            }
+
+            siState.filteredStocks.forEach((stock, index) => {
+                const li = document.createElement("li");
+                li.className = "si-stock-item";
+
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "si-stock-btn";
+                button.dataset.stockCode = stock.code;
+                button.dataset.index = index;
+
+                const roleText = stock.coreRole.length > 12 ? stock.coreRole.slice(0, 12) + '...' : stock.coreRole;
+
+                button.innerHTML = `
+                    <div class="si-stock-main-row">
+                        <span class="si-stock-code">${siEscapeHtml(stock.code)}</span>
+                        <span class="si-stock-name">${siEscapeHtml(stock.name)}</span>
+                    </div>
+                    <div class="si-stock-tag-row">
+                        <span class="si-chip highlight">${siEscapeHtml(stock.market)}</span>
+                        <span class="si-chip">${siEscapeHtml(roleText)}</span>
+                    </div>
+                `;
+
+                button.addEventListener("click", () => {
+                    siSetActiveStock(stock.code);
+                });
+
+                li.appendChild(button);
+                stockList.appendChild(li);
+            });
+
+            if (normalizedFilter) {
+                document.getElementById("si-clear-search").classList.add('visible');
+            } else {
+                document.getElementById("si-clear-search").classList.remove('visible');
+            }
+        }
+
+        function siSetActiveStock(code) {
+            const stock = siStockData[code];
+            if (!stock) return;
+
+            document.getElementById("si-empty-state").style.display = 'none';
+            document.getElementById("si-loading").classList.add('active');
+
+            setTimeout(() => {
+                siState.currentCode = code;
+
+                document.querySelectorAll(".si-stock-btn").forEach(btn => {
+                    btn.classList.remove("active");
+                });
+
+                const targetBtn = document.querySelector(`.si-stock-btn[data-stock-code="${code}"]`);
+                if (targetBtn) {
+                    targetBtn.classList.add("active");
+                    siState.selectedIndex = parseInt(targetBtn.dataset.index);
+                    targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+
+                siUpdateDetailContent(stock);
+
+                document.getElementById("si-loading").classList.remove('active');
+                document.getElementById("si-detail-content").style.display = 'block';
+                document.getElementById("si-content-area").scrollTop = 0;
+            }, 150);
+        }
+
+        function siUpdateDetailContent(stock) {
+            document.getElementById("si-content-badge").textContent = `${stock.code} · ${stock.market}`;
+            document.getElementById("si-content-title").textContent = `${stock.name}｜${stock.coreRole}`;
+
+            document.getElementById("si-pill-core").textContent = `核心定位：${stock.coreRole}`;
+            document.getElementById("si-pill-income").textContent = `配息輪廓：${stock.incomeProfile}`;
+            document.getElementById("si-pill-cycles").textContent = `景氣敏感度：${stock.cycleProfile}`;
+            document.getElementById("si-pill-risk").textContent = `風險標籤：${stock.riskProfile}`;
+
+            document.getElementById("si-intro").textContent = stock.intro;
+            document.getElementById("si-business").textContent = stock.business;
+
+            const businessTags = document.getElementById("si-business-tags");
+            businessTags.innerHTML = "";
+            (stock.businessTags || []).forEach(tag => {
+                const span = document.createElement("span");
+                span.className = "si-mini-badge neutral";
+                span.textContent = tag;
+                businessTags.appendChild(span);
+            });
+
+            const keyPoints = document.getElementById("si-key-points");
+            keyPoints.innerHTML = "";
+            (stock.keyPoints || []).forEach(text => {
+                const li = document.createElement("li");
+                li.className = "si-bullet-item";
+                li.innerHTML = `<span class="si-bullet-dot good"></span><span>${siEscapeHtml(text)}</span>`;
+                keyPoints.appendChild(li);
+            });
+
+            const profilePoints = document.getElementById("si-profile-points");
+            profilePoints.innerHTML = "";
+            (stock.profilePoints || []).forEach(text => {
+                const li = document.createElement("li");
+                li.className = "si-bullet-item";
+                li.innerHTML = `<span class="si-bullet-dot warn"></span><span>${siEscapeHtml(text)}</span>`;
+                profilePoints.appendChild(li);
+            });
+
+            const riskPoints = document.getElementById("si-risk-points");
+            riskPoints.innerHTML = "";
+            (stock.riskPoints || []).forEach(text => {
+                const li = document.createElement("li");
+                li.className = "si-bullet-item";
+                li.innerHTML = `<span class="si-bullet-dot bad"></span><span>${siEscapeHtml(text)}</span>`;
+                riskPoints.appendChild(li);
+            });
+
+            const riskTags = document.getElementById("si-risk-tags");
+            riskTags.innerHTML = "";
+            (stock.riskTags || []).forEach(tag => {
+                const span = document.createElement("span");
+                span.className = "si-mini-badge bad";
+                span.textContent = tag;
+                riskTags.appendChild(span);
+            });
+        }
+
+        function siClearSearch() {
+            document.getElementById("si-search-input").value = '';
+            document.getElementById("si-clear-search").classList.remove('visible');
+            siRenderStockList();
+        }
+
+        function initStockInformation() {
+            siRenderStockList();
+
+            document.getElementById("si-search-input").addEventListener("input", (e) => {
+                siRenderStockList(e.target.value);
+            });
+
+            document.getElementById("si-clear-search").addEventListener("click", siClearSearch);
+
+            if (siStockData["2330"]) {
+                setTimeout(() => {
+                    siSetActiveStock("2330");
+                }, 100);
+            }
+        }
+
+        // Initialize Stock Information when page becomes active
+        document.querySelectorAll('.hidden li[data-page]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const pageId = e.target.getAttribute('data-page');
+                if (pageId === 'stock-information' && !siState.currentCode) {
+                    setTimeout(initStockInformation, 100);
+                }
+                if (pageId === 'notes-add' || pageId === 'notes-browse') {
+                    setTimeout(initNotesSystem, 100);
+                }
+            });
+        });
+
+        // ===== Notes System - Trading Record System =====
+        let notesRecords = [];
+        let notesInitialized = false;
+
+        // 欄位定義
+        const NOTES_RECORD_COLS = [
+            "date", "symbol", "name", "direction", "trade_type",
+            "pre_reason_type", "pre_reason_text", "entry_plan",
+            "target_price", "stop_price", "size", "confidence",
+            "entry_price", "exit_price", "pnl_percent", "rr", "result_type"
+        ];
+
+        const NOTES_TRADE_COLS = [
+            "highest_price", "lowest_price", "execution_quality",
+            "emotion_entry", "emotion_exit", "behavior_error",
+            "market_env", "holding_days",
+            "success_factor", "failure_factor", "improvement", "note"
+        ];
+
+        function initNotesSystem() {
+            if (notesInitialized) {
+                notesUpdateDashboard();
+                return;
+            }
+            notesInitialized = true;
+
+            notesLoadFromStorage();
+            document.getElementById('notesTradeDate').valueAsDate = new Date();
+            document.getElementById('notesRecordForm').addEventListener('submit', notesAddRecord);
+
+            // 設定價格變動監聽
+            ['notesEntryPrice', 'notesExitPrice', 'notesStopPrice', 'notesDirection'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', notesCalcPnlRR);
+                if (el) el.addEventListener('change', notesCalcPnlRR);
+            });
+
+            notesUpdateDashboard();
+        }
+
+        // 自動計算報酬率和 RR
+        function notesCalcPnlRR() {
+            const entryPrice = parseFloat(document.getElementById('notesEntryPrice').value) || 0;
+            const exitPrice = parseFloat(document.getElementById('notesExitPrice').value) || 0;
+            const stopPrice = parseFloat(document.getElementById('notesStopPrice').value) || 0;
+            const direction = document.getElementById('notesDirection').value;
+
+            let pnlPercent = null;
+            let rr = null;
+
+            if (entryPrice > 0 && exitPrice > 0) {
+                pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
+                if (direction === '空') {
+                    pnlPercent = -pnlPercent;
+                }
+                document.getElementById('notesPnlDisplay').textContent = pnlPercent.toFixed(2) + '%';
+                document.getElementById('notesPnlDisplay').style.color = pnlPercent >= 0 ? '#c53030' : '#2f855a';
+            } else {
+                document.getElementById('notesPnlDisplay').textContent = '-';
+                document.getElementById('notesPnlDisplay').style.color = '#333';
+            }
+
+            if (entryPrice > 0 && stopPrice > 0 && exitPrice > 0) {
+                const risk = Math.abs(entryPrice - stopPrice);
+                const reward = Math.abs(exitPrice - entryPrice);
+                rr = risk > 0 ? reward / risk : 0;
+                document.getElementById('notesRRDisplay').textContent = rr.toFixed(2);
+            } else {
+                document.getElementById('notesRRDisplay').textContent = '-';
+            }
+
+            return { pnlPercent, rr };
+        }
+
+        function notesAddRecord(e) {
+            e.preventDefault();
+
+            const { pnlPercent, rr } = notesCalcPnlRR();
+
+            const record = {
+                // 基本資料
+                date: document.getElementById('notesTradeDate').value,
+                symbol: document.getElementById('notesSymbol').value.trim(),
+                name: document.getElementById('notesName').value.trim(),
+                direction: document.getElementById('notesDirection').value,
+                trade_type: document.getElementById('notesTradeType').value,
+                confidence: parseInt(document.getElementById('notesConfidence').value),
+
+                // 預判理由
+                pre_reason_type: document.getElementById('notesPreReasonType').value,
+                pre_reason_text: document.getElementById('notesPreReasonText').value.trim(),
+                entry_plan: document.getElementById('notesEntryPlan').value,
+
+                // 價格
+                target_price: parseFloat(document.getElementById('notesTargetPrice').value) || null,
+                stop_price: parseFloat(document.getElementById('notesStopPrice').value) || null,
+                size: parseFloat(document.getElementById('notesSize').value) || null,
+                entry_price: parseFloat(document.getElementById('notesEntryPrice').value) || null,
+                exit_price: parseFloat(document.getElementById('notesExitPrice').value) || null,
+                pnl_percent: pnlPercent,
+                rr: rr,
+                result_type: document.getElementById('notesResultType').value,
+
+                // 執行細節
+                highest_price: parseFloat(document.getElementById('notesHighestPrice').value) || null,
+                lowest_price: parseFloat(document.getElementById('notesLowestPrice').value) || null,
+                execution_quality: parseInt(document.getElementById('notesExecutionQuality').value),
+                holding_days: parseInt(document.getElementById('notesHoldingDays').value) || 1,
+                market_env: document.getElementById('notesMarketEnv').value,
+
+                // 心理狀態
+                emotion_entry: document.getElementById('notesEmotionEntry').value,
+                emotion_exit: document.getElementById('notesEmotionExit').value,
+                behavior_error: document.getElementById('notesBehaviorError').value,
+
+                // 分析改進
+                success_factor: document.getElementById('notesSuccessFactor').value.trim() || null,
+                failure_factor: document.getElementById('notesFailureFactor').value.trim() || null,
+                improvement: document.getElementById('notesImprovement').value.trim() || null,
+                note: document.getElementById('notesNote').value.trim() || null,
+
+                createdAt: new Date().toISOString()
+            };
+
+            notesRecords.push(record);
+            notesSaveToStorage();
+
+            alert('✅ 紀錄已成功儲存！');
+
+            // 重置表單
+            document.getElementById('notesRecordForm').reset();
+            document.getElementById('notesTradeDate').valueAsDate = new Date();
+            document.getElementById('notesConfidence').value = 3;
+            document.getElementById('notesConfidenceValue').textContent = '3';
+            document.getElementById('notesExecutionQuality').value = 3;
+            document.getElementById('notesExecQualityValue').textContent = '3';
+            document.getElementById('notesPnlDisplay').textContent = '-';
+            document.getElementById('notesRRDisplay').textContent = '-';
+        }
+
+        function notesUpdateDashboard() {
+            const filterSymbol = document.getElementById('notesFilterSymbol')?.value || '';
+            const filterReasonType = document.getElementById('notesFilterReasonType')?.value || '';
+            const filterMarketEnv = document.getElementById('notesFilterMarketEnv')?.value || '';
+
+            let filtered = notesRecords.filter(r => {
+                if (filterSymbol && r.symbol !== filterSymbol) return false;
+                if (filterReasonType && r.pre_reason_type !== filterReasonType) return false;
+                if (filterMarketEnv && r.market_env !== filterMarketEnv) return false;
+                return true;
+            });
+
+            // 更新總數
+            document.getElementById('notesTotalRecords').textContent = filtered.length;
+
+            // 核心統計
+            const withPnl = filtered.filter(r => r.pnl_percent !== null);
+            const winCount = withPnl.filter(r => r.pnl_percent > 0).length;
+            const winRate = withPnl.length > 0 ? ((winCount / withPnl.length) * 100).toFixed(1) : 0;
+            document.getElementById('notesWinRate').textContent = `${winRate}%`;
+
+            const withRR = filtered.filter(r => r.rr !== null);
+            const avgRR = withRR.length > 0 ? (withRR.reduce((s, r) => s + r.rr, 0) / withRR.length).toFixed(2) : '-';
+            document.getElementById('notesAvgRR').textContent = avgRR;
+
+            const avgPnl = withPnl.length > 0 ? (withPnl.reduce((s, r) => s + r.pnl_percent, 0) / withPnl.length).toFixed(2) : '-';
+            document.getElementById('notesAvgPnl').textContent = avgPnl !== '-' ? `${avgPnl}%` : '-';
+
+            const withExec = filtered.filter(r => r.execution_quality);
+            const avgExec = withExec.length > 0 ? (withExec.reduce((s, r) => s + r.execution_quality, 0) / withExec.length).toFixed(2) : '-';
+            document.getElementById('notesAvgExecQuality').textContent = avgExec;
+
+            // 策略統計
+            notesUpdateStrategyStats(filtered);
+
+            // 行為統計
+            notesUpdateBehaviorStats(filtered);
+
+            // 心理統計
+            notesUpdateEmotionStats(filtered);
+
+            // 更新篩選器選項
+            notesUpdateFilters();
+
+            // 更新明細表
+            notesUpdateRecordsTable(filtered);
+        }
+
+        function notesUpdateStrategyStats(data) {
+            const stratGroup = {};
+            data.forEach(r => {
+                const key = r.pre_reason_type || '未分類';
+                if (!stratGroup[key]) stratGroup[key] = { trades: 0, wins: 0, totalPnl: 0, totalRR: 0, rrCount: 0 };
+                stratGroup[key].trades++;
+                if (r.pnl_percent !== null) {
+                    if (r.pnl_percent > 0) stratGroup[key].wins++;
+                    stratGroup[key].totalPnl += r.pnl_percent;
+                }
+                if (r.rr !== null) {
+                    stratGroup[key].totalRR += r.rr;
+                    stratGroup[key].rrCount++;
+                }
+            });
+
+            const entries = Object.entries(stratGroup).sort((a, b) => b[1].trades - a[1].trades);
+
+            if (entries.length === 0) {
+                document.getElementById('notesStrategyStats').innerHTML = '<div class="notes-alert notes-alert-info">尚無資料可分析</div>';
+                return;
+            }
+
+            document.getElementById('notesStrategyStats').innerHTML = `
+                <table class="notes-strategy-table">
+                    <thead><tr><th>預判理由</th><th>次數</th><th>勝率</th><th>平均報酬</th><th>平均RR</th></tr></thead>
+                    <tbody>
+                        ${entries.map(([k, v]) => {
+                            const wr = v.trades > 0 ? ((v.wins / v.trades) * 100).toFixed(1) : 0;
+                            const avgP = v.trades > 0 ? (v.totalPnl / v.trades).toFixed(2) : '-';
+                            const avgR = v.rrCount > 0 ? (v.totalRR / v.rrCount).toFixed(2) : '-';
+                            return `<tr><td>${notesEscapeHTML(k)}</td><td>${v.trades}</td><td>${wr}%</td><td>${avgP}%</td><td>${avgR}</td></tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function notesUpdateBehaviorStats(data) {
+            const behGroup = {};
+            data.forEach(r => {
+                const key = r.behavior_error || '無';
+                if (!behGroup[key]) behGroup[key] = { trades: 0, totalPnl: 0 };
+                behGroup[key].trades++;
+                if (r.pnl_percent !== null) behGroup[key].totalPnl += r.pnl_percent;
+            });
+
+            const entries = Object.entries(behGroup).sort((a, b) => b[1].trades - a[1].trades);
+
+            if (entries.length === 0) {
+                document.getElementById('notesBehaviorStats').innerHTML = '<div class="notes-alert notes-alert-info">尚無行為偏誤資料</div>';
+                return;
+            }
+
+            document.getElementById('notesBehaviorStats').innerHTML = `
+                <table class="notes-strategy-table">
+                    <thead><tr><th>行為偏誤</th><th>次數</th><th>平均報酬</th></tr></thead>
+                    <tbody>
+                        ${entries.map(([k, v]) => {
+                            const avgP = v.trades > 0 ? (v.totalPnl / v.trades).toFixed(2) : '-';
+                            return `<tr><td>${notesEscapeHTML(k)}</td><td>${v.trades}</td><td>${avgP}%</td></tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function notesUpdateEmotionStats(data) {
+            const emoGroup = {};
+            data.forEach(r => {
+                const key = r.emotion_entry || '未填';
+                if (!emoGroup[key]) emoGroup[key] = { trades: 0, wins: 0, totalPnl: 0 };
+                emoGroup[key].trades++;
+                if (r.pnl_percent !== null) {
+                    if (r.pnl_percent > 0) emoGroup[key].wins++;
+                    emoGroup[key].totalPnl += r.pnl_percent;
+                }
+            });
+
+            const entries = Object.entries(emoGroup).sort((a, b) => b[1].trades - a[1].trades);
+
+            if (entries.length === 0) {
+                document.getElementById('notesEmotionStats').innerHTML = '<div class="notes-alert notes-alert-info">尚無進場情緒資料</div>';
+                return;
+            }
+
+            document.getElementById('notesEmotionStats').innerHTML = `
+                <table class="notes-strategy-table">
+                    <thead><tr><th>進場情緒</th><th>次數</th><th>勝率</th><th>平均報酬</th></tr></thead>
+                    <tbody>
+                        ${entries.map(([k, v]) => {
+                            const wr = v.trades > 0 ? ((v.wins / v.trades) * 100).toFixed(1) : 0;
+                            const avgP = v.trades > 0 ? (v.totalPnl / v.trades).toFixed(2) : '-';
+                            return `<tr><td>${notesEscapeHTML(k)}</td><td>${v.trades}</td><td>${wr}%</td><td>${avgP}%</td></tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function notesUpdateFilters() {
+            const symbols = [...new Set(notesRecords.map(r => r.symbol).filter(Boolean))].sort();
+            const reasonTypes = [...new Set(notesRecords.map(r => r.pre_reason_type).filter(Boolean))].sort();
+            const marketEnvs = [...new Set(notesRecords.map(r => r.market_env).filter(Boolean))].sort();
+
+            const symbolSelect = document.getElementById('notesFilterSymbol');
+            if (symbolSelect) {
+                const current = symbolSelect.value;
+                symbolSelect.innerHTML = '<option value="">全部</option>' +
+                    symbols.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
+            }
+
+            const reasonSelect = document.getElementById('notesFilterReasonType');
+            if (reasonSelect) {
+                const current = reasonSelect.value;
+                reasonSelect.innerHTML = '<option value="">全部</option>' +
+                    reasonTypes.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
+            }
+
+            const envSelect = document.getElementById('notesFilterMarketEnv');
+            if (envSelect) {
+                const current = envSelect.value;
+                envSelect.innerHTML = '<option value="">全部</option>' +
+                    marketEnvs.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
+            }
+        }
+
+        function notesUpdateRecordsTable(data) {
+            const sorted = [...data].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+            const tbody = document.getElementById('notesRecordsBody');
+            if (!tbody) return;
+
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 30px;">尚無交易紀錄</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sorted.map(r => {
+                const pnlClass = r.pnl_percent > 0 ? 'notes-pnl-positive' : (r.pnl_percent < 0 ? 'notes-pnl-negative' : '');
+                const resultClass = r.result_type === '策略對' ? 'notes-result-win' : (r.result_type === '策略錯' || r.result_type === '執行錯' ? 'notes-result-loss' : '');
+
+                return `
+                    <tr>
+                        <td>${r.date || '-'}</td>
+                        <td>${notesEscapeHTML(r.symbol) || '-'}</td>
+                        <td>${notesEscapeHTML(r.name) || '-'}</td>
+                        <td>${r.direction || '-'}</td>
+                        <td>${r.trade_type || '-'}</td>
+                        <td>${r.pre_reason_type || '-'}</td>
+                        <td>${r.entry_price ? r.entry_price.toFixed(2) : '-'}</td>
+                        <td>${r.exit_price ? r.exit_price.toFixed(2) : '-'}</td>
+                        <td class="${pnlClass}">${r.pnl_percent !== null ? r.pnl_percent.toFixed(2) + '%' : '-'}</td>
+                        <td>${r.rr !== null ? r.rr.toFixed(2) : '-'}</td>
+                        <td><span class="${resultClass}">${r.result_type || '-'}</span></td>
+                        <td>${r.behavior_error !== '無' ? r.behavior_error : '-'}</td>
+                        <td>${r.emotion_entry || '-'}</td>
+                        <td>
+                            <button class="notes-btn notes-btn-small notes-btn-danger" onclick="notesDeleteRecord('${r.createdAt}')">刪除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.notesDeleteRecord = function(createdAt) {
+            if (!confirm('確定要刪除此紀錄？')) return;
+            notesRecords = notesRecords.filter(r => r.createdAt !== createdAt);
+            notesSaveToStorage();
+            notesUpdateDashboard();
+        };
+
+        function notesSaveToStorage() {
+            localStorage.setItem('notesTradeRecords', JSON.stringify(notesRecords));
+        }
+
+        function notesLoadFromStorage() {
+            const stored = localStorage.getItem('notesTradeRecords');
+            if (stored) {
+                try {
+                    notesRecords = JSON.parse(stored);
+                    console.log(`✅ 成功載入 ${notesRecords.length} 筆交易記錄`);
+                } catch (e) {
+                    console.error('載入記錄失敗:', e);
+                    notesRecords = [];
+                }
+            }
+        }
+
+        window.notesExportCSV = function() {
+            if (notesRecords.length === 0) {
+                alert('沒有紀錄可匯出');
+                return;
+            }
+            const allCols = [...NOTES_RECORD_COLS, ...NOTES_TRADE_COLS, 'createdAt'];
+            const rows = [allCols.join(',')].concat(
+                notesRecords.map(r => {
+                    return allCols.map(col => notesQuoteForCSV(r[col])).join(',');
+                })
+            ).join('\n');
+
+            notesDownloadText('trade_records.csv', rows);
+        };
+
+        window.notesExportJSON = function() {
+            if (notesRecords.length === 0) {
+                alert('沒有紀錄可匯出');
+                return;
+            }
+            const dataStr = JSON.stringify({
+                version: '5.0',
+                exportedAt: new Date().toISOString(),
+                records: notesRecords
+            }, null, 2);
+            notesDownloadText('trade_records_backup.json', dataStr);
+        };
+
+        window.notesImportJSON = function(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                alert('請先選擇 JSON 檔案');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const parsed = JSON.parse(ev.target.result);
+                    if (parsed.records && Array.isArray(parsed.records)) {
+                        notesRecords = notesRecords.concat(parsed.records);
+                    } else if (Array.isArray(parsed)) {
+                        notesRecords = notesRecords.concat(parsed);
+                    } else {
+                        alert('匯入格式不符合預期');
+                        return;
+                    }
+                    notesSaveToStorage();
+                    notesUpdateDashboard();
+                    alert('✅ 匯入完成');
+                } catch (e) {
+                    alert('JSON 解析失敗：' + e.message);
+                }
+            };
+            reader.readAsText(file, 'utf-8');
+            event.target.value = '';
+        };
+
+        function notesEscapeHTML(str) {
+            if (!str && str !== 0) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+        }
+
+        function notesQuoteForCSV(val) {
+            if (val == null) return '';
+            const s = String(val).replace(/"/g, '""');
+            return `"${s}"`;
+        }
+
+        function notesDownloadText(filename, text) {
+            const blob = new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+
+</html>
