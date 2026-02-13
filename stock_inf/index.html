@@ -30,7 +30,7 @@
             --transition-slow: 0.35s;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -291,6 +291,7 @@
             padding: 24px 32px 32px; overflow-y: auto;
             scrollbar-width: thin; scrollbar-color: #1f2937 transparent;
             position: relative; scroll-behavior: smooth;
+            overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
         }
         .content-area::-webkit-scrollbar { width: 8px; }
         .content-area::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 999px; }
@@ -595,7 +596,7 @@
         /* ============================
            響應式設計
            ============================ */
-        /* 側欄浮動遮罩（所有尺寸） */
+        /* 側欄浮動遮罩 */
         .sidebar-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0, 0, 0, 0.5); z-index: 15; opacity: 0;
@@ -603,16 +604,99 @@
         }
         .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
 
+        /* 桌面版：側欄常駐顯示 */
+        @media (min-width: 1024px) {
+            .mobile-toggle { display: none; }
+            .sidebar-overlay { display: none !important; }
+            .sidebar {
+                position: static;
+                transform: none !important;
+                opacity: 1 !important;
+                box-shadow: none;
+                z-index: auto;
+                width: auto;
+            }
+            .app-body {
+                grid-template-columns: 290px 1fr;
+            }
+        }
+
+        /* 平板（769px ~ 1023px） */
+        @media (max-width: 1023px) and (min-width: 769px) {
+            body { padding: 16px; }
+            .content-area { padding: 22px 24px; }
+        }
+
+        /* 手機（<= 768px） */
         @media (max-width: 768px) {
-            body { padding: 10px; }
-            .app-shell { border-radius: 18px; }
+            body {
+                padding: 0;
+                align-items: stretch;
+            }
+            .app-shell {
+                border-radius: 0;
+                min-height: 100vh;
+                min-height: 100dvh;
+                border: none;
+                box-shadow: none;
+            }
+            .app-header { padding: 12px 16px 10px; }
+            .brand-text-main { font-size: 15px; }
+            .brand-icon { width: 32px; height: 32px; font-size: 16px; }
+            .mobile-toggle { padding: 8px 12px; font-size: 18px; }
             .sidebar { width: 280px; }
+            .content-area { padding: 18px 16px 24px; }
+            .content-title { font-size: 20px; }
             .card-row { grid-template-columns: 1fr; }
-            .content-area { padding: 18px 16px; }
-            .overview-card { grid-template-columns: 1fr; }
+            .card-section-title { font-size: 14px; }
+            .overview-card { grid-template-columns: 1fr; padding: 16px; gap: 14px; }
             .risk-gauge { flex-direction: row; justify-content: center; margin-top: 10px; }
-            .keyboard-hint { display: none; }
+            .executive-summary { padding: 14px 16px; margin-bottom: 20px; }
+            .executive-summary-text { font-size: 14px; }
+            .report-meta-bar { padding: 10px 14px; }
+            .info-card { padding: 14px 12px; }
+            .reminder-card { padding: 14px 16px; font-size: 13px; }
+            .report-footer { padding: 14px 16px; }
+            .cat-header { padding: 16px; }
+            .cat-header-title { font-size: 18px; }
+            .cat-header-icon { font-size: 26px; }
             .cat-stock-grid { grid-template-columns: 1fr; }
+            .cat-stock-card { padding: 16px; }
+            .cat-stat-card { padding: 12px 14px; }
+            .keyboard-hint { display: none; }
+            .back-to-top { bottom: 16px; right: 16px; width: 36px; height: 36px; font-size: 14px; }
+        }
+
+        /* 小螢幕手機（<= 480px） */
+        @media (max-width: 480px) {
+            .app-header { padding: 10px 12px 8px; gap: 8px; }
+            .brand-text-main { font-size: 14px; }
+            .brand-text-sub { font-size: 10px; }
+            .brand-icon { width: 28px; height: 28px; font-size: 14px; border-radius: 8px; }
+            .header-right { gap: 6px; }
+            .mood-pill { font-size: 10px; padding: 3px 8px; }
+            .tag-pill { font-size: 10px; padding: 3px 8px; }
+            .sidebar { width: 85vw; max-width: 300px; }
+            .content-area { padding: 14px 12px 20px; }
+            .content-title { font-size: 18px; }
+            .overview-card { padding: 14px 12px; }
+            .stock-badge { font-size: 10px; padding: 3px 10px; }
+            .executive-summary { padding: 12px 14px; margin-bottom: 16px; }
+            .executive-summary-text { font-size: 13px; }
+            .report-meta-bar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+            .report-divider { margin: 20px 0; }
+            .cat-stats { grid-template-columns: repeat(2, 1fr); }
+            .reminder-card { padding: 12px 14px; font-size: 12px; gap: 8px; }
+            .reminder-icon { font-size: 18px; }
+            .report-footer { font-size: 10px; padding: 12px 14px; margin-top: 24px; }
+            .cat-header-title { font-size: 16px; }
+            .cat-header-desc { font-size: 12px; }
+            .info-card { padding: 12px 10px; font-size: 12px; }
+            .info-card .card-title { font-size: 13px; }
+            .info-card .card-num { width: 24px; height: 24px; font-size: 12px; }
+            .card-section-title { font-size: 13px; margin-bottom: 10px; }
+            .section-number { width: 22px; height: 22px; font-size: 11px; }
+            .card-section-icon { width: 24px; height: 24px; font-size: 13px; }
         }
 
         @media print {
@@ -862,7 +946,7 @@
                 <!-- 空白狀態 -->
                 <div class="empty-state" id="empty-state">
                     <div class="empty-icon">📈</div>
-                    <div class="empty-text">請點擊左上角 ☰ 開啟清單，選擇一檔股票或產業族群</div>
+                    <div class="empty-text">從左側清單選擇一檔股票或產業族群，或點擊 ☰ 開啟選單</div>
                     <div class="empty-text" style="font-size: 12px; opacity: 0.7;">
                         支援鍵盤 <span class="kbd">↑</span> <span class="kbd">↓</span> 快速切換，<span class="kbd">/</span> 搜尋
                     </div>
