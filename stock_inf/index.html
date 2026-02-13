@@ -381,6 +381,14 @@
             position: relative; overflow: hidden; text-align: center;
             display: flex; flex-direction: column; align-items: center; gap: 8px;
         }
+        .info-card .card-header {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            text-align: center;
+            flex-wrap: wrap;
+        }
         .info-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
             border-radius: 2px 2px 0 0;
@@ -391,7 +399,14 @@
             align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
             flex-shrink: 0;
         }
-        .info-card .card-text { color: var(--text-soft); }
+        .info-card .card-text {
+            color: var(--text-soft);
+            width: 100%;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
 
         /* 獲利來源卡片 */
         .info-card.profit {
@@ -751,6 +766,8 @@
             width: 6px; height: 6px; border-radius: 50%;
             background: var(--accent);
         }
+        .rt-olist { margin: 6px 0; padding-left: 18px; }
+        .rt-olist li { margin: 5px 0; line-height: 1.7; }
         .rt-spacer { height: 8px; }
 
         /* Rich text 在不同區塊的適配 */
@@ -763,6 +780,8 @@
         .info-card.profit .rt-list li::before { background: var(--success); }
         .info-card.indicator .rt-list li::before { background: var(--accent); }
         .info-card.risk .rt-list li::before { background: var(--danger); }
+        .info-card .rt-olist { margin: 3px 0; padding-left: 16px; }
+        .info-card .rt-olist li { font-size: 12px; margin: 2px 0; }
 
         .reminder-card .rt-h2, .reminder-card .rt-h3 { color: #fef3c7; border-bottom-color: rgba(250, 204, 21, 0.2); }
         .reminder-card .rt-p { color: #fef3c7; }
@@ -1006,6 +1025,21 @@
         // =====================================================
         // 📂 載入 CSV 資料
         // =====================================================
+        function buildItemList(entries) {
+            return entries.map(entry => {
+                const title = (entry.title || '').trim();
+                const reason = (entry.reason || '').trim();
+                if (!title && !reason) return null;
+                return { title, reason };
+            }).filter(Boolean);
+        }
+
+        function getItemTitle(item) {
+            if (!item) return '';
+            if (typeof item === 'string') return item;
+            return item.title || item.reason || '';
+        }
+
         async function loadCSVData() {
             const [catRes, stockRes] = await Promise.all([
                 fetch('categories.csv').then(r => r.text()),
@@ -1032,9 +1066,21 @@
                     category: row.category,
                     riskLevel: parseInt(row.riskLevel, 10) || 50,
                     personality: row.personality || '',
-                    profitSources: [row.profit1, row.profit2, row.profit3].filter(Boolean),
-                    keyIndicators: [row.key1, row.key2, row.key3].filter(Boolean),
-                    risks: [row.risk1, row.risk2, row.risk3].filter(Boolean),
+                    profitSources: buildItemList([
+                        { title: row.profit1, reason: row.profit1_reason },
+                        { title: row.profit2, reason: row.profit2_reason },
+                        { title: row.profit3, reason: row.profit3_reason }
+                    ]),
+                    keyIndicators: buildItemList([
+                        { title: row.key1, reason: row.key1_reason },
+                        { title: row.key2, reason: row.key2_reason },
+                        { title: row.key3, reason: row.key3_reason }
+                    ]),
+                    risks: buildItemList([
+                        { title: row.risk1, reason: row.risk1_reason },
+                        { title: row.risk2, reason: row.risk2_reason },
+                        { title: row.risk3, reason: row.risk3_reason }
+                    ]),
                     reminder: row.reminder || ''
                 };
             });
@@ -1098,6 +1144,12 @@
         function throttle(fn, limit) { let ok = true; return (...a) => { if (ok) { fn(...a); ok = false; setTimeout(() => ok = true, limit); } }; }
         function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
         function scrollIntoViewSmooth(el) { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+        // 去除 Markdown 語法，用於側欄/摘要等純文字預覽
+        function stripMarkdown(text) {
+            if (!text) return '';
+            return text.replace(/^##?\s*/gm, '').replace(/^-\s*/gm, '').replace(/\n+/g, ' ').trim();
+        }
 
         // =====================================================
         // 📝 Rich Text 自動排版引擎（簡化版 Markdown）
@@ -1224,7 +1276,8 @@
                 button.dataset.index = index;
                 button.setAttribute('aria-label', `${stock.code} ${stock.name}`);
 
-                const roleText = stock.personality.length > 14 ? stock.personality.slice(0, 14) + '...' : stock.personality;
+                const plainPersonality = stripMarkdown(stock.personality);
+                const roleText = plainPersonality.length > 14 ? plainPersonality.slice(0, 14) + '...' : plainPersonality;
                 const rc = getRiskColor(stock.riskLevel);
                 const catName = categoryData[stock.category]?.name || '';
 
@@ -1321,12 +1374,26 @@
             }, 180);
         }
 
+        function renderReasonText(text) {
+            if (!text) return '';
+            if (text.includes('|')) {
+                const parts = text.split('|').map(part => part.trim()).filter(Boolean);
+                if (parts.length === 0) return '';
+                return `<ol class="rt-olist">${parts.map(part => `<li>${escapeHtml(part)}</li>`).join('')}</ol>`;
+            }
+            return renderRichText(text);
+        }
+
         function renderCardRow(container, items, type) {
             container.innerHTML = '';
-            items.forEach((text, i) => {
+            (items || []).forEach((item, i) => {
+                const titleText = typeof item === 'string' ? item : (item.title || '');
+                const reasonText = typeof item === 'string' ? '' : (item.reason || '');
                 const card = document.createElement('div');
                 card.className = `info-card ${type}`;
-                card.innerHTML = `<span class="card-num">${i + 1}</span><span class="card-text">${renderRichText(text)}</span>`;
+                const titleHtml = titleText ? `<span class="card-title">${escapeHtml(titleText)}</span>` : '';
+                const descHtml = reasonText ? `<div class="card-desc">${renderReasonText(reasonText)}</div>` : '';
+                card.innerHTML = `<span class="card-header"><span class="card-num">${i + 1}</span>${titleHtml}</span><div class="card-text">${descHtml}</div>`;
                 container.appendChild(card);
             });
         }
@@ -1488,7 +1555,7 @@
                             <div class="cat-card-title-area">
                                 <div class="cat-card-badge">${escapeHtml(stock.code)} · ${escapeHtml(stock.market)}</div>
                                 <div class="cat-card-name">${escapeHtml(stock.name)}</div>
-                                <div class="cat-card-role">${escapeHtml(stock.personality)}</div>
+                                <div class="cat-card-role">${escapeHtml(stripMarkdown(stock.personality))}</div>
                             </div>
                             <div class="cat-card-gauge">
                                 <div class="risk-gauge">
@@ -1507,7 +1574,11 @@
                             </div>
                         </div>
                         <div class="cat-card-pills">
-                            ${(stock.profitSources || []).map(t => `<span class="mini-badge neutral">${escapeHtml(t.replace(/^##?\s*/, '').replace(/^-\s*/, '').replace(/^-/, ''))}</span>`).join('')}
+                            ${(stock.profitSources || [])
+                                .map(item => getItemTitle(item))
+                                .filter(Boolean)
+                                .map(t => `<span class="mini-badge neutral">${escapeHtml(stripMarkdown(t).slice(0, 20))}</span>`)
+                                .join('')}
                         </div>
                         <button class="cat-card-detail-btn" data-code="${stock.code}">查看完整分析 →</button>
                     </div>`;
@@ -1626,7 +1697,7 @@
             renderStockList();
             renderCategoryList();
 
-            // Tab 切換
+             // Tab 切換
             document.querySelectorAll('.sidebar-tab').forEach(tab => {
                 tab.addEventListener('click', () => switchTab(tab.dataset.tab));
             });
