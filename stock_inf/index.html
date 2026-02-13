@@ -1,1 +1,1652 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
 
+<head>
+    <meta charset="UTF-8" />
+    <title>個股知識小百科</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="台股個股知識查詢工具，提供完整的公司分析、風險評估與投資建議" />
+    <style>
+        :root {
+            --bg: #0f172a;
+            --bg-soft: #111827;
+            --bg-softer: #020617;
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.25);
+            --accent-soft: rgba(56, 189, 248, 0.12);
+            --accent-2: #818cf8;
+            --text-main: #e5e7eb;
+            --text-soft: #9ca3af;
+            --border-soft: #1f2937;
+            --danger: #f97373;
+            --success: #4ade80;
+            --warning: #facc15;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.7);
+            --shadow-glow: 0 0 30px rgba(56, 189, 248, 0.08);
+            --transition-fast: 0.15s;
+            --transition-normal: 0.25s;
+            --transition-slow: 0.35s;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            line-height: 1.6;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 1200px;
+            min-height: 620px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
+            border-radius: 26px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: var(--shadow-soft), var(--shadow-glow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            animation: fadeIn 0.5s ease-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .scroll-progress {
+            position: absolute; top: 0; left: 0; width: 0%; height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            border-radius: 0 2px 2px 0; z-index: 10;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* ============================
+           頂部區域
+           ============================ */
+        .app-header {
+            padding: 18px 24px 12px;
+            border-bottom: 1px solid var(--border-soft);
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 16px; flex-wrap: wrap;
+        }
+        .brand { display: flex; align-items: center; gap: 10px; }
+        .brand-icon {
+            width: 36px; height: 36px; border-radius: 12px;
+            background: radial-gradient(circle at 30% 20%, #facc15, #f97316, #f97316);
+            box-shadow: 0 0 18px rgba(249, 115, 22, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 18px; color: #0f172a;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        .brand-text-main {
+            font-weight: 700; letter-spacing: 0.03em; font-size: 17px;
+            background: linear-gradient(135deg, #e5e7eb, #38bdf8);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .brand-text-sub { font-size: 11px; color: var(--text-soft); letter-spacing: 0.05em; }
+        .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .mood-pill {
+            font-size: 11px; padding: 4px 12px; border-radius: 999px;
+            background: rgba(22, 163, 74, 0.08); border: 1px solid rgba(34, 197, 94, 0.35);
+            color: #bbf7d0; display: flex; align-items: center; gap: 6px;
+            transition: all var(--transition-fast);
+        }
+        .mood-pill:hover { background: rgba(22, 163, 74, 0.15); transform: translateY(-1px); }
+        .mood-dot {
+            width: 6px; height: 6px; border-radius: 999px; background: #22c55e;
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8); animation: blink 2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .tag-pill {
+            padding: 4px 10px; font-size: 11px; border-radius: 999px;
+            background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.45);
+            color: #e0f2fe; transition: all var(--transition-fast);
+        }
+        .tag-pill:hover { background: rgba(56, 189, 248, 0.2); transform: translateY(-1px); }
+        .mobile-toggle {
+            display: block; background: rgba(56, 189, 248, 0.12);
+            border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 10px;
+            padding: 6px 10px; cursor: pointer; color: var(--accent); font-size: 16px;
+            transition: all var(--transition-fast);
+        }
+        .mobile-toggle:hover { background: rgba(56, 189, 248, 0.2); }
+
+        /* ============================
+           主體區域
+           ============================ */
+        .app-body {
+            flex: 1; display: grid;
+            grid-template-columns: 1fr;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ============================
+           左側側欄
+           ============================ */
+        .sidebar {
+            position: absolute; top: 0; left: 0; width: 300px; height: 100%; z-index: 20;
+            border-right: 1px solid var(--border-soft);
+            background: rgba(2, 6, 23, 0.98);
+            backdrop-filter: blur(20px);
+            padding: 14px 14px 18px; display: flex; flex-direction: column; gap: 12px;
+            transition: transform var(--transition-slow) ease, opacity var(--transition-slow) ease;
+            transform: translateX(-100%); opacity: 0;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+        }
+        .sidebar.open { transform: translateX(0); opacity: 1; }
+
+        /* 側欄 Tab 切換 */
+        .sidebar-tabs {
+            display: flex; gap: 4px; padding: 3px;
+            background: rgba(15, 23, 42, 0.7); border-radius: 10px;
+            border: 1px solid rgba(55, 65, 81, 0.6);
+        }
+        .sidebar-tab {
+            flex: 1; padding: 6px 0; font-size: 12px; font-weight: 600;
+            text-align: center; border: none; border-radius: 8px;
+            background: transparent; color: var(--text-soft); cursor: pointer;
+            transition: all var(--transition-fast); letter-spacing: 0.02em;
+        }
+        .sidebar-tab:hover { color: var(--text-main); background: rgba(55, 65, 81, 0.3); }
+        .sidebar-tab.active {
+            background: rgba(56, 189, 248, 0.15); color: var(--accent);
+            box-shadow: 0 1px 4px rgba(56, 189, 248, 0.1);
+        }
+
+        .sidebar-header {
+            display: flex; justify-content: space-between; align-items: center; padding: 0 4px;
+        }
+        .sidebar-title { font-size: 13px; color: var(--text-soft); letter-spacing: 0.08em; text-transform: uppercase; }
+        .stock-counter {
+            font-size: 11px; color: var(--text-soft); padding: 2px 8px; border-radius: 999px;
+            background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(55, 65, 81, 0.85);
+            transition: all var(--transition-fast);
+        }
+        .stock-counter.highlight { background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.5); color: var(--accent); }
+        .search-box { position: relative; }
+        .search-input {
+            width: 100%; padding: 9px 10px 9px 34px; border-radius: 999px;
+            border: 1px solid rgba(55, 65, 81, 0.85); background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main); font-size: 12px; outline: none;
+            transition: all var(--transition-fast);
+        }
+        .search-input:focus { border-color: var(--accent); background: rgba(15, 23, 42, 1); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12); }
+        .search-input::placeholder { color: #4b5563; }
+        .search-icon {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 12px; color: #6b7280; pointer-events: none; transition: color var(--transition-fast);
+        }
+        .search-input:focus + .search-icon { color: var(--accent); }
+        .clear-search {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: rgba(55, 65, 81, 0.5); border: none; border-radius: 50%;
+            width: 18px; height: 18px; display: none; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-soft); font-size: 10px; transition: all var(--transition-fast);
+        }
+        .clear-search:hover { background: rgba(55, 65, 81, 0.8); color: var(--text-main); }
+        .clear-search.visible { display: flex; }
+
+        /* 通用列表容器 */
+        .sidebar-list {
+            list-style: none; margin-top: 4px; overflow-y: auto; padding-right: 4px; flex: 1;
+            scrollbar-width: thin; scrollbar-color: #1f2937 transparent;
+        }
+        .sidebar-list::-webkit-scrollbar { width: 6px; }
+        .sidebar-list::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 999px; }
+        .sidebar-list::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+        /* 側欄面板切換 */
+        .sidebar-panel { display: none; flex-direction: column; gap: 12px; flex: 1; overflow: hidden; }
+        .sidebar-panel.active { display: flex; }
+
+        .stock-item { margin-bottom: 6px; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .stock-btn {
+            width: 100%; border: 1px solid transparent; border-radius: var(--radius-md);
+            padding: 10px 12px; background: transparent; display: flex; flex-direction: column;
+            align-items: flex-start; gap: 4px; cursor: pointer;
+            transition: all var(--transition-normal); text-align: left;
+            position: relative; overflow: hidden;
+        }
+        .stock-btn::before {
+            content: ''; position: absolute; left: 0; top: 0; width: 3px; height: 100%;
+            background: linear-gradient(180deg, var(--accent), var(--accent-2));
+            transform: scaleY(0); transition: transform var(--transition-normal);
+        }
+        .stock-btn:hover { background: rgba(15, 23, 42, 0.9); border-color: rgba(31, 41, 55, 0.9); transform: translateX(3px); }
+        .stock-btn.active {
+            background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3);
+            transform: translateX(3px); box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05);
+        }
+        .stock-btn.active::before { transform: scaleY(1); }
+        .stock-main-row { display: flex; gap: 8px; align-items: baseline; }
+        .stock-code { font-weight: 700; font-size: 14px; color: var(--text-main); }
+        .stock-name { font-size: 13px; color: var(--text-soft); transition: color var(--transition-fast); }
+        .stock-btn:hover .stock-name, .stock-btn.active .stock-name { color: var(--text-main); }
+        .stock-tag-row { display: flex; gap: 4px; flex-wrap: wrap; }
+        .chip {
+            padding: 2px 7px; font-size: 10px; border-radius: 5px;
+            background: rgba(55, 65, 81, 0.5); color: var(--text-soft);
+            border: 1px solid rgba(75, 85, 99, 0.35); white-space: nowrap;
+        }
+        .chip.highlight { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.4); color: #86efac; }
+
+        /* ============================
+           類別清單項目
+           ============================ */
+        .category-item { margin-bottom: 6px; animation: slideIn 0.3s ease-out; }
+        .category-btn {
+            width: 100%; border: 1px solid transparent; border-radius: var(--radius-md);
+            padding: 12px 14px; background: transparent; display: flex; align-items: center;
+            gap: 12px; cursor: pointer; transition: all var(--transition-normal);
+            text-align: left; position: relative; overflow: hidden;
+        }
+        .category-btn::before {
+            content: ''; position: absolute; left: 0; top: 0; width: 3px; height: 100%;
+            border-radius: 0 2px 2px 0; transform: scaleY(0); transition: transform var(--transition-normal);
+        }
+        .category-btn:hover { background: rgba(15, 23, 42, 0.9); border-color: rgba(31, 41, 55, 0.9); transform: translateX(3px); }
+        .category-btn.active {
+            background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3);
+            transform: translateX(3px);
+        }
+        .category-btn.active::before { transform: scaleY(1); }
+        .category-icon { font-size: 22px; flex-shrink: 0; }
+        .category-info { flex: 1; min-width: 0; }
+        .category-name { font-weight: 600; font-size: 13px; color: var(--text-main); }
+        .category-desc { font-size: 11px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .category-count {
+            font-size: 11px; padding: 2px 8px; border-radius: 999px;
+            background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent); font-weight: 600; flex-shrink: 0;
+        }
+
+        /* 類別按鈕各自的左邊條顏色 */
+        .category-btn[data-cat="semiconductor"]::before { background: linear-gradient(180deg, #818cf8, #38bdf8); }
+        .category-btn[data-cat="finance"]::before { background: linear-gradient(180deg, #4ade80, #22d3ee); }
+        .category-btn[data-cat="shipping"]::before { background: linear-gradient(180deg, #fb923c, #facc15); }
+
+        /* ============================
+           右側內容區
+           ============================ */
+        .content-area {
+            padding: 24px 32px 32px; overflow-y: auto;
+            scrollbar-width: thin; scrollbar-color: #1f2937 transparent;
+            position: relative; scroll-behavior: smooth;
+        }
+        .content-area::-webkit-scrollbar { width: 8px; }
+        .content-area::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 999px; }
+        .content-area::-webkit-scrollbar-thumb:hover { background: #374151; }
+
+        .empty-state {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 400px; color: var(--text-soft); text-align: center; gap: 16px;
+            opacity: 0; animation: fadeIn 0.5s ease-out 0.2s forwards;
+        }
+        .empty-icon { font-size: 56px; opacity: 0.5; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .empty-text { font-size: 15px; }
+
+        .content-block {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .content-block.visible { opacity: 1; transform: translateY(0); }
+
+        /* 概覽卡片 */
+        .overview-card {
+            display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start;
+            margin-bottom: 24px; padding: 20px 24px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), rgba(129, 140, 248, 0.06));
+            border: 1px solid rgba(56, 189, 248, 0.15); border-radius: var(--radius-lg);
+            position: relative; overflow: hidden;
+        }
+        .overview-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--success));
+        }
+        .stock-badge {
+            display: inline-block; font-size: 11px; padding: 4px 12px; border-radius: 999px;
+            background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #c7d2fe; margin-bottom: 8px; letter-spacing: 0.03em;
+        }
+        .content-title {
+            font-size: 24px; font-weight: 700; margin-bottom: 8px;
+            background: linear-gradient(135deg, #f1f5f9, var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            line-height: 1.3;
+        }
+        .content-subline { font-size: 12px; color: var(--text-soft); line-height: 1.6; }
+
+        /* 一句話性格 */
+        .personality-line {
+            font-size: 15px; color: var(--accent); font-weight: 600;
+            margin-top: 6px; line-height: 1.5; letter-spacing: 0.02em;
+        }
+
+        /* 風險儀表盤 */
+        .risk-gauge { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 80px; }
+        .gauge-ring { width: 64px; height: 64px; position: relative; }
+        .gauge-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .gauge-bg { fill: none; stroke: rgba(55, 65, 81, 0.5); stroke-width: 5; }
+        .gauge-fill { fill: none; stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease; }
+        .gauge-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 14px; font-weight: 700; }
+        .gauge-text { font-size: 10px; color: var(--text-soft); text-align: center; }
+
+        /* 小版風險儀表（用於類別卡片） */
+        .gauge-ring.small { width: 48px; height: 48px; }
+        .gauge-ring.small .gauge-bg, .gauge-ring.small .gauge-fill { stroke-width: 4; }
+        .gauge-ring.small + .gauge-label,
+        .gauge-ring.small .gauge-label { font-size: 12px; }
+
+        /* ============================
+           卡片式內容
+           ============================ */
+        .card-section-title {
+            font-size: 15px; font-weight: 600; color: var(--text-main);
+            margin-bottom: 14px; display: flex; align-items: center; gap: 10px;
+        }
+        .card-section-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 8px; font-size: 15px; flex-shrink: 0;
+        }
+        .card-section-icon.profit { background: rgba(34, 197, 94, 0.15); }
+        .card-section-icon.indicator { background: rgba(56, 189, 248, 0.15); }
+        .card-section-icon.risk { background: rgba(249, 115, 115, 0.15); }
+
+        .card-row {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+        }
+        .info-card {
+            padding: 18px 16px; border-radius: var(--radius-md); border: 1px solid;
+            font-size: 13px; line-height: 1.7; transition: all var(--transition-normal);
+            position: relative; overflow: hidden; text-align: center;
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+        }
+        .info-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            border-radius: 2px 2px 0 0;
+        }
+        .info-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25); }
+        .info-card .card-num {
+            width: 28px; height: 28px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 13px; font-weight: 700;
+            flex-shrink: 0;
+        }
+        .info-card .card-text { color: var(--text-soft); }
+
+        /* 獲利來源卡片 */
+        .info-card.profit {
+            background: rgba(34, 197, 94, 0.06); border-color: rgba(34, 197, 94, 0.25);
+        }
+        .info-card.profit::before { background: linear-gradient(90deg, #4ade80, #22d3ee); }
+        .info-card.profit .card-num { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .info-card.profit:hover { border-color: rgba(34, 197, 94, 0.5); }
+
+        /* 關鍵指標卡片 */
+        .info-card.indicator {
+            background: rgba(56, 189, 248, 0.06); border-color: rgba(56, 189, 248, 0.25);
+        }
+        .info-card.indicator::before { background: linear-gradient(90deg, #38bdf8, #818cf8); }
+        .info-card.indicator .card-num { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+        .info-card.indicator:hover { border-color: rgba(56, 189, 248, 0.5); }
+
+        /* 地雷卡片 */
+        .info-card.risk {
+            background: rgba(249, 115, 115, 0.06); border-color: rgba(249, 115, 115, 0.25);
+        }
+        .info-card.risk::before { background: linear-gradient(90deg, #f97373, #fb923c); }
+        .info-card.risk .card-num { background: rgba(249, 115, 115, 0.15); color: var(--danger); }
+        .info-card.risk:hover { border-color: rgba(249, 115, 115, 0.5); }
+
+        /* 投資提醒 */
+        .reminder-card {
+            padding: 18px 24px; border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(251, 146, 60, 0.06));
+            border: 1px solid rgba(250, 204, 21, 0.3);
+            font-size: 14px; line-height: 1.8; color: #fef3c7;
+            display: flex; align-items: flex-start; gap: 12px;
+            position: relative; overflow: hidden;
+        }
+        .reminder-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, #facc15, #fb923c);
+        }
+        .reminder-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2); }
+        .reminder-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+
+        .mini-badge { padding: 4px 10px; font-size: 11px; border-radius: 999px; border: 1px solid; transition: all var(--transition-fast); }
+        .mini-badge:hover { transform: translateY(-1px); }
+        .mini-badge.neutral { background: rgba(107, 114, 128, 0.12); border-color: rgba(107, 114, 128, 0.4); color: #d1d5db; }
+
+        /* ============================
+           類別族群檢視（右側）
+           ============================ */
+        #category-content { display: none; }
+
+        .cat-header {
+            padding: 20px 24px; margin-bottom: 24px;
+            border-radius: var(--radius-lg); position: relative; overflow: hidden;
+        }
+        .cat-header::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        }
+        .cat-header[data-cat="semiconductor"] { background: linear-gradient(135deg, rgba(129, 140, 248, 0.08), rgba(56, 189, 248, 0.08)); border: 1px solid rgba(129, 140, 248, 0.2); }
+        .cat-header[data-cat="semiconductor"]::before { background: linear-gradient(90deg, #818cf8, #38bdf8); }
+        .cat-header[data-cat="finance"] { background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 211, 238, 0.08)); border: 1px solid rgba(74, 222, 128, 0.2); }
+        .cat-header[data-cat="finance"]::before { background: linear-gradient(90deg, #4ade80, #22d3ee); }
+        .cat-header[data-cat="shipping"] { background: linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(250, 204, 21, 0.08)); border: 1px solid rgba(251, 146, 60, 0.2); }
+        .cat-header[data-cat="shipping"]::before { background: linear-gradient(90deg, #fb923c, #facc15); }
+
+        .cat-header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+        .cat-header-icon { font-size: 32px; }
+        .cat-header-title {
+            font-size: 22px; font-weight: 700;
+            background: linear-gradient(135deg, #f1f5f9, var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .cat-header-count {
+            font-size: 12px; padding: 3px 10px; border-radius: 999px;
+            background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent); font-weight: 600;
+        }
+        .cat-header-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
+
+        /* 族群統計摘要 */
+        .cat-stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px; margin-bottom: 24px;
+        }
+        .cat-stat-card {
+            padding: 14px 16px; border-radius: var(--radius-md);
+            background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-soft);
+            text-align: center; transition: all var(--transition-normal);
+        }
+        .cat-stat-card:hover { background: rgba(15, 23, 42, 0.7); transform: translateY(-2px); }
+        .cat-stat-value { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+        .cat-stat-label { font-size: 11px; color: var(--text-soft); }
+
+        /* 族群內個股卡片 */
+        .cat-stock-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;
+        }
+        .cat-stock-card {
+            padding: 20px; border-radius: var(--radius-md);
+            background: rgba(15, 23, 42, 0.45); border: 1px solid var(--border-soft);
+            transition: all var(--transition-normal); position: relative; overflow: hidden;
+            cursor: default;
+        }
+        .cat-stock-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            opacity: 0; transition: opacity var(--transition-normal);
+        }
+        .cat-stock-card:hover { background: rgba(15, 23, 42, 0.65); border-color: rgba(55, 65, 81, 0.8); transform: translateY(-2px); }
+        .cat-stock-card:hover::before { opacity: 1; }
+
+        .cat-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .cat-card-title-area { flex: 1; min-width: 0; }
+        .cat-card-badge {
+            font-size: 10px; padding: 3px 8px; border-radius: 999px;
+            background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35);
+            color: #c7d2fe; margin-bottom: 6px; display: inline-block;
+        }
+        .cat-card-name { font-size: 17px; font-weight: 700; color: var(--text-main); }
+        .cat-card-role { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+
+        .cat-card-gauge { flex-shrink: 0; }
+        .cat-card-gauge .gauge-ring { width: 50px; height: 50px; }
+        .cat-card-gauge .gauge-label { font-size: 12px; }
+        .cat-card-gauge .gauge-text { font-size: 9px; }
+
+        .cat-card-intro { font-size: 12px; color: var(--text-soft); line-height: 1.6; margin-bottom: 12px;
+            display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .cat-card-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+        .cat-card-pills .mini-badge { font-size: 10px; padding: 2px 8px; }
+
+        .cat-card-detail-btn {
+            width: 100%; padding: 8px; border-radius: 8px;
+            border: 1px solid rgba(56, 189, 248, 0.3); background: rgba(56, 189, 248, 0.08);
+            color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer;
+            transition: all var(--transition-fast); letter-spacing: 0.02em;
+        }
+        .cat-card-detail-btn:hover {
+            background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-1px);
+        }
+
+        /* ============================
+           回到頂部 / 載入 / 無結果
+           ============================ */
+        .back-to-top {
+            position: absolute; bottom: 20px; right: 20px; width: 40px; height: 40px;
+            border-radius: 50%; background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.35); color: var(--accent); font-size: 16px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            opacity: 0; transform: translateY(10px); transition: all var(--transition-normal);
+            pointer-events: none; z-index: 5; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .back-to-top.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .back-to-top:hover { background: rgba(56, 189, 248, 0.25); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2); }
+
+        .loading { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 400px; gap: 16px; }
+        .loading.active { display: flex; }
+        .spinner { width: 40px; height: 40px; border: 3px solid rgba(56, 189, 248, 0.15); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        .loading-text { font-size: 12px; color: var(--text-soft); animation: blink 1.5s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .no-results { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; color: var(--text-soft); gap: 12px; }
+        .no-results.visible { display: flex; }
+        .no-results-icon { font-size: 48px; opacity: 0.5; }
+        .no-results-text { font-size: 14px; }
+
+        /* ============================
+           鍵盤提示
+           ============================ */
+        .keyboard-hint {
+            position: fixed; bottom: 20px; right: 20px;
+            background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md); padding: 12px 16px; font-size: 11px;
+            color: var(--text-soft); opacity: 0; pointer-events: none;
+            transition: opacity var(--transition-normal); max-width: 200px;
+            box-shadow: var(--shadow-soft); backdrop-filter: blur(10px);
+        }
+        .keyboard-hint.visible { opacity: 1; }
+        .kbd {
+            display: inline-block; padding: 2px 6px; background: rgba(55, 65, 81, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 4px;
+            font-family: monospace; font-size: 10px; margin: 0 2px;
+        }
+
+        /* ============================
+           響應式設計
+           ============================ */
+        /* 側欄浮動遮罩（所有尺寸） */
+        .sidebar-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5); z-index: 15; opacity: 0;
+            pointer-events: none; transition: opacity var(--transition-slow);
+        }
+        .sidebar-overlay.visible { opacity: 1; pointer-events: auto; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .app-shell { border-radius: 18px; }
+            .sidebar { width: 280px; }
+            .card-row { grid-template-columns: 1fr; }
+            .content-area { padding: 18px 16px; }
+            .overview-card { grid-template-columns: 1fr; }
+            .risk-gauge { flex-direction: row; justify-content: center; margin-top: 10px; }
+            .keyboard-hint { display: none; }
+            .cat-stock-grid { grid-template-columns: 1fr; }
+        }
+
+        @media print {
+            body { background: white; color: #1a1a1a; padding: 0; }
+            .app-shell { box-shadow: none; border: none; border-radius: 0; background: white; }
+            .app-header { border-bottom: 2px solid #333; }
+            .brand-text-main { -webkit-text-fill-color: #1a1a1a; background: none; }
+            .sidebar, .search-box, .keyboard-hint, .scroll-progress, .back-to-top,
+            .mobile-toggle, .sidebar-overlay, .mood-pill, .tag-pill { display: none !important; }
+            .app-body { grid-template-columns: 1fr; }
+            .content-area { overflow: visible; padding: 20px; }
+            .content-block { opacity: 1 !important; transform: none !important; }
+            .overview-card { border: 1px solid #ccc; background: #f8f9fa; }
+            .overview-card::before { background: #333; }
+            .content-title { -webkit-text-fill-color: #1a1a1a; background: none; }
+            .executive-summary { background: #f0f4ff; border-left-color: #4b6cff; }
+            .executive-summary-text { color: #2d5be3; }
+            .info-card { break-inside: avoid; }
+            .info-card.profit { background: #f0fff4; border-color: #a7f3d0; }
+            .info-card.indicator { background: #f0f7ff; border-color: #bae6fd; }
+            .info-card.risk { background: #fff5f5; border-color: #fecaca; }
+            .reminder-card { background: #fffbeb; border-color: #fde68a; }
+            .report-meta-bar { background: #f1f5f9; border-color: #e2e8f0; }
+            .report-type-badge { background: #eef2ff; border-color: #c7d2fe; color: #4338ca; }
+            .report-meta-value { color: #1a1a1a; }
+            .report-footer { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+            .report-divider { background: #e2e8f0; }
+            .report-divider::after { background: #cbd5e1; }
+            .gauge-label, .card-section-title, .section-number { color: #1a1a1a !important; -webkit-text-fill-color: initial; }
+            .card-text { color: #4a5568 !important; }
+        }
+
+        /* ============================
+           研究報告風格
+           ============================ */
+        .report-meta-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 10px;
+            padding: 12px 18px; margin-bottom: 20px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            font-size: 11px; color: var(--text-soft);
+        }
+        .report-meta-left, .report-meta-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .report-meta-item { display: flex; align-items: center; gap: 5px; }
+        .report-meta-label { opacity: 0.6; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+        .report-meta-value { color: var(--text-main); font-weight: 600; }
+        .report-meta-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border-soft); }
+        .report-type-badge {
+            padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 600;
+            background: rgba(129, 140, 248, 0.12); border: 1px solid rgba(129, 140, 248, 0.35);
+            color: #c7d2fe; letter-spacing: 0.04em;
+        }
+
+        /* 報告章節編號 */
+        .section-number {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 26px; height: 26px; border-radius: 7px;
+            font-size: 13px; font-weight: 800; margin-right: 6px; flex-shrink: 0;
+            font-family: "Noto Serif TC", serif;
+        }
+        .section-number.profit { background: rgba(34, 197, 94, 0.15); color: var(--success); }
+        .section-number.indicator { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
+        .section-number.risk { background: rgba(249, 115, 115, 0.15); color: var(--danger); }
+        .section-number.reminder { background: rgba(250, 204, 21, 0.15); color: #facc15; }
+
+        /* 執行摘要 / 投資觀點 */
+        .executive-summary {
+            padding: 18px 22px; margin-bottom: 24px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.07), rgba(129, 140, 248, 0.05));
+            border-left: 4px solid var(--accent);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            position: relative;
+        }
+        .executive-summary-label {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em;
+            color: var(--text-soft); margin-bottom: 8px; font-weight: 700;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .executive-summary-label::after {
+            content: ''; flex: 1; height: 1px;
+            background: linear-gradient(90deg, var(--border-soft), transparent);
+        }
+        .executive-summary-text {
+            font-size: 15px; line-height: 1.8; color: var(--accent);
+            font-weight: 500; letter-spacing: 0.02em;
+        }
+
+        /* 報告分隔線 */
+        .report-divider {
+            height: 1px; margin: 28px 0;
+            background: linear-gradient(90deg, transparent, var(--border-soft) 20%, var(--border-soft) 80%, transparent);
+            position: relative;
+        }
+        .report-divider::after {
+            content: ''; position: absolute; left: 50%; top: -3px; transform: translateX(-50%);
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--border-soft);
+        }
+
+        /* 報告尾聲 / 免責聲明 */
+        .report-footer {
+            margin-top: 32px; padding: 18px 22px;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            font-size: 11px; color: var(--text-soft); line-height: 1.8;
+        }
+        .report-footer-title {
+            font-weight: 700; color: var(--text-main); margin-bottom: 6px;
+            font-size: 12px; display: flex; align-items: center; gap: 6px;
+        }
+        .report-footer p { margin-bottom: 4px; }
+        .report-footer .report-gen-info {
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--border-soft);
+            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+            font-size: 10px; opacity: 0.7;
+        }
+
+        /* 卡片描述增強 */
+        .info-card .card-title {
+            font-size: 14px; font-weight: 700; color: var(--text-main);
+            margin-bottom: 4px;
+        }
+        .info-card .card-desc {
+            font-size: 12px; color: var(--text-soft); line-height: 1.6;
+        }
+
+        /* ============================
+           Rich Text 自動排版引擎
+           ============================ */
+        .rt-h2 {
+            font-size: 17px; font-weight: 700; color: var(--text-main);
+            margin: 16px 0 8px; line-height: 1.4;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .rt-h3 {
+            font-size: 14px; font-weight: 600; color: var(--text-main);
+            margin: 12px 0 6px; line-height: 1.4;
+        }
+        .rt-p { margin: 6px 0; line-height: 1.7; }
+        .rt-list { list-style: none; margin: 6px 0; padding: 0; }
+        .rt-list li {
+            position: relative; padding-left: 18px; margin: 5px 0; line-height: 1.7;
+        }
+        .rt-list li::before {
+            content: ''; position: absolute; left: 0; top: 10px;
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent);
+        }
+        .rt-spacer { height: 8px; }
+
+        /* Rich text 在不同區塊的適配 */
+        .info-card .rt-h2 { font-size: 14px; margin: 4px 0 4px; padding-bottom: 3px; }
+        .info-card .rt-h3 { font-size: 13px; margin: 4px 0 3px; }
+        .info-card .rt-p { margin: 3px 0; font-size: 12px; }
+        .info-card .rt-list { margin: 3px 0; }
+        .info-card .rt-list li { font-size: 12px; margin: 2px 0; padding-left: 14px; }
+        .info-card .rt-list li::before { width: 4px; height: 4px; top: 9px; }
+        .info-card.profit .rt-list li::before { background: var(--success); }
+        .info-card.indicator .rt-list li::before { background: var(--accent); }
+        .info-card.risk .rt-list li::before { background: var(--danger); }
+
+        .reminder-card .rt-h2, .reminder-card .rt-h3 { color: #fef3c7; border-bottom-color: rgba(250, 204, 21, 0.2); }
+        .reminder-card .rt-p { color: #fef3c7; }
+        .reminder-card .rt-list li::before { background: #facc15; }
+
+        .executive-summary .rt-h2 { color: var(--accent); border-bottom-color: rgba(56, 189, 248, 0.2); }
+        .executive-summary .rt-h3 { color: var(--accent); }
+        .executive-summary .rt-list li::before { background: var(--accent); }
+
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        ::selection { background: rgba(56, 189, 248, 0.3); color: var(--text-main); }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell" role="main">
+        <div class="scroll-progress" id="scroll-progress"></div>
+
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon" aria-hidden="true">📊</div>
+                <div>
+                    <div class="brand-text-main">個股知識小百科</div>
+                    <div class="brand-text-sub">Stock Knowledge Base</div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="mobile-toggle" id="mobile-toggle" aria-label="開啟選單">☰</button>
+                <div class="mood-pill">
+                    <span class="mood-dot" aria-hidden="true"></span>
+                    <span>即時資料</span>
+                </div>
+                <div class="tag-pill">v2.1</div>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+            <aside class="sidebar" id="sidebar" role="complementary" aria-label="導航清單">
+                <!-- Tab 切換 -->
+                <div class="sidebar-tabs" role="tablist">
+                    <button class="sidebar-tab active" data-tab="stocks" role="tab" aria-selected="true">個股</button>
+                    <button class="sidebar-tab" data-tab="categories" role="tab" aria-selected="false">類別族群</button>
+                </div>
+
+                <!-- 個股面板 -->
+                <div class="sidebar-panel active" id="panel-stocks" role="tabpanel">
+                    <div class="sidebar-header">
+                        <h2 class="sidebar-title">個股清單</h2>
+                        <div class="stock-counter" id="stock-count" aria-live="polite">0</div>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" class="search-input" id="search-input"
+                            placeholder="搜尋代碼或名稱..." aria-label="搜尋股票" autocomplete="off" />
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                        <button class="clear-search" id="clear-search" aria-label="清除搜尋" title="清除搜尋">✕</button>
+                    </div>
+                    <ul class="sidebar-list" id="stock-list" role="list"></ul>
+                    <div class="no-results" id="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <div class="no-results-text">找不到相關股票</div>
+                    </div>
+                </div>
+
+                <!-- 類別面板 -->
+                <div class="sidebar-panel" id="panel-categories" role="tabpanel">
+                    <div class="sidebar-header">
+                        <h2 class="sidebar-title">產業族群</h2>
+                        <div class="stock-counter highlight" id="cat-count">0</div>
+                    </div>
+                    <ul class="sidebar-list" id="category-list" role="list"></ul>
+                </div>
+            </aside>
+
+            <section class="content-area" id="content-area" aria-label="詳細資訊">
+                <!-- 空白狀態 -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-icon">📈</div>
+                    <div class="empty-text">請點擊左上角 ☰ 開啟清單，選擇一檔股票或產業族群</div>
+                    <div class="empty-text" style="font-size: 12px; opacity: 0.7;">
+                        支援鍵盤 <span class="kbd">↑</span> <span class="kbd">↓</span> 快速切換，<span class="kbd">/</span> 搜尋
+                    </div>
+                </div>
+
+                <!-- 載入中 -->
+                <div class="loading" id="loading">
+                    <div class="spinner" role="status"><span class="sr-only">載入中...</span></div>
+                    <div class="loading-text">載入中...</div>
+                </div>
+
+                <!-- 個股詳細內容（研究報告式） -->
+                <div id="detail-content" style="display: none;">
+                    <!-- 報告元資料列 -->
+                    <div class="content-block" data-section>
+                        <div class="report-meta-bar" id="report-meta-bar"></div>
+                    </div>
+                    <!-- 概覽：代碼 + 名稱 + 風險儀表 -->
+                    <div class="content-block" data-section>
+                        <div class="overview-card">
+                            <div>
+                                <div class="stock-badge" id="content-stock-badge">2330 · 上市</div>
+                                <h1 class="content-title" id="content-title">台積電</h1>
+                                <p class="content-subline" id="content-sector-line"></p>
+                            </div>
+                            <div class="risk-gauge" id="risk-gauge">
+                                <div class="gauge-ring">
+                                    <svg viewBox="0 0 36 36">
+                                        <circle class="gauge-bg" cx="18" cy="18" r="15.5" />
+                                        <circle class="gauge-fill" id="gauge-fill" cx="18" cy="18" r="15.5"
+                                            stroke-dasharray="97.4" stroke-dashoffset="97.4" />
+                                    </svg>
+                                    <span class="gauge-label" id="gauge-label">--</span>
+                                </div>
+                                <span class="gauge-text">風險等級</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 執行摘要 / 投資觀點 -->
+                    <div class="content-block" data-section>
+                        <div class="executive-summary" id="executive-summary">
+                            <div class="executive-summary-label">投資觀點摘要 INVESTMENT THESIS</div>
+                            <div class="executive-summary-text" id="content-personality"></div>
+                        </div>
+                    </div>
+                    <div class="report-divider"></div>
+                    <!-- 壹、獲利來源分析 -->
+                    <div class="content-block" data-section>
+                        <h3 class="card-section-title">
+                            <span class="section-number profit">壹</span>
+                            <span class="card-section-icon profit">💰</span>獲利來源分析
+                        </h3>
+                        <div class="card-row" id="profit-cards"></div>
+                    </div>
+                    <!-- 貳、關鍵指標追蹤 -->
+                    <div class="content-block" data-section>
+                        <h3 class="card-section-title">
+                            <span class="section-number indicator">貳</span>
+                            <span class="card-section-icon indicator">📊</span>關鍵指標追蹤
+                        </h3>
+                        <div class="card-row" id="indicator-cards"></div>
+                    </div>
+                    <div class="report-divider"></div>
+                    <!-- 參、潛在風險評估 -->
+                    <div class="content-block" data-section>
+                        <h3 class="card-section-title">
+                            <span class="section-number risk">參</span>
+                            <span class="card-section-icon risk">💣</span>潛在風險評估
+                        </h3>
+                        <div class="card-row" id="risk-cards"></div>
+                    </div>
+                    <div class="report-divider"></div>
+                    <!-- 肆、投資策略建議 -->
+                    <div class="content-block" data-section>
+                        <h3 class="card-section-title">
+                            <span class="section-number reminder">肆</span>
+                            <span class="card-section-icon" style="background:rgba(250,204,21,0.15);">💡</span>投資策略建議
+                        </h3>
+                        <div class="reminder-card" id="reminder-card"></div>
+                    </div>
+                    <!-- 報告尾聲 -->
+                    <div class="content-block" data-section>
+                        <div class="report-footer" id="report-footer"></div>
+                    </div>
+                </div>
+
+                <!-- 類別族群內容 -->
+                <div id="category-content" style="display: none;"></div>
+
+                <button class="back-to-top" id="back-to-top" aria-label="回到頂部" title="回到頂部">↑</button>
+            </section>
+        </div>
+    </div>
+
+    <div class="keyboard-hint" id="keyboard-hint" role="status" aria-live="polite">
+        <div style="margin-bottom: 4px; font-weight: 600; color: var(--text-main);">快捷鍵</div>
+        <div><span class="kbd">↑</span> <span class="kbd">↓</span> 切換項目</div>
+        <div><span class="kbd">/</span> 搜尋</div>
+        <div><span class="kbd">Esc</span> 清除</div>
+    </div>
+
+    <script>
+        // =====================================================
+        // 📊 類別與股票資料（從 CSV 載入）
+        // =====================================================
+        let categoryData = {};
+        let stockData = {};
+
+        // =====================================================
+        // 📂 CSV 解析器（支援引號內逗號與換行）
+        // =====================================================
+        function parseCSV(text) {
+            const rows = [];
+            let current = '';
+            let inQuotes = false;
+            const chars = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            let row = [];
+
+            for (let i = 0; i < chars.length; i++) {
+                const ch = chars[i];
+                if (inQuotes) {
+                    if (ch === '"' && chars[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else if (ch === '"') {
+                        inQuotes = false;
+                    } else {
+                        current += ch;
+                    }
+                } else {
+                    if (ch === '"') {
+                        inQuotes = true;
+                    } else if (ch === ',') {
+                        row.push(current);
+                        current = '';
+                    } else if (ch === '\n') {
+                        row.push(current);
+                        current = '';
+                        if (row.length > 1 || row[0] !== '') rows.push(row);
+                        row = [];
+                    } else {
+                        current += ch;
+                    }
+                }
+            }
+            if (current || row.length > 0) {
+                row.push(current);
+                if (row.length > 1 || row[0] !== '') rows.push(row);
+            }
+
+            if (rows.length < 2) return [];
+            const headers = rows[0].map(h => h.trim());
+            return rows.slice(1).map(r => {
+                const obj = {};
+                headers.forEach((h, i) => { obj[h] = (r[i] || '').trim(); });
+                return obj;
+            });
+        }
+
+        // =====================================================
+        // 📂 載入 CSV 資料
+        // =====================================================
+        async function loadCSVData() {
+            const [catRes, stockRes] = await Promise.all([
+                fetch('categories.csv').then(r => r.text()),
+                fetch('stocks.csv').then(r => r.text())
+            ]);
+
+            // 解析類別
+            parseCSV(catRes).forEach(row => {
+                categoryData[row.id] = {
+                    id: row.id,
+                    name: row.name,
+                    icon: row.icon,
+                    description: row.description,
+                    color: row.color
+                };
+            });
+
+            // 解析個股（profit1~3, key1~3, risk1~3 獨立欄位）
+            parseCSV(stockRes).forEach(row => {
+                stockData[row.code] = {
+                    code: row.code,
+                    name: row.name,
+                    market: row.market,
+                    category: row.category,
+                    riskLevel: parseInt(row.riskLevel, 10) || 50,
+                    personality: row.personality || '',
+                    profitSources: [row.profit1, row.profit2, row.profit3].filter(Boolean),
+                    keyIndicators: [row.key1, row.key2, row.key3].filter(Boolean),
+                    risks: [row.risk1, row.risk2, row.risk3].filter(Boolean),
+                    reminder: row.reminder || ''
+                };
+            });
+        }
+
+        // =====================================================
+        // 🎯 DOM 元素快取
+        // =====================================================
+        const elements = {
+            stockList: document.getElementById("stock-list"),
+            stockCount: document.getElementById("stock-count"),
+            searchInput: document.getElementById("search-input"),
+            clearSearch: document.getElementById("clear-search"),
+            noResults: document.getElementById("no-results"),
+            contentArea: document.getElementById("content-area"),
+            emptyState: document.getElementById("empty-state"),
+            loading: document.getElementById("loading"),
+            detailContent: document.getElementById("detail-content"),
+            categoryContent: document.getElementById("category-content"),
+            badge: document.getElementById("content-stock-badge"),
+            title: document.getElementById("content-title"),
+            personality: document.getElementById("content-personality"),
+            sectorLine: document.getElementById("content-sector-line"),
+            reportMetaBar: document.getElementById("report-meta-bar"),
+            reportFooter: document.getElementById("report-footer"),
+            profitCards: document.getElementById("profit-cards"),
+            indicatorCards: document.getElementById("indicator-cards"),
+            riskCards: document.getElementById("risk-cards"),
+            reminderCard: document.getElementById("reminder-card"),
+            keyboardHint: document.getElementById("keyboard-hint"),
+            scrollProgress: document.getElementById("scroll-progress"),
+            backToTop: document.getElementById("back-to-top"),
+            gaugeFill: document.getElementById("gauge-fill"),
+            gaugeLabel: document.getElementById("gauge-label"),
+            mobileToggle: document.getElementById("mobile-toggle"),
+            sidebar: document.getElementById("sidebar"),
+            sidebarOverlay: document.getElementById("sidebar-overlay"),
+            categoryList: document.getElementById("category-list"),
+            catCount: document.getElementById("cat-count"),
+            panelStocks: document.getElementById("panel-stocks"),
+            panelCategories: document.getElementById("panel-categories")
+        };
+
+        // =====================================================
+        // 💾 應用程式狀態
+        // =====================================================
+        let state = {
+            currentCode: null,
+            currentCategory: null,
+            viewMode: 'stock', // 'stock' | 'category'
+            activeTab: 'stocks',
+            filteredStocks: [],
+            selectedIndex: -1,
+            sidebarOpen: false
+        };
+
+        // =====================================================
+        // 🔧 工具函數
+        // =====================================================
+        function debounce(fn, wait) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; }
+        function throttle(fn, limit) { let ok = true; return (...a) => { if (ok) { fn(...a); ok = false; setTimeout(() => ok = true, limit); } }; }
+        function escapeHtml(text) { const d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+        function scrollIntoViewSmooth(el) { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+        // =====================================================
+        // 📝 Rich Text 自動排版引擎（簡化版 Markdown）
+        // 語法：# 大標題 / ## 小標題 / - 清單 / 空行分段
+        // 支援有無空格：「## 標題」和「##標題」都能識別
+        // =====================================================
+        function parseMarkdownLine(line) {
+            // ## 小標題（必須在 # 之前檢查）
+            if (line.startsWith('##')) return { type: 'h3', content: line.replace(/^##\s*/, '') };
+            // # 大標題
+            if (line.startsWith('#')) return { type: 'h2', content: line.replace(/^#\s*/, '') };
+            // - 清單（排除 -數字 避免誤判負數）
+            if (line.startsWith('-') && line.length > 1 && !/^\-\d/.test(line))
+                return { type: 'li', content: line.replace(/^-\s*/, '') };
+            return { type: 'text', content: line };
+        }
+
+        function renderRichText(text) {
+            if (!text) return '';
+            const lines = text.split('\n');
+
+            // 單行：快速解析
+            if (lines.length === 1) {
+                const t = text.trim();
+                const parsed = parseMarkdownLine(t);
+                switch (parsed.type) {
+                    case 'h2': return `<h2 class="rt-h2">${escapeHtml(parsed.content)}</h2>`;
+                    case 'h3': return `<h3 class="rt-h3">${escapeHtml(parsed.content)}</h3>`;
+                    case 'li': return `<ul class="rt-list"><li>${escapeHtml(parsed.content)}</li></ul>`;
+                    default:   return escapeHtml(parsed.content);
+                }
+            }
+
+            // 多行：完整 Markdown 解析
+            let html = '';
+            let inList = false;
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += '<div class="rt-spacer"></div>';
+                    return;
+                }
+
+                const parsed = parseMarkdownLine(trimmed);
+
+                if (parsed.type === 'h2' || parsed.type === 'h3') {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    const tag = parsed.type;
+                    html += `<${tag} class="rt-${tag}">${escapeHtml(parsed.content)}</${tag}>`;
+                }
+                else if (parsed.type === 'li') {
+                    if (!inList) { html += '<ul class="rt-list">'; inList = true; }
+                    html += `<li>${escapeHtml(parsed.content)}</li>`;
+                }
+                else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<p class="rt-p">${escapeHtml(parsed.content)}</p>`;
+                }
+            });
+
+            if (inList) html += '</ul>';
+            return html;
+        }
+
+        function getRiskColor(level) {
+            if (level <= 35) return '#4ade80';
+            if (level <= 55) return '#facc15';
+            if (level <= 75) return '#fb923c';
+            return '#f97373';
+        }
+
+        function getStocksByCategory(catId) {
+            return Object.values(stockData).filter(s => s.category === catId);
+        }
+
+        // =====================================================
+        // 🎨 Tab 切換
+        // =====================================================
+        function switchTab(tabName) {
+            state.activeTab = tabName;
+            document.querySelectorAll('.sidebar-tab').forEach(t => {
+                const isActive = t.dataset.tab === tabName;
+                t.classList.toggle('active', isActive);
+                t.setAttribute('aria-selected', isActive);
+            });
+            elements.panelStocks.classList.toggle('active', tabName === 'stocks');
+            elements.panelCategories.classList.toggle('active', tabName === 'categories');
+        }
+
+        // =====================================================
+        // 🎨 個股清單
+        // =====================================================
+        function renderStockList(filterText = "") {
+            const f = filterText.trim().toLowerCase();
+            elements.stockList.innerHTML = "";
+
+            state.filteredStocks = Object.values(stockData).filter(s => {
+                if (!f) return true;
+                return `${s.code}${s.name}${s.market}${categoryData[s.category]?.name || ''}`.toLowerCase().includes(f);
+            });
+
+            elements.stockCount.textContent = state.filteredStocks.length;
+            elements.stockCount.classList.toggle('highlight', state.filteredStocks.length > 0);
+
+            if (state.filteredStocks.length === 0 && f) {
+                elements.noResults.classList.add('visible');
+            } else {
+                elements.noResults.classList.remove('visible');
+            }
+
+            state.filteredStocks.forEach((stock, index) => {
+                const li = document.createElement("li");
+                li.className = "stock-item";
+                li.style.animationDelay = `${index * 0.04}s`;
+
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "stock-btn";
+                if (state.viewMode === 'stock' && state.currentCode === stock.code) button.classList.add('active');
+                button.dataset.stockCode = stock.code;
+                button.dataset.index = index;
+                button.setAttribute('aria-label', `${stock.code} ${stock.name}`);
+
+                const roleText = stock.personality.length > 14 ? stock.personality.slice(0, 14) + '...' : stock.personality;
+                const rc = getRiskColor(stock.riskLevel);
+                const catName = categoryData[stock.category]?.name || '';
+
+                button.innerHTML = `
+                    <div class="stock-main-row">
+                        <span class="stock-code">${escapeHtml(stock.code)}</span>
+                        <span class="stock-name">${escapeHtml(stock.name)}</span>
+                    </div>
+                    <div class="stock-tag-row">
+                        <span class="chip highlight">${escapeHtml(catName)}</span>
+                        <span class="chip">${escapeHtml(roleText)}</span>
+                        <span class="chip" style="border-color:${rc}40;color:${rc};">風險 ${stock.riskLevel}</span>
+                    </div>`;
+
+                button.addEventListener("click", () => { setActiveStock(stock.code); closeSidebar(); });
+                li.appendChild(button);
+                elements.stockList.appendChild(li);
+            });
+
+            elements.clearSearch.classList.toggle('visible', !!f);
+        }
+
+        // =====================================================
+        // 🏷️ 類別清單
+        // =====================================================
+        function renderCategoryList() {
+            elements.categoryList.innerHTML = "";
+            const cats = Object.values(categoryData);
+            elements.catCount.textContent = cats.length;
+
+            cats.forEach((cat, i) => {
+                const stocks = getStocksByCategory(cat.id);
+                const li = document.createElement("li");
+                li.className = "category-item";
+                li.style.animationDelay = `${i * 0.05}s`;
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "category-btn";
+                if (state.viewMode === 'category' && state.currentCategory === cat.id) btn.classList.add('active');
+                btn.dataset.cat = cat.id;
+                btn.innerHTML = `
+                    <span class="category-icon">${cat.icon}</span>
+                    <div class="category-info">
+                        <div class="category-name">${escapeHtml(cat.name)}</div>
+                        <div class="category-desc">${escapeHtml(cat.description.slice(0, 30))}...</div>
+                    </div>
+                    <span class="category-count">${stocks.length} 檔</span>`;
+
+                btn.addEventListener("click", () => { setActiveCategory(cat.id); closeSidebar(); });
+                li.appendChild(btn);
+                elements.categoryList.appendChild(li);
+            });
+        }
+
+        // =====================================================
+        // 📄 顯示個股
+        // =====================================================
+        function showLoading() {
+            elements.emptyState.style.display = 'none';
+            elements.detailContent.style.display = 'none';
+            elements.categoryContent.style.display = 'none';
+            elements.loading.classList.add('active');
+        }
+        function hideLoading() { elements.loading.classList.remove('active'); }
+
+        function setActiveStock(code) {
+            const stock = stockData[code];
+            if (!stock) return;
+            showLoading();
+
+            setTimeout(() => {
+                state.currentCode = code;
+                state.currentCategory = null;
+                state.viewMode = 'stock';
+
+                // 更新側欄 active
+                document.querySelectorAll(".stock-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+                const targetBtn = document.querySelector(`.stock-btn[data-stock-code="${code}"]`);
+                if (targetBtn) {
+                    targetBtn.classList.add("active");
+                    state.selectedIndex = parseInt(targetBtn.dataset.index);
+                    scrollIntoViewSmooth(targetBtn);
+                }
+
+                updateDetailContent(stock);
+                hideLoading();
+                elements.emptyState.style.display = 'none';
+                elements.categoryContent.style.display = 'none';
+                elements.detailContent.style.display = 'block';
+                elements.contentArea.scrollTop = 0;
+                requestAnimationFrame(() => observeContentBlocks());
+            }, 180);
+        }
+
+        function renderCardRow(container, items, type) {
+            container.innerHTML = '';
+            items.forEach((text, i) => {
+                const card = document.createElement('div');
+                card.className = `info-card ${type}`;
+                card.innerHTML = `<span class="card-num">${i + 1}</span><span class="card-text">${renderRichText(text)}</span>`;
+                container.appendChild(card);
+            });
+        }
+
+        function formatReportDate() {
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}.${m}.${day}`;
+        }
+
+        function getRiskLabel(level) {
+            if (level <= 25) return '低風險';
+            if (level <= 45) return '中低風險';
+            if (level <= 60) return '中等風險';
+            if (level <= 75) return '中高風險';
+            return '高風險';
+        }
+
+        function updateDetailContent(stock) {
+            const catInfo = categoryData[stock.category] || {};
+            const riskLabel = getRiskLabel(stock.riskLevel || 50);
+            const riskColor = getRiskColor(stock.riskLevel || 50);
+
+            // 報告元資料列
+            elements.reportMetaBar.innerHTML = `
+                <div class="report-meta-left">
+                    <span class="report-type-badge">個股研究報告</span>
+                    <span class="report-meta-dot"></span>
+                    <div class="report-meta-item">
+                        <span class="report-meta-label">產業</span>
+                        <span class="report-meta-value">${escapeHtml(catInfo.name || '未分類')}${catInfo.icon || ''}</span>
+                    </div>
+                    <span class="report-meta-dot"></span>
+                    <div class="report-meta-item">
+                        <span class="report-meta-label">風險評級</span>
+                        <span class="report-meta-value" style="color:${riskColor}">${riskLabel}</span>
+                    </div>
+                </div>
+                <div class="report-meta-right">
+                    <div class="report-meta-item">
+                        <span class="report-meta-label">更新日期</span>
+                        <span class="report-meta-value">${formatReportDate()}</span>
+                    </div>
+                </div>`;
+
+            // 概覽卡片
+            elements.badge.textContent = `${stock.code} · ${stock.market}`;
+            elements.title.textContent = stock.name;
+            elements.sectorLine.textContent = `${catInfo.icon || ''} ${catInfo.name || ''}族群 · ${stock.market} · 風險等級 ${stock.riskLevel}`;
+
+            // 執行摘要（投資觀點）— 支援 Rich Text
+            elements.personality.innerHTML = renderRichText(stock.personality);
+            updateRiskGauge(stock.riskLevel || 50);
+
+            // 獲利 / 指標 / 風險卡片 — 支援 Rich Text
+            renderCardRow(elements.profitCards, stock.profitSources, 'profit');
+            renderCardRow(elements.indicatorCards, stock.keyIndicators, 'indicator');
+            renderCardRow(elements.riskCards, stock.risks, 'risk');
+
+            // 投資提醒 — 支援 Rich Text
+            elements.reminderCard.innerHTML = `<span class="reminder-icon">💡</span><span>${renderRichText(stock.reminder)}</span>`;
+
+            // 報告尾聲
+            elements.reportFooter.innerHTML = `
+                <div class="report-footer-title">免責聲明 Disclaimer</div>
+                <p>本報告僅供個人研究參考，不構成任何投資建議。所有資訊來源力求準確，但不保證其完整性與即時性。投資人應自行評估風險並承擔投資決策之責任。</p>
+                <div class="report-gen-info">
+                    <span>報告產生日期：${formatReportDate()}</span>
+                    <span>個股知識小百科 · Stock Knowledge Base v2.1</span>
+                </div>`;
+        }
+
+        // =====================================================
+        // 🏷️ 顯示類別族群
+        // =====================================================
+        function setActiveCategory(catId) {
+            const cat = categoryData[catId];
+            if (!cat) return;
+            showLoading();
+
+            setTimeout(() => {
+                state.currentCategory = catId;
+                state.currentCode = null;
+                state.viewMode = 'category';
+
+                document.querySelectorAll(".stock-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll(".category-btn").forEach(b => b.classList.toggle("active", b.dataset.cat === catId));
+
+                renderCategoryContent(cat);
+                hideLoading();
+                elements.emptyState.style.display = 'none';
+                elements.detailContent.style.display = 'none';
+                elements.categoryContent.style.display = 'block';
+                elements.contentArea.scrollTop = 0;
+
+                // 觀察動畫
+                requestAnimationFrame(() => {
+                    const blocks = elements.categoryContent.querySelectorAll('.content-block');
+                    blocks.forEach(b => b.classList.remove('visible'));
+                    const obs = new IntersectionObserver((entries) => {
+                        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+                    }, { root: elements.contentArea, threshold: 0.1 });
+                    blocks.forEach(b => obs.observe(b));
+                });
+            }, 180);
+        }
+
+        function renderCategoryContent(cat) {
+            const stocks = getStocksByCategory(cat.id);
+            const avgRisk = Math.round(stocks.reduce((sum, s) => sum + s.riskLevel, 0) / stocks.length);
+            const avgRiskColor = getRiskColor(avgRisk);
+
+            let html = `
+                <div class="content-block" data-section>
+                    <div class="cat-header" data-cat="${cat.id}">
+                        <div class="cat-header-top">
+                            <span class="cat-header-icon">${cat.icon}</span>
+                            <span class="cat-header-title">${escapeHtml(cat.name)}族群</span>
+                            <span class="cat-header-count">${stocks.length} 檔個股</span>
+                        </div>
+                        <p class="cat-header-desc">${escapeHtml(cat.description)}</p>
+                    </div>
+                </div>
+
+                <div class="content-block" data-section>
+                    <div class="cat-stats">
+                        <div class="cat-stat-card">
+                            <div class="cat-stat-value">${stocks.length}</div>
+                            <div class="cat-stat-label">個股數量</div>
+                        </div>
+                        <div class="cat-stat-card">
+                            <div class="cat-stat-value" style="color:${avgRiskColor}">${avgRisk}</div>
+                            <div class="cat-stat-label">平均風險</div>
+                        </div>
+                        <div class="cat-stat-card">
+                            <div class="cat-stat-value" style="color:${getRiskColor(Math.min(...stocks.map(s=>s.riskLevel)))}">${Math.min(...stocks.map(s => s.riskLevel))}</div>
+                            <div class="cat-stat-label">最低風險</div>
+                        </div>
+                        <div class="cat-stat-card">
+                            <div class="cat-stat-value" style="color:${getRiskColor(Math.max(...stocks.map(s=>s.riskLevel)))}">${Math.max(...stocks.map(s => s.riskLevel))}</div>
+                            <div class="cat-stat-label">最高風險</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-block" data-section>
+                    <div class="cat-stock-grid">`;
+
+            stocks.forEach(stock => {
+                const rc = getRiskColor(stock.riskLevel);
+                const circ = 2 * Math.PI * 15.5;
+                const offset = circ - (stock.riskLevel / 100) * circ;
+
+                html += `
+                    <div class="cat-stock-card">
+                        <div class="cat-card-top">
+                            <div class="cat-card-title-area">
+                                <div class="cat-card-badge">${escapeHtml(stock.code)} · ${escapeHtml(stock.market)}</div>
+                                <div class="cat-card-name">${escapeHtml(stock.name)}</div>
+                                <div class="cat-card-role">${escapeHtml(stock.personality)}</div>
+                            </div>
+                            <div class="cat-card-gauge">
+                                <div class="risk-gauge">
+                                    <div class="gauge-ring" style="width:50px;height:50px;">
+                                        <svg viewBox="0 0 36 36">
+                                            <circle class="gauge-bg" cx="18" cy="18" r="15.5"/>
+                                            <circle class="gauge-fill" cx="18" cy="18" r="15.5"
+                                                stroke-dasharray="${circ.toFixed(1)}"
+                                                stroke-dashoffset="${offset.toFixed(1)}"
+                                                style="stroke:${rc};"/>
+                                        </svg>
+                                        <span class="gauge-label" style="color:${rc};font-size:12px;">${stock.riskLevel}</span>
+                                    </div>
+                                    <span class="gauge-text">風險</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="cat-card-pills">
+                            ${(stock.profitSources || []).map(t => `<span class="mini-badge neutral">${escapeHtml(t.replace(/^##?\s*/, '').replace(/^-\s*/, '').replace(/^-/, ''))}</span>`).join('')}
+                        </div>
+                        <button class="cat-card-detail-btn" data-code="${stock.code}">查看完整分析 →</button>
+                    </div>`;
+            });
+
+            html += `</div></div>`;
+            elements.categoryContent.innerHTML = html;
+
+            // 綁定「查看詳情」按鈕
+            elements.categoryContent.querySelectorAll('.cat-card-detail-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchTab('stocks');
+                    setActiveStock(btn.dataset.code);
+                });
+            });
+        }
+
+        // =====================================================
+        // 📊 風險儀表盤
+        // =====================================================
+        function updateRiskGauge(level) {
+            const circ = 2 * Math.PI * 15.5;
+            const offset = circ - (level / 100) * circ;
+            const color = getRiskColor(level);
+            elements.gaugeFill.style.stroke = color;
+            elements.gaugeFill.style.strokeDashoffset = offset;
+            elements.gaugeLabel.textContent = level;
+            elements.gaugeLabel.style.color = color;
+        }
+
+        // =====================================================
+        // 👁️ IntersectionObserver
+        // =====================================================
+        let contentObserver = null;
+        function observeContentBlocks() {
+            if (contentObserver) contentObserver.disconnect();
+            const blocks = document.querySelectorAll('#detail-content .content-block');
+            blocks.forEach(b => b.classList.remove('visible'));
+            contentObserver = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+            }, { root: elements.contentArea, threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+            blocks.forEach(b => contentObserver.observe(b));
+        }
+
+        // =====================================================
+        // 📜 捲動進度 & 回到頂部
+        // =====================================================
+        function handleContentScroll() {
+            const el = elements.contentArea;
+            const scrollTop = el.scrollTop;
+            const scrollHeight = el.scrollHeight - el.clientHeight;
+            const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+            elements.scrollProgress.style.width = progress + '%';
+            elements.backToTop.classList.toggle('visible', scrollTop > 200);
+        }
+
+        // =====================================================
+        // 📱 手機版側欄
+        // =====================================================
+        function openSidebar() { state.sidebarOpen = true; elements.sidebar.classList.add('open'); elements.sidebarOverlay.classList.add('visible'); elements.mobileToggle.textContent = '✕'; }
+        function closeSidebar() { state.sidebarOpen = false; elements.sidebar.classList.remove('open'); elements.sidebarOverlay.classList.remove('visible'); elements.mobileToggle.textContent = '☰'; }
+        function toggleSidebar() { state.sidebarOpen ? closeSidebar() : openSidebar(); }
+
+        // =====================================================
+        // ⌨️ 鍵盤導航
+        // =====================================================
+        function handleKeyboardNavigation(event) {
+            const { key, ctrlKey, metaKey } = event;
+            if ((key === 'ArrowUp' || key === 'ArrowDown') && state.activeTab === 'stocks') {
+                event.preventDefault();
+                if (state.filteredStocks.length === 0) return;
+                if (key === 'ArrowDown') state.selectedIndex = (state.selectedIndex + 1) % state.filteredStocks.length;
+                else state.selectedIndex = state.selectedIndex <= 0 ? state.filteredStocks.length - 1 : state.selectedIndex - 1;
+                const s = state.filteredStocks[state.selectedIndex];
+                if (s) setActiveStock(s.code);
+            }
+            if (key === '/' && !ctrlKey && !metaKey && document.activeElement !== elements.searchInput) {
+                event.preventDefault();
+                switchTab('stocks');
+                elements.searchInput.focus();
+                elements.searchInput.select();
+            }
+            if (key === 'Escape') {
+                if (document.activeElement === elements.searchInput) clearSearch();
+                if (state.sidebarOpen) closeSidebar();
+            }
+        }
+
+        // =====================================================
+        // 🔍 搜尋
+        // =====================================================
+        const handleSearchInput = debounce((e) => renderStockList(e.target.value), 200);
+        function clearSearch() { elements.searchInput.value = ''; elements.clearSearch.classList.remove('visible'); renderStockList(); elements.searchInput.focus(); }
+
+        // =====================================================
+        // 🎪 鍵盤提示
+        // =====================================================
+        function showKeyboardHint() {
+            elements.keyboardHint.classList.add('visible');
+            setTimeout(() => elements.keyboardHint.classList.remove('visible'), 4000);
+        }
+
+        // =====================================================
+        // 🚀 初始化
+        // =====================================================
+        async function initApp() {
+            // 先載入 CSV 資料
+            try {
+                await loadCSVData();
+            } catch (err) {
+                console.error('CSV 載入失敗:', err);
+                elements.emptyState.querySelector('.empty-text').textContent = 'CSV 資料載入失敗，請確認 categories.csv 與 stocks.csv 存在。';
+                return;
+            }
+
+            renderStockList();
+            renderCategoryList();
+
+            // Tab 切換
+            document.querySelectorAll('.sidebar-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            elements.searchInput.addEventListener("input", handleSearchInput);
+            elements.clearSearch.addEventListener("click", clearSearch);
+            document.addEventListener("keydown", handleKeyboardNavigation);
+            elements.contentArea.addEventListener("scroll", throttle(handleContentScroll, 50));
+            elements.backToTop.addEventListener("click", () => elements.contentArea.scrollTo({ top: 0, behavior: 'smooth' }));
+            elements.mobileToggle.addEventListener("click", toggleSidebar);
+            elements.sidebarOverlay.addEventListener("click", closeSidebar);
+
+            setTimeout(showKeyboardHint, 1200);
+
+            // 預設選擇台積電
+            if (stockData["2330"]) setTimeout(() => setActiveStock("2330"), 150);
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initApp);
+        else initApp();
+    </script>
+</body>
+</html>
