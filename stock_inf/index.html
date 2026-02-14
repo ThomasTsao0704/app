@@ -50,7 +50,7 @@
             min-height: 620px;
             background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
             border-radius: 26px;
-            border: 1px solid rgba(148, 163, 184, 0.18);
+            border: none;
             box-shadow: var(--shadow-soft), var(--shadow-glow);
             display: flex;
             flex-direction: column;
@@ -78,7 +78,7 @@
            ============================ */
         .app-header {
             padding: 18px 24px 12px;
-            border-bottom: 1px solid var(--border-soft);
+            border-bottom: none;
             display: flex; justify-content: space-between; align-items: center;
             gap: 16px; flex-wrap: wrap;
         }
@@ -101,7 +101,7 @@
         .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .mood-pill {
             font-size: 11px; padding: 4px 12px; border-radius: 999px;
-            background: rgba(22, 163, 74, 0.08); border: 1px solid rgba(34, 197, 94, 0.35);
+            background: rgba(22, 163, 74, 0.08); border: none;
             color: #bbf7d0; display: flex; align-items: center; gap: 6px;
             transition: all var(--transition-fast);
         }
@@ -113,7 +113,7 @@
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .tag-pill {
             padding: 4px 10px; font-size: 11px; border-radius: 999px;
-            background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.45);
+            background: rgba(56, 189, 248, 0.1); border: none;
             color: #e0f2fe; transition: all var(--transition-fast);
         }
         .tag-pill:hover { background: rgba(56, 189, 248, 0.2); transform: translateY(-1px); }
@@ -140,7 +140,7 @@
            ============================ */
         .sidebar {
             position: absolute; top: 0; left: 0; width: 300px; height: 100%; z-index: 20;
-            border-right: 1px solid var(--border-soft);
+            border-right: none;
             background: rgba(2, 6, 23, 0.98);
             backdrop-filter: blur(20px);
             padding: 14px 14px 18px; display: flex; flex-direction: column; gap: 12px;
@@ -154,7 +154,7 @@
         .sidebar-tabs {
             display: flex; gap: 4px; padding: 3px;
             background: rgba(15, 23, 42, 0.7); border-radius: 10px;
-            border: 1px solid rgba(55, 65, 81, 0.6);
+            border: none;
         }
         .sidebar-tab {
             flex: 1; padding: 6px 0; font-size: 12px; font-weight: 600;
@@ -174,18 +174,18 @@
         .sidebar-title { font-size: 13px; color: var(--text-soft); letter-spacing: 0.08em; text-transform: uppercase; }
         .stock-counter {
             font-size: 11px; color: var(--text-soft); padding: 2px 8px; border-radius: 999px;
-            background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(55, 65, 81, 0.85);
+            background: rgba(15, 23, 42, 0.7); border: none;
             transition: all var(--transition-fast);
         }
-        .stock-counter.highlight { background: rgba(56, 189, 248, 0.2); border-color: rgba(56, 189, 248, 0.5); color: var(--accent); }
+        .stock-counter.highlight { background: rgba(56, 189, 248, 0.2); color: var(--accent); }
         .search-box { position: relative; }
         .search-input {
             width: 100%; padding: 9px 10px 9px 34px; border-radius: 999px;
-            border: 1px solid rgba(55, 65, 81, 0.85); background: rgba(15, 23, 42, 0.9);
+            border: none; background: rgba(15, 23, 42, 0.9);
             color: var(--text-main); font-size: 12px; outline: none;
             transition: all var(--transition-fast);
         }
-        .search-input:focus { border-color: var(--accent); background: rgba(15, 23, 42, 1); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12); }
+        .search-input:focus { background: rgba(15, 23, 42, 1); box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12); }
         .search-input::placeholder { color: #4b5563; }
         .search-icon {
             position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
@@ -245,9 +245,9 @@
         .chip {
             padding: 2px 7px; font-size: 10px; border-radius: 5px;
             background: rgba(55, 65, 81, 0.5); color: var(--text-soft);
-            border: 1px solid rgba(75, 85, 99, 0.35); white-space: nowrap;
+            border: none; white-space: nowrap;
         }
-        .chip.highlight { background: rgba(34, 197, 94, 0.12); border-color: rgba(34, 197, 94, 0.4); color: #86efac; }
+        .chip.highlight { background: rgba(34, 197, 94, 0.12); color: #86efac; }
 
         /* ============================
            類別清單項目
@@ -275,7 +275,7 @@
         .category-desc { font-size: 11px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .category-count {
             font-size: 11px; padding: 2px 8px; border-radius: 999px;
-            background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(56, 189, 248, 0.12); border: none;
             color: var(--accent); font-weight: 600; flex-shrink: 0;
         }
 
@@ -316,7 +316,7 @@
             display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start;
             margin-bottom: 24px; padding: 20px 24px;
             background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), rgba(129, 140, 248, 0.06));
-            border: 1px solid rgba(56, 189, 248, 0.15); border-radius: var(--radius-lg);
+            border: none; border-radius: var(--radius-lg);
             position: relative; overflow: hidden;
         }
         .overview-card::before {
@@ -325,7 +325,7 @@
         }
         .stock-badge {
             display: inline-block; font-size: 11px; padding: 4px 12px; border-radius: 999px;
-            background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.4);
+            background: rgba(99, 102, 241, 0.12); border: none;
             color: #c7d2fe; margin-bottom: 8px; letter-spacing: 0.03em;
         }
         .content-title {
@@ -376,7 +376,7 @@
             display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
         }
         .info-card {
-            padding: 18px 16px; border-radius: var(--radius-md); border: 1px solid;
+            padding: 18px 16px; border-radius: var(--radius-md); border: none;
             font-size: 13px; line-height: 1.7; transition: all var(--transition-normal);
             position: relative; overflow: hidden; text-align: center;
             display: flex; flex-direction: column; align-items: center; gap: 8px;
@@ -410,33 +410,30 @@
 
         /* 獲利來源卡片 */
         .info-card.profit {
-            background: rgba(34, 197, 94, 0.06); border-color: rgba(34, 197, 94, 0.25);
+            background: rgba(34, 197, 94, 0.06);
         }
         .info-card.profit::before { background: linear-gradient(90deg, #4ade80, #22d3ee); }
         .info-card.profit .card-num { background: rgba(34, 197, 94, 0.15); color: var(--success); }
-        .info-card.profit:hover { border-color: rgba(34, 197, 94, 0.5); }
 
         /* 關鍵指標卡片 */
         .info-card.indicator {
-            background: rgba(56, 189, 248, 0.06); border-color: rgba(56, 189, 248, 0.25);
+            background: rgba(56, 189, 248, 0.06);
         }
         .info-card.indicator::before { background: linear-gradient(90deg, #38bdf8, #818cf8); }
         .info-card.indicator .card-num { background: rgba(56, 189, 248, 0.15); color: var(--accent); }
-        .info-card.indicator:hover { border-color: rgba(56, 189, 248, 0.5); }
 
         /* 地雷卡片 */
         .info-card.risk {
-            background: rgba(249, 115, 115, 0.06); border-color: rgba(249, 115, 115, 0.25);
+            background: rgba(249, 115, 115, 0.06);
         }
         .info-card.risk::before { background: linear-gradient(90deg, #f97373, #fb923c); }
         .info-card.risk .card-num { background: rgba(249, 115, 115, 0.15); color: var(--danger); }
-        .info-card.risk:hover { border-color: rgba(249, 115, 115, 0.5); }
 
         /* 投資提醒 */
         .reminder-card {
             padding: 18px 24px; border-radius: var(--radius-md);
             background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(251, 146, 60, 0.06));
-            border: 1px solid rgba(250, 204, 21, 0.3);
+            border: none;
             font-size: 14px; line-height: 1.8; color: #fef3c7;
             display: flex; align-items: flex-start; gap: 12px;
             position: relative; overflow: hidden;
@@ -448,9 +445,9 @@
         .reminder-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2); }
         .reminder-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
 
-        .mini-badge { padding: 4px 10px; font-size: 11px; border-radius: 999px; border: 1px solid; transition: all var(--transition-fast); }
+        .mini-badge { padding: 4px 10px; font-size: 11px; border-radius: 999px; border: none; transition: all var(--transition-fast); }
         .mini-badge:hover { transform: translateY(-1px); }
-        .mini-badge.neutral { background: rgba(107, 114, 128, 0.12); border-color: rgba(107, 114, 128, 0.4); color: #d1d5db; }
+        .mini-badge.neutral { background: rgba(107, 114, 128, 0.12); color: #d1d5db; }
 
         /* ============================
            類別族群檢視（右側）
@@ -464,11 +461,11 @@
         .cat-header::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
         }
-        .cat-header[data-cat="semiconductor"] { background: linear-gradient(135deg, rgba(129, 140, 248, 0.08), rgba(56, 189, 248, 0.08)); border: 1px solid rgba(129, 140, 248, 0.2); }
+        .cat-header[data-cat="semiconductor"] { background: linear-gradient(135deg, rgba(129, 140, 248, 0.08), rgba(56, 189, 248, 0.08)); }
         .cat-header[data-cat="semiconductor"]::before { background: linear-gradient(90deg, #818cf8, #38bdf8); }
-        .cat-header[data-cat="finance"] { background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 211, 238, 0.08)); border: 1px solid rgba(74, 222, 128, 0.2); }
+        .cat-header[data-cat="finance"] { background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 211, 238, 0.08)); }
         .cat-header[data-cat="finance"]::before { background: linear-gradient(90deg, #4ade80, #22d3ee); }
-        .cat-header[data-cat="shipping"] { background: linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(250, 204, 21, 0.08)); border: 1px solid rgba(251, 146, 60, 0.2); }
+        .cat-header[data-cat="shipping"] { background: linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(250, 204, 21, 0.08)); }
         .cat-header[data-cat="shipping"]::before { background: linear-gradient(90deg, #fb923c, #facc15); }
 
         .cat-header-top { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
@@ -480,7 +477,7 @@
         }
         .cat-header-count {
             font-size: 12px; padding: 3px 10px; border-radius: 999px;
-            background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(56, 189, 248, 0.12); border: none;
             color: var(--accent); font-weight: 600;
         }
         .cat-header-desc { font-size: 13px; color: var(--text-soft); line-height: 1.6; }
@@ -492,7 +489,7 @@
         }
         .cat-stat-card {
             padding: 14px 16px; border-radius: var(--radius-md);
-            background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-soft);
+            background: rgba(15, 23, 42, 0.5); border: none;
             text-align: center; transition: all var(--transition-normal);
         }
         .cat-stat-card:hover { background: rgba(15, 23, 42, 0.7); transform: translateY(-2px); }
@@ -505,7 +502,7 @@
         }
         .cat-stock-card {
             padding: 20px; border-radius: var(--radius-md);
-            background: rgba(15, 23, 42, 0.45); border: 1px solid var(--border-soft);
+            background: rgba(15, 23, 42, 0.45); border: none;
             transition: all var(--transition-normal); position: relative; overflow: hidden;
             cursor: default;
         }
@@ -514,14 +511,14 @@
             background: linear-gradient(90deg, var(--accent), var(--accent-2));
             opacity: 0; transition: opacity var(--transition-normal);
         }
-        .cat-stock-card:hover { background: rgba(15, 23, 42, 0.65); border-color: rgba(55, 65, 81, 0.8); transform: translateY(-2px); }
+        .cat-stock-card:hover { background: rgba(15, 23, 42, 0.65); transform: translateY(-2px); }
         .cat-stock-card:hover::before { opacity: 1; }
 
         .cat-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
         .cat-card-title-area { flex: 1; min-width: 0; }
         .cat-card-badge {
             font-size: 10px; padding: 3px 8px; border-radius: 999px;
-            background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.35);
+            background: rgba(99, 102, 241, 0.12); border: none;
             color: #c7d2fe; margin-bottom: 6px; display: inline-block;
         }
         .cat-card-name { font-size: 17px; font-weight: 700; color: var(--text-main); }
@@ -579,7 +576,7 @@
            ============================ */
         .keyboard-hint {
             position: fixed; bottom: 20px; right: 20px;
-            background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-soft);
+            background: rgba(15, 23, 42, 0.95); border: none;
             border-radius: var(--radius-md); padding: 12px 16px; font-size: 11px;
             color: var(--text-soft); opacity: 0; pointer-events: none;
             transition: opacity var(--transition-normal); max-width: 200px;
@@ -588,7 +585,7 @@
         .keyboard-hint.visible { opacity: 1; }
         .kbd {
             display: inline-block; padding: 2px 6px; background: rgba(55, 65, 81, 0.8);
-            border: 1px solid rgba(75, 85, 99, 0.5); border-radius: 4px;
+            border: none; border-radius: 4px;
             font-family: monospace; font-size: 10px; margin: 0 2px;
         }
 
@@ -653,7 +650,7 @@
             flex-wrap: wrap; gap: 10px;
             padding: 12px 18px; margin-bottom: 20px;
             background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border-soft);
+            border: none;
             border-radius: var(--radius-md);
             font-size: 11px; color: var(--text-soft);
         }
@@ -664,7 +661,7 @@
         .report-meta-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border-soft); }
         .report-type-badge {
             padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 600;
-            background: rgba(129, 140, 248, 0.12); border: 1px solid rgba(129, 140, 248, 0.35);
+            background: rgba(129, 140, 248, 0.12); border: none;
             color: #c7d2fe; letter-spacing: 0.04em;
         }
 
@@ -684,7 +681,7 @@
         .executive-summary {
             padding: 18px 22px; margin-bottom: 24px;
             background: linear-gradient(135deg, rgba(56, 189, 248, 0.07), rgba(129, 140, 248, 0.05));
-            border-left: 4px solid var(--accent);
+            border-left: none;
             border-radius: 0 var(--radius-md) var(--radius-md) 0;
             position: relative;
         }
@@ -718,7 +715,7 @@
         .report-footer {
             margin-top: 32px; padding: 18px 22px;
             background: rgba(15, 23, 42, 0.4);
-            border: 1px solid var(--border-soft);
+            border: none;
             border-radius: var(--radius-md);
             font-size: 11px; color: var(--text-soft); line-height: 1.8;
         }
@@ -729,7 +726,7 @@
         .report-footer p { margin-bottom: 4px; }
         .report-footer .report-gen-info {
             margin-top: 10px; padding-top: 10px;
-            border-top: 1px solid var(--border-soft);
+            border-top: none;
             display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
             font-size: 10px; opacity: 0.7;
         }
@@ -750,7 +747,7 @@
             font-size: 17px; font-weight: 700; color: var(--text-main);
             margin: 16px 0 8px; line-height: 1.4;
             padding-bottom: 6px;
-            border-bottom: 1px solid var(--border-soft);
+            border-bottom: none;
         }
         .rt-h3 {
             font-size: 14px; font-weight: 600; color: var(--text-main);
@@ -783,11 +780,11 @@
         .info-card .rt-olist { margin: 3px 0; padding-left: 16px; }
         .info-card .rt-olist li { font-size: 12px; margin: 2px 0; }
 
-        .reminder-card .rt-h2, .reminder-card .rt-h3 { color: #fef3c7; border-bottom-color: rgba(250, 204, 21, 0.2); }
+        .reminder-card .rt-h2, .reminder-card .rt-h3 { color: #fef3c7; }
         .reminder-card .rt-p { color: #fef3c7; }
         .reminder-card .rt-list li::before { background: #facc15; }
 
-        .executive-summary .rt-h2 { color: var(--accent); border-bottom-color: rgba(56, 189, 248, 0.2); }
+        .executive-summary .rt-h2 { color: var(--accent); }
         .executive-summary .rt-h3 { color: var(--accent); }
         .executive-summary .rt-list li::before { background: var(--accent); }
 
@@ -1289,7 +1286,7 @@
                     <div class="stock-tag-row">
                         <span class="chip highlight">${escapeHtml(catName)}</span>
                         <span class="chip">${escapeHtml(roleText)}</span>
-                        <span class="chip" style="border-color:${rc}40;color:${rc};">風險 ${stock.riskLevel}</span>
+                        <span class="chip" style="color:${rc};">風險 ${stock.riskLevel}</span>
                     </div>`;
 
                 button.addEventListener("click", () => { setActiveStock(stock.code); closeSidebar(); });
