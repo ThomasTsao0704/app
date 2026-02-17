@@ -8,26 +8,24 @@
     <meta name="description" content="台股個股知識查詢工具，提供完整的公司分析、風險評估與投資建議" />
     <style>
         :root {
-            --bg: #0f172a;
-            --bg-soft: #111827;
-            --bg-softer: #020617;
-            --accent: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.25);
-            --accent-soft: rgba(56, 189, 248, 0.12);
-            --accent-2: #818cf8;
-            --text-main: #e5e7eb;
-            --text-soft: #9ca3af;
-            --border-soft: #1f2937;
-            --danger: #f97373;
-            --success: #4ade80;
-            --warning: #facc15;
-            --radius-lg: 18px;
-            --radius-md: 12px;
-            --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.7);
-            --shadow-glow: 0 0 30px rgba(56, 189, 248, 0.08);
+            --bg: #ffffff;
+            --bg-soft: #f8fafc;
+            --bg-softer: #f1f5f9;
+            --accent: #2563eb;
+            --accent-soft: rgba(37, 99, 235, 0.08);
+            --accent-2: #1e3a5f;
+            --text-main: #1a1a2e;
+            --text-soft: #64748b;
+            --border-soft: #e2e8f0;
+            --danger: #dc2626;
+            --success: #16a34a;
+            --warning: #d97706;
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
             --transition-fast: 0.15s;
-            --transition-normal: 0.25s;
-            --transition-slow: 0.35s;
+            --transition-normal: 0.2s;
+            --transition-slow: 0.3s;
         }
 
         * {
@@ -38,7 +36,7 @@
 
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%);
+            background: #f1f5f9;
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
@@ -52,28 +50,20 @@
             width: 100%;
             max-width: 1200px;
             min-height: 620px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
-            border-radius: 26px;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            box-shadow: var(--shadow-soft), var(--shadow-glow);
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            box-shadow: var(--shadow-soft);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            backdrop-filter: blur(20px);
-            animation: fadeIn 0.5s ease-out;
+            animation: fadeIn 0.4s ease-out;
             position: relative;
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .scroll-progress {
@@ -81,25 +71,25 @@
             top: 0;
             left: 0;
             width: 0%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-2));
-            border-radius: 0 2px 2px 0;
+            height: 2px;
+            background: var(--accent);
+            border-radius: 0 1px 1px 0;
             z-index: 10;
             transition: width 0.1s linear;
-            box-shadow: 0 0 10px var(--accent-glow);
         }
 
         /* ============================
            頂部區域
            ============================ */
         .app-header {
-            padding: 18px 24px 12px;
+            padding: 16px 24px;
             border-bottom: 1px solid var(--border-soft);
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 16px;
             flex-wrap: wrap;
+            background: #ffffff;
         }
 
         .brand {
@@ -111,44 +101,27 @@
         .brand-icon {
             width: 36px;
             height: 36px;
-            border-radius: 12px;
-            background: radial-gradient(circle at 30% 20%, #facc15, #f97316, #f97316);
-            box-shadow: 0 0 18px rgba(249, 115, 22, 0.7);
+            border-radius: 8px;
+            background: #2563eb;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 700;
             font-size: 18px;
-            color: #0f172a;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.06);
-            }
+            color: #ffffff;
         }
 
         .brand-text-main {
             font-weight: 700;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.02em;
             font-size: 17px;
-            background: linear-gradient(135deg, #e5e7eb, #38bdf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent-2);
         }
 
         .brand-text-sub {
             font-size: 11px;
             color: var(--text-soft);
-            letter-spacing: 0.05em;
+            letter-spacing: 0.03em;
         }
 
         .header-right {
@@ -161,71 +134,47 @@
         .mood-pill {
             font-size: 11px;
             padding: 4px 12px;
-            border-radius: 999px;
-            background: rgba(22, 163, 74, 0.08);
-            border: 1px solid rgba(34, 197, 94, 0.35);
-            color: #bbf7d0;
+            border-radius: 6px;
+            background: #f0fdf4;
+            color: var(--success);
             display: flex;
             align-items: center;
             gap: 6px;
-            transition: all var(--transition-fast);
         }
 
         .mood-pill:hover {
-            background: rgba(22, 163, 74, 0.15);
-            transform: translateY(-1px);
+            background: #dcfce7;
         }
 
         .mood-dot {
             width: 6px;
             height: 6px;
             border-radius: 999px;
-            background: #22c55e;
-            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
-            animation: blink 2s ease-in-out infinite;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.4;
-            }
+            background: var(--success);
         }
 
         .tag-pill {
             padding: 4px 10px;
             font-size: 11px;
-            border-radius: 999px;
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.45);
-            color: #e0f2fe;
-            transition: all var(--transition-fast);
-        }
-
-        .tag-pill:hover {
-            background: rgba(56, 189, 248, 0.2);
-            transform: translateY(-1px);
+            border-radius: 6px;
+            background: var(--bg-softer);
+            color: var(--text-soft);
         }
 
         .mobile-toggle {
             display: block;
-            background: rgba(56, 189, 248, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            border-radius: 10px;
+            background: var(--bg-softer);
+            border: 1px solid var(--border-soft);
+            border-radius: 8px;
             padding: 6px 10px;
             cursor: pointer;
-            color: var(--accent);
+            color: var(--text-main);
             font-size: 16px;
-            transition: all var(--transition-fast);
+            transition: background var(--transition-fast);
         }
 
         .mobile-toggle:hover {
-            background: rgba(56, 189, 248, 0.2);
+            background: var(--border-soft);
         }
 
         /* ============================
@@ -250,8 +199,7 @@
             height: 100%;
             z-index: 20;
             border-right: 1px solid var(--border-soft);
-            background: rgba(2, 6, 23, 0.98);
-            backdrop-filter: blur(20px);
+            background: #ffffff;
             padding: 14px 14px 18px;
             display: flex;
             flex-direction: column;
@@ -259,7 +207,7 @@
             transition: transform var(--transition-slow) ease, opacity var(--transition-slow) ease;
             transform: translateX(-100%);
             opacity: 0;
-            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
         }
 
         .sidebar.open {
@@ -270,11 +218,10 @@
         /* 側欄 Tab 切換 */
         .sidebar-tabs {
             display: flex;
-            gap: 4px;
+            gap: 2px;
             padding: 3px;
-            background: rgba(15, 23, 42, 0.7);
-            border-radius: 10px;
-            border: 1px solid rgba(55, 65, 81, 0.6);
+            background: var(--bg-softer);
+            border-radius: 8px;
         }
 
         .sidebar-tab {
@@ -284,23 +231,22 @@
             font-weight: 600;
             text-align: center;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             background: transparent;
             color: var(--text-soft);
             cursor: pointer;
             transition: all var(--transition-fast);
-            letter-spacing: 0.02em;
         }
 
         .sidebar-tab:hover {
             color: var(--text-main);
-            background: rgba(55, 65, 81, 0.3);
+            background: rgba(0, 0, 0, 0.04);
         }
 
         .sidebar-tab.active {
-            background: rgba(56, 189, 248, 0.15);
+            background: #ffffff;
             color: var(--accent);
-            box-shadow: 0 1px 4px rgba(56, 189, 248, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
         }
 
         .sidebar-header {
@@ -311,25 +257,23 @@
         }
 
         .sidebar-title {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-soft);
-            letter-spacing: 0.08em;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
+            font-weight: 600;
         }
 
         .stock-counter {
             font-size: 11px;
             color: var(--text-soft);
             padding: 2px 8px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(55, 65, 81, 0.85);
-            transition: all var(--transition-fast);
+            border-radius: 6px;
+            background: var(--bg-softer);
         }
 
         .stock-counter.highlight {
-            background: rgba(56, 189, 248, 0.2);
-            border-color: rgba(56, 189, 248, 0.5);
+            background: #dbeafe;
             color: var(--accent);
         }
 
@@ -340,9 +284,9 @@
         .search-input {
             width: 100%;
             padding: 9px 10px 9px 34px;
-            border-radius: 999px;
-            border: 1px solid rgba(55, 65, 81, 0.85);
-            background: rgba(15, 23, 42, 0.9);
+            border-radius: 8px;
+            border: 1px solid var(--border-soft);
+            background: #ffffff;
             color: var(--text-main);
             font-size: 12px;
             outline: none;
@@ -351,12 +295,11 @@
 
         .search-input:focus {
             border-color: var(--accent);
-            background: rgba(15, 23, 42, 1);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
 
         .search-input::placeholder {
-            color: #4b5563;
+            color: #94a3b8;
         }
 
         .search-icon {
@@ -365,9 +308,8 @@
             top: 50%;
             transform: translateY(-50%);
             font-size: 12px;
-            color: #6b7280;
+            color: #94a3b8;
             pointer-events: none;
-            transition: color var(--transition-fast);
         }
 
         .search-input:focus+.search-icon {
@@ -379,7 +321,7 @@
             right: 8px;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(55, 65, 81, 0.5);
+            background: var(--bg-softer);
             border: none;
             border-radius: 50%;
             width: 18px;
@@ -394,7 +336,7 @@
         }
 
         .clear-search:hover {
-            background: rgba(55, 65, 81, 0.8);
+            background: var(--border-soft);
             color: var(--text-main);
         }
 
@@ -410,20 +352,20 @@
             padding-right: 4px;
             flex: 1;
             scrollbar-width: thin;
-            scrollbar-color: #1f2937 transparent;
+            scrollbar-color: #cbd5e1 transparent;
         }
 
         .sidebar-list::-webkit-scrollbar {
-            width: 6px;
+            width: 5px;
         }
 
         .sidebar-list::-webkit-scrollbar-thumb {
-            background: #1f2937;
+            background: #cbd5e1;
             border-radius: 999px;
         }
 
         .sidebar-list::-webkit-scrollbar-thumb:hover {
-            background: #374151;
+            background: #94a3b8;
         }
 
         /* 側欄面板切換 */
@@ -440,25 +382,12 @@
         }
 
         .stock-item {
-            margin-bottom: 6px;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            margin-bottom: 4px;
         }
 
         .stock-btn {
             width: 100%;
-            border: 1px solid transparent;
+            border: none;
             border-radius: var(--radius-md);
             padding: 10px 12px;
             background: transparent;
@@ -467,39 +396,16 @@
             align-items: flex-start;
             gap: 4px;
             cursor: pointer;
-            transition: all var(--transition-normal);
+            transition: background var(--transition-fast);
             text-align: left;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stock-btn::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: linear-gradient(180deg, var(--accent), var(--accent-2));
-            transform: scaleY(0);
-            transition: transform var(--transition-normal);
         }
 
         .stock-btn:hover {
-            background: rgba(15, 23, 42, 0.9);
-            border-color: rgba(31, 41, 55, 0.9);
-            transform: translateX(3px);
+            background: var(--bg-softer);
         }
 
         .stock-btn.active {
-            background: rgba(56, 189, 248, 0.1);
-            border-color: rgba(56, 189, 248, 0.3);
-            transform: translateX(3px);
-            box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.05);
-        }
-
-        .stock-btn.active::before {
-            transform: scaleY(1);
+            background: #dbeafe;
         }
 
         .stock-main-row {
@@ -517,7 +423,12 @@
         .stock-name {
             font-size: 13px;
             color: var(--text-soft);
-            transition: color var(--transition-fast);
+        }
+
+        .stock-market {
+            font-size: 11px;
+            color: var(--text-soft);
+            opacity: 0.7;
         }
 
         .stock-btn:hover .stock-name,
@@ -534,30 +445,27 @@
         .chip {
             padding: 2px 7px;
             font-size: 10px;
-            border-radius: 5px;
-            background: rgba(55, 65, 81, 0.5);
+            border-radius: 4px;
+            background: var(--bg-softer);
             color: var(--text-soft);
-            border: 1px solid rgba(75, 85, 99, 0.35);
             white-space: nowrap;
         }
 
         .chip.highlight {
-            background: rgba(34, 197, 94, 0.12);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #86efac;
+            background: #dcfce7;
+            color: #15803d;
         }
 
         /* ============================
            類別清單項目
            ============================ */
         .category-item {
-            margin-bottom: 6px;
-            animation: slideIn 0.3s ease-out;
+            margin-bottom: 4px;
         }
 
         .category-btn {
             width: 100%;
-            border: 1px solid transparent;
+            border: none;
             border-radius: var(--radius-md);
             padding: 12px 14px;
             background: transparent;
@@ -565,38 +473,20 @@
             align-items: center;
             gap: 12px;
             cursor: pointer;
-            transition: all var(--transition-normal);
+            transition: background var(--transition-fast);
             text-align: left;
-            position: relative;
-            overflow: hidden;
         }
 
         .category-btn::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            border-radius: 0 2px 2px 0;
-            transform: scaleY(0);
-            transition: transform var(--transition-normal);
+            display: none;
         }
 
         .category-btn:hover {
-            background: rgba(15, 23, 42, 0.9);
-            border-color: rgba(31, 41, 55, 0.9);
-            transform: translateX(3px);
+            background: var(--bg-softer);
         }
 
         .category-btn.active {
-            background: rgba(56, 189, 248, 0.1);
-            border-color: rgba(56, 189, 248, 0.3);
-            transform: translateX(3px);
-        }
-
-        .category-btn.active::before {
-            transform: scaleY(1);
+            background: #dbeafe;
         }
 
         .category-icon {
@@ -626,25 +516,18 @@
         .category-count {
             font-size: 11px;
             padding: 2px 8px;
-            border-radius: 999px;
-            background: rgba(56, 189, 248, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            color: var(--accent);
+            border-radius: 6px;
+            background: var(--bg-softer);
+            color: var(--text-soft);
             font-weight: 600;
             flex-shrink: 0;
         }
 
-        /* 類別按鈕各自的左邊條顏色 */
-        .category-btn[data-cat="semiconductor"]::before {
-            background: linear-gradient(180deg, #818cf8, #38bdf8);
-        }
-
-        .category-btn[data-cat="finance"]::before {
-            background: linear-gradient(180deg, #4ade80, #22d3ee);
-        }
-
+        /* 類別按鈕各自的左邊條顏色 — 已移除 */
+        .category-btn[data-cat="semiconductor"]::before,
+        .category-btn[data-cat="finance"]::before,
         .category-btn[data-cat="shipping"]::before {
-            background: linear-gradient(180deg, #fb923c, #facc15);
+            display: none;
         }
 
         /* ============================
@@ -654,22 +537,22 @@
             padding: 24px 32px 32px;
             overflow-y: auto;
             scrollbar-width: thin;
-            scrollbar-color: #1f2937 transparent;
+            scrollbar-color: #cbd5e1 transparent;
             position: relative;
             scroll-behavior: smooth;
         }
 
         .content-area::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         .content-area::-webkit-scrollbar-thumb {
-            background: #1f2937;
+            background: #cbd5e1;
             border-radius: 999px;
         }
 
         .content-area::-webkit-scrollbar-thumb:hover {
-            background: #374151;
+            background: #94a3b8;
         }
 
         .empty-state {
@@ -682,25 +565,12 @@
             text-align: center;
             gap: 16px;
             opacity: 0;
-            animation: fadeIn 0.5s ease-out 0.2s forwards;
+            animation: fadeIn 0.4s ease-out 0.2s forwards;
         }
 
         .empty-icon {
-            font-size: 56px;
-            opacity: 0.5;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-8px);
-            }
+            font-size: 48px;
+            opacity: 0.4;
         }
 
         .empty-text {
@@ -709,8 +579,8 @@
 
         .content-block {
             opacity: 0;
-            transform: translateY(15px);
-            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+            transform: translateY(10px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
         }
 
         .content-block.visible {
@@ -726,8 +596,8 @@
             align-items: start;
             margin-bottom: 24px;
             padding: 20px 24px;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), rgba(129, 140, 248, 0.06));
-            border: 1px solid rgba(56, 189, 248, 0.15);
+            background: var(--bg-soft);
+            border: 1px solid var(--border-soft);
             border-radius: var(--radius-lg);
             position: relative;
             overflow: hidden;
@@ -750,30 +620,26 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--success));
+            height: 3px;
+            background: var(--accent);
         }
 
         .stock-badge {
             display: inline-block;
             font-size: 11px;
-            padding: 4px 12px;
-            border-radius: 999px;
-            background: rgba(99, 102, 241, 0.12);
-            border: 1px solid rgba(99, 102, 241, 0.4);
-            color: #c7d2fe;
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: #eef2ff;
+            color: #4338ca;
             margin-bottom: 8px;
-            letter-spacing: 0.03em;
+            font-weight: 500;
         }
 
         .content-title {
             font-size: 24px;
             font-weight: 700;
             margin-bottom: 8px;
-            background: linear-gradient(135deg, #f1f5f9, var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent-2);
             line-height: 1.3;
         }
 
@@ -790,7 +656,6 @@
             font-weight: 600;
             margin-top: 6px;
             line-height: 1.5;
-            letter-spacing: 0.02em;
         }
 
         /* 風險儀表盤 */
@@ -798,13 +663,13 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
-            min-width: 80px;
+            gap: 4px;
+            min-width: 70px;
         }
 
         .gauge-ring {
-            width: 64px;
-            height: 64px;
+            width: 56px;
+            height: 56px;
             position: relative;
         }
 
@@ -816,15 +681,15 @@
 
         .gauge-bg {
             fill: none;
-            stroke: rgba(55, 65, 81, 0.5);
-            stroke-width: 5;
+            stroke: #e2e8f0;
+            stroke-width: 4;
         }
 
         .gauge-fill {
             fill: none;
-            stroke-width: 5;
+            stroke-width: 4;
             stroke-linecap: round;
-            transition: stroke-dashoffset 1s ease-out, stroke 0.5s ease;
+            transition: stroke-dashoffset 0.8s ease-out, stroke 0.4s ease;
         }
 
         .gauge-label {
@@ -832,7 +697,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
         }
 
@@ -844,18 +709,18 @@
 
         /* 小版風險儀表（用於類別卡片） */
         .gauge-ring.small {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
         }
 
         .gauge-ring.small .gauge-bg,
         .gauge-ring.small .gauge-fill {
-            stroke-width: 4;
+            stroke-width: 3.5;
         }
 
         .gauge-ring.small+.gauge-label,
         .gauge-ring.small .gauge-label {
-            font-size: 12px;
+            font-size: 11px;
         }
 
         /* ============================
@@ -877,21 +742,21 @@
             justify-content: center;
             width: 28px;
             height: 28px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 15px;
             flex-shrink: 0;
         }
 
         .card-section-icon.profit {
-            background: rgba(34, 197, 94, 0.15);
+            background: #f0fdf4;
         }
 
         .card-section-icon.indicator {
-            background: rgba(56, 189, 248, 0.15);
+            background: #eff6ff;
         }
 
         .card-section-icon.risk {
-            background: rgba(249, 115, 115, 0.15);
+            background: #fef2f2;
         }
 
         .card-row {
@@ -903,10 +768,10 @@
         .info-card {
             padding: 18px 16px;
             border-radius: var(--radius-md);
-            border: 1px solid;
+            border: 1px solid var(--border-soft);
             font-size: 13px;
             line-height: 1.7;
-            transition: all var(--transition-normal);
+            transition: box-shadow var(--transition-normal);
             position: relative;
             overflow: hidden;
             text-align: center;
@@ -914,6 +779,7 @@
             flex-direction: column;
             align-items: center;
             gap: 8px;
+            background: #ffffff;
         }
 
         .info-card .card-header {
@@ -926,28 +792,21 @@
         }
 
         .info-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            border-radius: 2px 2px 0 0;
+            display: none;
         }
 
         .info-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .info-card .card-num {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             flex-shrink: 0;
         }
@@ -963,90 +822,65 @@
 
         /* 獲利來源卡片 */
         .info-card.profit {
-            background: rgba(34, 197, 94, 0.06);
-            border-color: rgba(34, 197, 94, 0.25);
-        }
-
-        .info-card.profit::before {
-            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            background: #fafff8;
+            border-color: #d1fae5;
         }
 
         .info-card.profit .card-num {
-            background: rgba(34, 197, 94, 0.15);
+            background: #dcfce7;
             color: var(--success);
         }
 
         .info-card.profit:hover {
-            border-color: rgba(34, 197, 94, 0.5);
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.08);
         }
 
         /* 關鍵指標卡片 */
         .info-card.indicator {
-            background: rgba(56, 189, 248, 0.06);
-            border-color: rgba(56, 189, 248, 0.25);
-        }
-
-        .info-card.indicator::before {
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            background: #f8fbff;
+            border-color: #dbeafe;
         }
 
         .info-card.indicator .card-num {
-            background: rgba(56, 189, 248, 0.15);
+            background: #dbeafe;
             color: var(--accent);
         }
 
         .info-card.indicator:hover {
-            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
         }
 
         /* 地雷卡片 */
         .info-card.risk {
-            background: rgba(249, 115, 115, 0.06);
-            border-color: rgba(249, 115, 115, 0.25);
-        }
-
-        .info-card.risk::before {
-            background: linear-gradient(90deg, #f97373, #fb923c);
+            background: #fffbfb;
+            border-color: #fecaca;
         }
 
         .info-card.risk .card-num {
-            background: rgba(249, 115, 115, 0.15);
+            background: #fee2e2;
             color: var(--danger);
         }
 
         .info-card.risk:hover {
-            border-color: rgba(249, 115, 115, 0.5);
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
         }
 
         /* 投資提醒 */
         .reminder-card {
             padding: 18px 24px;
             border-radius: var(--radius-md);
-            background: linear-gradient(135deg, rgba(250, 204, 21, 0.08), rgba(251, 146, 60, 0.06));
-            border: 1px solid rgba(250, 204, 21, 0.3);
+            background: #fffbeb;
+            border: 1px solid #fde68a;
             font-size: 14px;
             line-height: 1.8;
-            color: #fef3c7;
+            color: #92400e;
             display: flex;
             align-items: flex-start;
             gap: 12px;
-            position: relative;
-            overflow: hidden;
         }
 
         .reminder-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #facc15, #fb923c);
-        }
-
-        .reminder-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+            display: none;
         }
 
         .reminder-icon {
@@ -1056,21 +890,17 @@
         }
 
         .mini-badge {
-            padding: 4px 10px;
+            padding: 3px 8px;
             font-size: 11px;
-            border-radius: 999px;
-            border: 1px solid;
-            transition: all var(--transition-fast);
-        }
-
-        .mini-badge:hover {
-            transform: translateY(-1px);
+            border-radius: 4px;
+            background: var(--bg-softer);
+            color: var(--text-soft);
+            border: none;
         }
 
         .mini-badge.neutral {
-            background: rgba(107, 114, 128, 0.12);
-            border-color: rgba(107, 114, 128, 0.4);
-            color: #d1d5db;
+            background: var(--bg-softer);
+            color: var(--text-soft);
         }
 
         /* ============================
@@ -1089,39 +919,22 @@
         }
 
         .cat-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
+            display: none;
         }
 
         .cat-header[data-cat="semiconductor"] {
-            background: linear-gradient(135deg, rgba(129, 140, 248, 0.08), rgba(56, 189, 248, 0.08));
-            border: 1px solid rgba(129, 140, 248, 0.2);
-        }
-
-        .cat-header[data-cat="semiconductor"]::before {
-            background: linear-gradient(90deg, #818cf8, #38bdf8);
+            background: #f5f3ff;
+            border: 1px solid #ddd6fe;
         }
 
         .cat-header[data-cat="finance"] {
-            background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 211, 238, 0.08));
-            border: 1px solid rgba(74, 222, 128, 0.2);
-        }
-
-        .cat-header[data-cat="finance"]::before {
-            background: linear-gradient(90deg, #4ade80, #22d3ee);
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
         }
 
         .cat-header[data-cat="shipping"] {
-            background: linear-gradient(135deg, rgba(251, 146, 60, 0.08), rgba(250, 204, 21, 0.08));
-            border: 1px solid rgba(251, 146, 60, 0.2);
-        }
-
-        .cat-header[data-cat="shipping"]::before {
-            background: linear-gradient(90deg, #fb923c, #facc15);
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
         }
 
         .cat-header-top {
@@ -1132,25 +945,21 @@
         }
 
         .cat-header-icon {
-            font-size: 32px;
+            font-size: 28px;
         }
 
         .cat-header-title {
             font-size: 22px;
             font-weight: 700;
-            background: linear-gradient(135deg, #f1f5f9, var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: var(--accent-2);
         }
 
         .cat-header-count {
             font-size: 12px;
             padding: 3px 10px;
-            border-radius: 999px;
-            background: rgba(56, 189, 248, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            color: var(--accent);
+            border-radius: 6px;
+            background: var(--bg-softer);
+            color: var(--text-soft);
             font-weight: 600;
         }
 
@@ -1171,15 +980,13 @@
         .cat-stat-card {
             padding: 14px 16px;
             border-radius: var(--radius-md);
-            background: rgba(15, 23, 42, 0.5);
+            background: var(--bg-soft);
             border: 1px solid var(--border-soft);
             text-align: center;
-            transition: all var(--transition-normal);
         }
 
         .cat-stat-card:hover {
-            background: rgba(15, 23, 42, 0.7);
-            transform: translateY(-2px);
+            background: var(--bg-softer);
         }
 
         .cat-stat-value {
@@ -1203,34 +1010,18 @@
         .cat-stock-card {
             padding: 20px;
             border-radius: var(--radius-md);
-            background: rgba(15, 23, 42, 0.45);
+            background: #ffffff;
             border: 1px solid var(--border-soft);
-            transition: all var(--transition-normal);
-            position: relative;
-            overflow: hidden;
+            transition: box-shadow var(--transition-normal);
             cursor: default;
         }
 
         .cat-stock-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--accent-2));
-            opacity: 0;
-            transition: opacity var(--transition-normal);
+            display: none;
         }
 
         .cat-stock-card:hover {
-            background: rgba(15, 23, 42, 0.65);
-            border-color: rgba(55, 65, 81, 0.8);
-            transform: translateY(-2px);
-        }
-
-        .cat-stock-card:hover::before {
-            opacity: 1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
         .cat-card-top {
@@ -1247,11 +1038,10 @@
 
         .cat-card-badge {
             font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            background: rgba(99, 102, 241, 0.12);
-            border: 1px solid rgba(99, 102, 241, 0.35);
-            color: #c7d2fe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #eef2ff;
+            color: #4338ca;
             margin-bottom: 6px;
             display: inline-block;
         }
@@ -1273,12 +1063,12 @@
         }
 
         .cat-card-gauge .gauge-ring {
-            width: 50px;
-            height: 50px;
+            width: 46px;
+            height: 46px;
         }
 
         .cat-card-gauge .gauge-label {
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .cat-card-gauge .gauge-text {
@@ -1312,21 +1102,19 @@
         .cat-card-detail-btn {
             width: 100%;
             padding: 8px;
-            border-radius: 8px;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            background: rgba(56, 189, 248, 0.08);
+            border-radius: 6px;
+            border: 1px solid var(--border-soft);
+            background: var(--bg-soft);
             color: var(--accent);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all var(--transition-fast);
-            letter-spacing: 0.02em;
         }
 
         .cat-card-detail-btn:hover {
-            background: rgba(56, 189, 248, 0.15);
-            border-color: rgba(56, 189, 248, 0.5);
-            transform: translateY(-1px);
+            background: #dbeafe;
+            border-color: #93c5fd;
         }
 
         /* ============================
@@ -1336,13 +1124,13 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(56, 189, 248, 0.15);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            color: var(--accent);
-            font-size: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            color: var(--text-soft);
+            font-size: 14px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1352,7 +1140,7 @@
             transition: all var(--transition-normal);
             pointer-events: none;
             z-index: 5;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
         }
 
         .back-to-top.visible {
@@ -1362,9 +1150,8 @@
         }
 
         .back-to-top:hover {
-            background: rgba(56, 189, 248, 0.25);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2);
+            background: var(--bg-softer);
+            color: var(--accent);
         }
 
         .loading {
@@ -1381,9 +1168,9 @@
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(56, 189, 248, 0.15);
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border-soft);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
@@ -1392,13 +1179,10 @@
         .loading-text {
             font-size: 12px;
             color: var(--text-soft);
-            animation: blink 1.5s ease-in-out infinite;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
 
         .no-results {
@@ -1417,8 +1201,8 @@
         }
 
         .no-results-icon {
-            font-size: 48px;
-            opacity: 0.5;
+            font-size: 40px;
+            opacity: 0.4;
         }
 
         .no-results-text {
@@ -1432,7 +1216,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            background: rgba(15, 23, 42, 0.95);
+            background: #ffffff;
             border: 1px solid var(--border-soft);
             border-radius: var(--radius-md);
             padding: 12px 16px;
@@ -1442,8 +1226,7 @@
             pointer-events: none;
             transition: opacity var(--transition-normal);
             max-width: 200px;
-            box-shadow: var(--shadow-soft);
-            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .keyboard-hint.visible {
@@ -1453,25 +1236,25 @@
         .kbd {
             display: inline-block;
             padding: 2px 6px;
-            background: rgba(55, 65, 81, 0.8);
-            border: 1px solid rgba(75, 85, 99, 0.5);
+            background: var(--bg-softer);
+            border: 1px solid var(--border-soft);
             border-radius: 4px;
             font-family: monospace;
             font-size: 10px;
             margin: 0 2px;
+            color: var(--text-main);
         }
 
         /* ============================
            響應式設計
            ============================ */
-        /* 側欄浮動遮罩（所有尺寸） */
         .sidebar-overlay {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.3);
             z-index: 15;
             opacity: 0;
             pointer-events: none;
@@ -1489,7 +1272,7 @@
             }
 
             .app-shell {
-                border-radius: 18px;
+                border-radius: 10px;
             }
 
             .sidebar {
@@ -1499,7 +1282,7 @@
             .card-row {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 24px;
+                gap: 12px;
             }
 
             .content-area {
@@ -1543,11 +1326,6 @@
                 border-bottom: 2px solid #333;
             }
 
-            .brand-text-main {
-                -webkit-text-fill-color: #1a1a1a;
-                background: none;
-            }
-
             .sidebar,
             .search-box,
             .keyboard-hint,
@@ -1584,8 +1362,7 @@
             }
 
             .content-title {
-                -webkit-text-fill-color: #1a1a1a;
-                background: none;
+                color: #1a1a1a;
             }
 
             .executive-summary {
@@ -1647,14 +1424,13 @@
             }
 
             .report-divider::after {
-                background: #cbd5e1;
+                display: none;
             }
 
             .gauge-label,
             .card-section-title,
             .section-number {
                 color: #1a1a1a !important;
-                -webkit-text-fill-color: initial;
             }
 
             .card-text {
@@ -1673,7 +1449,7 @@
             gap: 10px;
             padding: 12px 18px;
             margin-bottom: 20px;
-            background: rgba(15, 23, 42, 0.6);
+            background: var(--bg-soft);
             border: 1px solid var(--border-soft);
             border-radius: var(--radius-md);
             font-size: 11px;
@@ -1695,7 +1471,7 @@
         }
 
         .report-meta-label {
-            opacity: 0.6;
+            opacity: 0.7;
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.06em;
@@ -1707,21 +1483,19 @@
         }
 
         .report-meta-dot {
-            width: 4px;
-            height: 4px;
+            width: 3px;
+            height: 3px;
             border-radius: 50%;
-            background: var(--border-soft);
+            background: #cbd5e1;
         }
 
         .report-type-badge {
             padding: 3px 10px;
-            border-radius: 999px;
+            border-radius: 6px;
             font-size: 10px;
             font-weight: 600;
-            background: rgba(129, 140, 248, 0.12);
-            border: 1px solid rgba(129, 140, 248, 0.35);
-            color: #c7d2fe;
-            letter-spacing: 0.04em;
+            background: #eef2ff;
+            color: #4338ca;
         }
 
         /* 報告章節編號 */
@@ -1731,7 +1505,7 @@
             justify-content: center;
             width: 26px;
             height: 26px;
-            border-radius: 7px;
+            border-radius: 6px;
             font-size: 13px;
             font-weight: 800;
             margin-right: 6px;
@@ -1740,33 +1514,32 @@
         }
 
         .section-number.profit {
-            background: rgba(34, 197, 94, 0.15);
+            background: #dcfce7;
             color: var(--success);
         }
 
         .section-number.indicator {
-            background: rgba(56, 189, 248, 0.15);
+            background: #dbeafe;
             color: var(--accent);
         }
 
         .section-number.risk {
-            background: rgba(249, 115, 115, 0.15);
+            background: #fee2e2;
             color: var(--danger);
         }
 
         .section-number.reminder {
-            background: rgba(250, 204, 21, 0.15);
-            color: #facc15;
+            background: #fef3c7;
+            color: var(--warning);
         }
 
         /* 執行摘要 / 投資觀點 */
         .executive-summary {
             padding: 18px 22px;
             margin-bottom: 24px;
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.07), rgba(129, 140, 248, 0.05));
-            border-left: 4px solid var(--accent);
+            background: #eff6ff;
+            border-left: 3px solid var(--accent);
             border-radius: 0 var(--radius-md) var(--radius-md) 0;
-            position: relative;
         }
 
         .executive-summary-label {
@@ -1785,7 +1558,7 @@
             content: '';
             flex: 1;
             height: 1px;
-            background: linear-gradient(90deg, var(--border-soft), transparent);
+            background: var(--border-soft);
         }
 
         .executive-summary-text {
@@ -1793,34 +1566,24 @@
             line-height: 1.8;
             color: var(--accent);
             font-weight: 500;
-            letter-spacing: 0.02em;
         }
 
         /* 報告分隔線 */
         .report-divider {
             height: 1px;
-            margin: 28px 0;
-            background: linear-gradient(90deg, transparent, var(--border-soft) 20%, var(--border-soft) 80%, transparent);
-            position: relative;
+            margin: 24px 0;
+            background: var(--border-soft);
         }
 
         .report-divider::after {
-            content: '';
-            position: absolute;
-            left: 50%;
-            top: -3px;
-            transform: translateX(-50%);
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--border-soft);
+            display: none;
         }
 
         /* 報告尾聲 / 免責聲明 */
         .report-footer {
             margin-top: 32px;
             padding: 18px 22px;
-            background: rgba(15, 23, 42, 0.4);
+            background: var(--bg-soft);
             border: 1px solid var(--border-soft);
             border-radius: var(--radius-md);
             font-size: 11px;
@@ -1895,7 +1658,6 @@
         }
 
         .rt-list {
-
             margin: 6px 0;
             padding: 0;
         }
@@ -1912,8 +1674,8 @@
             position: absolute;
             left: 0;
             top: 10px;
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
             background: var(--accent);
         }
@@ -2004,21 +1766,21 @@
 
         .reminder-card .rt-h2,
         .reminder-card .rt-h3 {
-            color: #fef3c7;
-            border-bottom-color: rgba(250, 204, 21, 0.2);
+            color: #92400e;
+            border-bottom-color: #fde68a;
         }
 
         .reminder-card .rt-p {
-            color: #fef3c7;
+            color: #92400e;
         }
 
         .reminder-card .rt-list li::before {
-            background: #facc15;
+            background: var(--warning);
         }
 
         .executive-summary .rt-h2 {
             color: var(--accent);
-            border-bottom-color: rgba(56, 189, 248, 0.2);
+            border-bottom-color: #bfdbfe;
         }
 
         .executive-summary .rt-h3 {
@@ -2027,6 +1789,124 @@
 
         .executive-summary .rt-list li::before {
             background: var(--accent);
+        }
+
+        /* ============================
+           彈出視窗 Modal
+           ============================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal-dialog {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-soft);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            width: 100%;
+            max-width: 800px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            animation: modalIn 0.25s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(16px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-soft);
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-2);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            background: var(--bg-softer);
+            color: var(--text-soft);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            background: var(--border-soft);
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 999px;
+        }
+
+        /* Modal 內部複用現有卡片樣式 */
+        .modal-body .overview-card {
+            margin-bottom: 20px;
+        }
+
+        .modal-body .report-divider {
+            margin: 20px 0;
+        }
+
+        .modal-body .card-row {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        @media (max-width: 768px) {
+            .modal-overlay {
+                padding: 12px;
+            }
+
+            .modal-dialog {
+                max-height: 90vh;
+            }
+
+            .modal-body .card-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         .sr-only {
@@ -2047,7 +1927,7 @@
         }
 
         ::selection {
-            background: rgba(56, 189, 248, 0.3);
+            background: rgba(37, 99, 235, 0.2);
             color: var(--text-main);
         }
     </style>
@@ -2207,6 +2087,17 @@
 
                 <button class="back-to-top" id="back-to-top" aria-label="回到頂部" title="回到頂部">↑</button>
             </section>
+        </div>
+    </div>
+
+    <!-- 個股分析彈出視窗 -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-dialog" id="modal-dialog" role="dialog" aria-modal="true" aria-label="個股完整分析">
+            <div class="modal-header">
+                <span class="modal-title" id="modal-title">個股完整分析</span>
+                <button class="modal-close" id="modal-close" aria-label="關閉">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
         </div>
     </div>
 
@@ -2478,8 +2369,21 @@
             return '#f97373';
         }
 
+        // 解析多類別（以 | 分隔）
+        function getCategoryIds(stock) {
+            return (stock.category || '').split('|').map(s => s.trim()).filter(Boolean);
+        }
+        function getCategoryInfos(stock) {
+            return getCategoryIds(stock).map(id => categoryData[id]).filter(Boolean);
+        }
+        function getCategoryNamesText(stock) {
+            const infos = getCategoryInfos(stock);
+            if (infos.length === 0) return '未分類';
+            return infos.map(c => c.name).join('、');
+        }
+
         function getStocksByCategory(catId) {
-            return Object.values(stockData).filter(s => s.category === catId);
+            return Object.values(stockData).filter(s => getCategoryIds(s).includes(catId));
         }
 
         // =====================================================
@@ -2505,7 +2409,7 @@
 
             state.filteredStocks = Object.values(stockData).filter(s => {
                 if (!f) return true;
-                return `${s.code}${s.name}${s.market}${categoryData[s.category]?.name || ''}`.toLowerCase().includes(f);
+                return `${s.code}${s.name}${s.market}${getCategoryNamesText(s)}`.toLowerCase().includes(f);
             });
 
             elements.stockCount.textContent = state.filteredStocks.length;
@@ -2530,20 +2434,18 @@
                 button.dataset.index = index;
                 button.setAttribute('aria-label', `${stock.code} ${stock.name}`);
 
-                const plainPersonality = stripMarkdown(stock.personality);
-                const roleText = plainPersonality.length > 14 ? plainPersonality.slice(0, 14) + '...' : plainPersonality;
                 const rc = getRiskColor(stock.riskLevel);
-                const catName = categoryData[stock.category]?.name || '';
+                const catNames = getCategoryInfos(stock).map(c => escapeHtml(c.name));
 
                 button.innerHTML = `
                     <div class="stock-main-row">
                         <span class="stock-code">${escapeHtml(stock.code)}</span>
                         <span class="stock-name">${escapeHtml(stock.name)}</span>
+                        <span class="stock-market">${escapeHtml(stock.market)}</span>
                     </div>
                     <div class="stock-tag-row">
-                        <span class="chip highlight">${escapeHtml(catName)}</span>
-                        <span class="chip">${escapeHtml(roleText)}</span>
-                        <span class="chip" style="border-color:${rc}40;color:${rc};">風險 ${stock.riskLevel}</span>
+                        <span class="chip" style="color:${rc};">風險 ${stock.riskLevel}</span>
+                        ${catNames.map(n => `<span class="chip highlight">${n}</span>`).join('')}
                     </div>`;
 
                 button.addEventListener("click", () => { setActiveStock(stock.code); closeSidebar(); });
@@ -2669,7 +2571,10 @@
         }
 
         function updateDetailContent(stock) {
-            const catInfo = categoryData[stock.category] || {};
+            const catInfos = getCategoryInfos(stock);
+            const catDisplayText = catInfos.length > 0
+                ? catInfos.map(c => escapeHtml(c.name) + (c.icon || '')).join('、')
+                : '未分類';
             const riskLabel = getRiskLabel(stock.riskLevel || 50);
             const riskColor = getRiskColor(stock.riskLevel || 50);
 
@@ -2680,7 +2585,7 @@
                     <span class="report-meta-dot"></span>
                     <div class="report-meta-item">
                         <span class="report-meta-label">產業</span>
-                        <span class="report-meta-value">${escapeHtml(catInfo.name || '未分類')}${catInfo.icon || ''}</span>
+                        <span class="report-meta-value">${catDisplayText}</span>
                     </div>
                     <span class="report-meta-dot"></span>
                     <div class="report-meta-item">
@@ -2698,7 +2603,10 @@
             // 概覽卡片
             elements.badge.textContent = `${stock.code} · ${stock.market}`;
             elements.title.textContent = stock.name;
-            elements.sectorLine.textContent = `${catInfo.icon || ''} ${catInfo.name || ''}族群`;// · ${stock.market} · 風險等級 ${stock.riskLevel}
+            const sectorText = catInfos.length > 0
+                ? catInfos.map(c => `${c.icon || ''} ${c.name}`).join('、') + '族群'
+                : '未分類';
+            elements.sectorLine.textContent = sectorText;
 
             // 執行摘要（投資觀點）— 支援 Rich Text
             elements.personality.innerHTML = renderRichText(stock.personality);
@@ -2841,14 +2749,160 @@
             html += `</div></div>`;
             elements.categoryContent.innerHTML = html;
 
-            // 綁定「查看詳情」按鈕
+            // 綁定「查看詳情」按鈕 → 彈出 Modal
             elements.categoryContent.querySelectorAll('.cat-card-detail-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    switchTab('stocks');
-                    setActiveStock(btn.dataset.code);
+                    openStockModal(btn.dataset.code);
                 });
             });
         }
+
+        // =====================================================
+        // 🪟 彈出視窗 Modal
+        // =====================================================
+        const modalOverlay = document.getElementById('modal-overlay');
+        const modalDialog = document.getElementById('modal-dialog');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalClose = document.getElementById('modal-close');
+
+        function renderCardRowHtml(items, type) {
+            if (!items || items.length === 0) return '';
+            return items.map((item, i) => {
+                const titleText = typeof item === 'string' ? item : (item.title || '');
+                const reasonText = typeof item === 'string' ? '' : (item.reason || '');
+                const titleHtml = titleText ? `<span class="card-title">${escapeHtml(titleText)}</span>` : '';
+                const descHtml = reasonText ? `<div class="card-desc">${renderReasonText(reasonText)}</div>` : '';
+                return `<div class="info-card ${type}"><span class="card-header"><span class="card-num">${i + 1}</span>${titleHtml}</span><div class="card-text">${descHtml}</div></div>`;
+            }).join('');
+        }
+
+        function openStockModal(code) {
+            const stock = stockData[code];
+            if (!stock) return;
+
+            const catInfos = getCategoryInfos(stock);
+            const catDisplayText = catInfos.length > 0
+                ? catInfos.map(c => escapeHtml(c.name) + (c.icon || '')).join('、')
+                : '未分類';
+            const riskLevel = stock.riskLevel || 50;
+            const riskColor = getRiskColor(riskLevel);
+            const riskLabel = getRiskLabel(riskLevel);
+            const circ = 2 * Math.PI * 15.5;
+            const offset = circ - (riskLevel / 100) * circ;
+            const sectorText = catInfos.length > 0
+                ? catInfos.map(c => `${c.icon || ''} ${c.name}`).join('、') + '族群'
+                : '未分類';
+
+            modalTitle.textContent = `${stock.code} ${stock.name}`;
+
+            modalBody.innerHTML = `
+                <div class="report-meta-bar">
+                    <div class="report-meta-left">
+                        <span class="report-type-badge">個股研究報告</span>
+                        <span class="report-meta-dot"></span>
+                        <div class="report-meta-item">
+                            <span class="report-meta-label">產業</span>
+                            <span class="report-meta-value">${catDisplayText}</span>
+                        </div>
+                        <span class="report-meta-dot"></span>
+                        <div class="report-meta-item">
+                            <span class="report-meta-label">風險評級</span>
+                            <span class="report-meta-value" style="color:${riskColor}">${riskLabel}</span>
+                        </div>
+                    </div>
+                    <div class="report-meta-right">
+                        <div class="report-meta-item">
+                            <span class="report-meta-label">更新日期</span>
+                            <span class="report-meta-value">${formatReportDate()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overview-card">
+                    <div>
+                        <div class="stock-badge">${escapeHtml(stock.code)} · ${escapeHtml(stock.market)}</div>
+                        <h2 class="content-title">${escapeHtml(stock.name)}</h2>
+                    </div>
+                    <div class="overview-right">
+                        <span class="content-subline">${escapeHtml(sectorText)}</span>
+                        <div class="risk-gauge">
+                            <div class="gauge-ring" style="width:56px;height:56px;">
+                                <svg viewBox="0 0 36 36">
+                                    <circle class="gauge-bg" cx="18" cy="18" r="15.5"/>
+                                    <circle class="gauge-fill" cx="18" cy="18" r="15.5"
+                                        stroke-dasharray="${circ.toFixed(1)}"
+                                        stroke-dashoffset="${offset.toFixed(1)}"
+                                        style="stroke:${riskColor};"/>
+                                </svg>
+                                <span class="gauge-label" style="color:${riskColor};">${riskLevel}</span>
+                            </div>
+                            <span class="gauge-text">風險等級</span>
+                        </div>
+                    </div>
+                    <div class="executive-summary-text overview-personality">${renderRichText(stock.personality)}</div>
+                </div>
+
+                <div class="report-divider"></div>
+
+                <h3 class="card-section-title">
+                    <span class="section-number profit">壹</span>
+                    <span class="card-section-icon profit">💰</span>獲利來源分析
+                </h3>
+                <div class="card-row">${renderCardRowHtml(stock.profitSources, 'profit')}</div>
+
+                <div class="report-divider"></div>
+
+                <h3 class="card-section-title">
+                    <span class="section-number indicator">貳</span>
+                    <span class="card-section-icon indicator">📊</span>關鍵指標追蹤
+                </h3>
+                <div class="card-row">${renderCardRowHtml(stock.keyIndicators, 'indicator')}</div>
+
+                <div class="report-divider"></div>
+
+                <h3 class="card-section-title">
+                    <span class="section-number risk">參</span>
+                    <span class="card-section-icon risk">💣</span>潛在風險評估
+                </h3>
+                <div class="card-row">${renderCardRowHtml(stock.risks, 'risk')}</div>
+
+                <div class="report-divider"></div>
+
+                <h3 class="card-section-title">
+                    <span class="section-number reminder">肆</span>
+                    <span class="card-section-icon" style="background:#fef3c7;">💡</span>投資策略建議
+                </h3>
+                <div class="reminder-card">
+                    <span class="reminder-icon">💡</span>
+                    <span>${renderRichText(stock.reminder)}</span>
+                </div>
+
+                <div class="report-footer">
+                    <div class="report-footer-title">免責聲明 Disclaimer</div>
+                    <p>本報告僅供個人研究參考，不構成任何投資建議。所有資訊來源力求準確，但不保證其完整性與即時性。投資人應自行評估風險並承擔投資決策之責任。</p>
+                    <div class="report-gen-info">
+                        <span>報告產生日期：${formatReportDate()}</span>
+                        <span>個股知識小百科 · Stock Knowledge Base v2.1</span>
+                    </div>
+                </div>`;
+
+            modalOverlay.classList.add('visible');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            modalOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        }
+
+        modalClose.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalOverlay.classList.contains('visible')) closeModal();
+        });
 
         // =====================================================
         // 📊 風險儀表盤

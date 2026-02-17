@@ -1,4 +1,12 @@
 ﻿id,name,icon,description,color
-semiconductor,半導體,🔬,包含晶圓代工、IC 設計等半導體相關企業。這個族群受到全球科技需求驅動，具有高資本密集與技術護城河的特性。,#818cf8
-finance,金融,🏦,包含銀行、保險、證券等金融控股公司。獲利與利率環境、景氣循環高度相關，多數具有穩定配息的特性。,#4ade80
-shipping,航運,🚢,包含貨櫃航運、散裝航運等海運企業。屬於典型的景氣循環股，運價波動是影響獲利的最大關鍵。,#fb923c
+ic_design,IC設計,🧠,高毛利無晶圓模式，與先進製程高度連動,#F39C12
+advanced_packaging,先進封裝,📦,AI晶片效能關鍵，CoWoS產能決定出貨,#F39C12
+ai_server,AI伺服器,🤖,AI算力需求爆發的直接受惠族群,#F39C12
+thermal_solution,散熱,❄️,高功耗晶片推升散熱升級,#F39C12
+networking,網通,🌐,資料中心升級帶動高速傳輸需求,#9B59B6
+power_infrastructure,重電,⚡,電網強韌與AI耗電推升基建投資,#3498DB
+financial_holding,金融金控,💰,高股息避風港，利率循環影響大,#3498DB
+container_shipping,貨櫃航運,🚢,全球景氣循環代表族群,#E74C3C
+renewable_energy,綠能風電,🌱,政策導向產業，波動大具長期趨勢,#2ECC71
+biotech_newdrug,生技新藥,🧬,研發成功即爆發，高風險高報酬,#2ECC71
+automotive_electronics,車用電子,🚗,電動車提升半導體與零組件含量,#9B59B6
