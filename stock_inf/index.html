@@ -2119,10 +2119,14 @@
         // 📂 CSV 解析器（支援引號內逗號與換行）
         // =====================================================
         function parseCSV(text) {
+            if (!text) return [];
             const rows = [];
             let current = '';
             let inQuotes = false;
-            const chars = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            const chars = text
+                .replace(/^\uFEFF/, '')
+                .replace(/\r\n/g, '\n')
+                .replace(/\r/g, '\n');
             let row = [];
 
             for (let i = 0; i < chars.length; i++) {
@@ -2998,7 +3002,10 @@
                 await loadCSVData();
             } catch (err) {
                 console.error('CSV 載入失敗:', err);
-                elements.emptyState.querySelector('.empty-text').textContent = 'CSV 資料載入失敗，請確認 categories.csv 與 stocks.csv 存在。';
+                const isFileProtocol = window.location && window.location.protocol === 'file:';
+                elements.emptyState.querySelector('.empty-text').textContent = isFileProtocol
+                    ? 'CSV 資料載入失敗。請改用本機伺服器開啟（例如：在資料夾執行 python -m http.server）。'
+                    : 'CSV 資料載入失敗，請確認 categories.csv 與 stocks.csv 存在。';
                 return;
             }
 
