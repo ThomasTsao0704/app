@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>家庭採購系統</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+:root {
+  --green: #2d8c4e;
+  --green-light: #e8f5ee;
+  --green-mid: #4aad6a;
+  --red: #c0392b;
+  --red-light: #fdecea;
+  --orange: #e07b00;
+  --blue: #1a56db;
+  --blue-light: #e8f0fe;
+  --border: #d0e8da;
+  --bg: #f3faf6;
+  --gray: #666;
+  --shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Noto Sans TC', sans-serif;
+  background: var(--bg);
+  color: #1a2e22;
+  min-height: 100vh;
+  overscroll-behavior: none;
+}
+
+/* ── Header ── */
+header {
+  background: var(--green);
+  color: white;
+  padding: 18px 20px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.header-title { font-size: 24px; font-weight: 900; letter-spacing: 1px; }
+.header-date  { font-size: 15px; opacity: 0.85; }
+
+.budget-bar {
+  background: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.budget-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+
+.budget-label { font-size: 15px; opacity: 0.9; }
+
+.budget-amounts { display: flex; gap: 18px; }
+
+.budget-item { text-align: right; }
+.budget-item .val { font-size: 20px; font-weight: 700; }
+.budget-item .lbl { font-size: 11px; opacity: 0.8; display: block; }
+.budget-item.spent .val    { color: #ffcc70; }
+.budget-item.remaining .val { color: #a8ffcc; }
+
+.budget-progress {
+  height: 8px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.budget-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a8ffcc, #ffcc70);
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}
+
+/* ── Nav Tabs ── */
+.nav-tabs {
+  display: flex;
+  background: white;
+  border-bottom: 2px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.nav-tab {
+  flex: 1;
+  padding: 13px 8px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gray);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  margin-bottom: -2px;
+}
+
+.nav-tab.active {
+  color: var(--green);
+  border-bottom-color: var(--green);
+}
+
+/* ── Page sections ── */
+.page { display: none; padding-bottom: 100px; }
+.page.active { display: block; }
+
+/* ── Filter chips ── */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 2px solid var(--border);
+  border-radius: 99px;
+  background: white;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--gray);
+  transition: all 0.2s;
+}
+
+.chip.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+/* ── Shopping cards ── */
+#list {
+  padding: 8px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#loading, #empty {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 20px;
+  color: var(--gray);
+}
+
+.spin { display: inline-block; font-size: 36px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.item-card {
+  background: white;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.item-card.needs-buy  { border-color: var(--green-mid); }
+.item-card.bought     { border-color: #ccc; opacity: 0.7; }
+
+.item-body {
+  padding: 16px 18px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.item-emoji { font-size: 40px; flex-shrink: 0; width: 52px; text-align: center; }
+
+.item-info { flex: 1; min-width: 0; }
+
+.item-name { font-size: 24px; font-weight: 900; margin-bottom: 5px; }
+
+.item-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.stat-badge {
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stat-badge.stock   { background: var(--blue-light);  color: var(--blue); }
+.stat-badge.suggest { background: var(--green-light);  color: var(--green); }
+.stat-badge.price   { background: #fef3c7; color: #92400e; }
+
+.item-action { padding: 0 18px 16px; }
+
+.btn-buy {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-buy.can-buy {
+  background: linear-gradient(135deg, var(--green), var(--green-mid));
+  color: white;
+  box-shadow: 0 4px 12px rgba(45,140,78,0.35);
+}
+
+.btn-buy.can-buy:active { transform: scale(0.97); }
+.btn-buy.done    { background: #e8e8e8; color: #999; cursor: not-allowed; }
+.btn-buy.no-budget { background: #fff4e0; color: var(--orange); cursor: not-allowed; border: 2px solid #ffd280; }
+
+/* ── 管理頁 ── */
+.mgmt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+}
+
+.mgmt-title { font-size: 18px; font-weight: 700; color: var(--gray); }
+
+.btn-add {
+  padding: 10px 18px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 10px rgba(45,140,78,0.3);
+}
+
+#mgmt-list {
+  padding: 4px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mgmt-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mgmt-emoji { font-size: 32px; flex-shrink: 0; }
+
+.mgmt-info { flex: 1; min-width: 0; }
+.mgmt-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.mgmt-sub  { font-size: 13px; color: var(--gray); }
+
+.mgmt-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.btn-edit, .btn-del {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.btn-edit { background: var(--blue-light);  color: var(--blue); }
+.btn-del  { background: var(--red-light);   color: var(--red);  }
+.btn-edit:active, .btn-del:active { transform: scale(0.93); }
+
+/* ── 設定頁 ── */
+.settings-section {
+  margin: 14px 16px 0;
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.settings-title {
+  padding: 14px 16px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.settings-row:last-child { border-bottom: none; }
+
+.settings-row label {
+  display: block;
+  font-size: 14px;
+  color: var(--gray);
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.settings-row input {
+  width: 100%;
+  padding: 11px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.settings-row input:focus { border-color: var(--green); }
+
+.btn-save-settings {
+  margin: 16px;
+  width: calc(100% - 32px);
+  padding: 15px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(45,140,78,0.35);
+}
+
+.danger-btn {
+  margin: 4px 16px;
+  width: calc(100% - 32px);
+  padding: 15px;
+  background: var(--red-light);
+  color: var(--red);
+  border: 2px solid #f5c6c2;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ── Modal / Overlay ── */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-backdrop.show {
+  display: flex;
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-box {
+  background: white;
+  border-radius: 22px;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 480px;
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 900;
+  margin-bottom: 18px;
+  color: var(--green);
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  color: var(--gray);
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 18px;
+  font-family: inherit;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus, .form-group select:focus { border-color: var(--green); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.modal-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.modal-cancel {
+  padding: 15px;
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  background: white;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  color: #666;
+}
+
+.modal-ok {
+  padding: 15px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--green), var(--green-mid));
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(45,140,78,0.3);
+}
+
+.modal-ok.red {
+  background: linear-gradient(135deg, var(--red), #e74c3c);
+  box-shadow: 0 3px 10px rgba(192,57,43,0.3);
+}
+
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #1a2e22;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 99px;
+  font-size: 16px;
+  font-weight: 700;
+  z-index: 400;
+  opacity: 0;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── Confirm buy overlay ── */
+#buy-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+
+#buy-overlay.show { display: flex; animation: fadeIn 0.2s; }
+
+.confirm-box {
+  background: white;
+  border-radius: 22px;
+  padding: 24px 20px;
+  width: 100%;
+  max-width: 480px;
+  animation: slideUp 0.25s ease;
+}
+
+.confirm-title { font-size: 18px; color: var(--gray); margin-bottom: 4px; }
+.confirm-item  { font-size: 28px; font-weight: 900; margin-bottom: 16px; }
+
+.confirm-detail {
+  background: var(--green-light);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.confirm-detail .price { color: var(--green); font-size: 22px; }
+
+.confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.btn-cancel  { padding: 15px; border: 2px solid #ccc; border-radius: 12px; background: white; font-size: 20px; font-weight: 700; font-family: inherit; cursor: pointer; color: #666; }
+.btn-confirm { padding: 15px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--green), var(--green-mid)); color: white; font-size: 20px; font-weight: 900; font-family: inherit; cursor: pointer; box-shadow: 0 3px 10px rgba(45,140,78,0.3); }
+
+/* ── Delete confirm ── */
+#del-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+#del-overlay.show { display: flex; animation: fadeIn 0.2s; }
+
+.del-box {
+  background: white;
+  border-radius: 22px;
+  padding: 26px 22px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  animation: slideUp 0.25s ease;
+}
+
+.del-icon  { font-size: 48px; margin-bottom: 12px; }
+.del-title { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+.del-sub   { font-size: 15px; color: var(--gray); margin-bottom: 22px; }
+
+.del-btns  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.btn-del-cancel  { padding: 15px; border: 2px solid #ccc; border-radius: 12px; background: white; font-size: 18px; font-weight: 700; font-family: inherit; cursor: pointer; color: #666; }
+.btn-del-confirm { padding: 15px; border: none; border-radius: 12px; background: var(--red); color: white; font-size: 18px; font-weight: 900; font-family: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-top">
+    <div class="header-title">🛒 家庭採購系統</div>
+    <div class="header-date" id="today-date"></div>
+  </div>
+  <div class="budget-bar">
+    <div class="budget-row">
+      <span class="budget-label">💰 今日預算</span>
+      <div class="budget-amounts">
+        <div class="budget-item spent">
+          <span class="val" id="spent-val">$0</span>
+          <span class="lbl">已花費</span>
+        </div>
+        <div class="budget-item remaining">
+          <span class="val" id="remain-val">$—</span>
+          <span class="lbl">剩餘</span>
+        </div>
+      </div>
+    </div>
+    <div class="budget-progress">
+      <div class="budget-fill" id="budget-fill" style="width:0%"></div>
+    </div>
+  </div>
+</header>
+
+<!-- Nav Tabs -->
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchPage('shopping')" id="nav-shopping">🛒 採購</button>
+  <button class="nav-tab"        onclick="switchPage('manage')"   id="nav-manage">📦 管理品項</button>
+  <button class="nav-tab"        onclick="switchPage('settings')" id="nav-settings">⚙️ 設定</button>
+</div>
+
+<!-- ══ 採購頁 ══ -->
+<div class="page active" id="page-shopping">
+  <div class="filter-row">
+    <button class="chip active" onclick="setFilter('need')"  id="chip-need">⚠️ 需補貨</button>
+    <button class="chip"        onclick="setFilter('all')"   id="chip-all">📋 全部</button>
+  </div>
+  <div id="loading"><div class="spin">🔄</div><div style="margin-top:14px">載入中...</div></div>
+  <div id="empty"   style="display:none"><div style="font-size:48px">🎉</div><div style="margin-top:12px; font-size:20px;">今天不需要補貨</div><div style="font-size:14px; margin-top:6px; color:#aaa">庫存都很充足！</div></div>
+  <div id="list"    style="display:none"></div>
+</div>
+
+<!-- ══ 管理品項頁 ══ -->
+<div class="page" id="page-manage">
+  <div class="mgmt-header">
+    <div class="mgmt-title">共 <span id="item-count">0</span> 個品項</div>
+    <button class="btn-add" onclick="openAddModal()">➕ 新增品項</button>
+  </div>
+  <div id="mgmt-list"></div>
+</div>
+
+<!-- ══ 設定頁 ══ -->
+<div class="page" id="page-settings">
+  <div class="settings-section">
+    <div class="settings-title">🔗 API 連接</div>
+    <div class="settings-row">
+      <label>Google Apps Script 網址</label>
+      <input type="url" id="input-api" placeholder="https://script.google.com/macros/s/..." />
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-title">💰 預算設定</div>
+    <div class="settings-row">
+      <label>每日採購預算（元）</label>
+      <input type="number" id="input-budget" placeholder="例：500" />
+    </div>
+  </div>
+
+  <button class="btn-save-settings" onclick="saveSettings()">💾 儲存設定</button>
+  <button class="danger-btn" onclick="resetToday()">🔄 重置今日紀錄</button>
+</div>
+
+<!-- ══ 購買確認 Overlay ══ -->
+<div id="buy-overlay" onclick="closeBuyOverlay(event)">
+  <div class="confirm-box" onclick="event.stopPropagation()">
+    <div class="confirm-title">確認購買？</div>
+    <div class="confirm-item" id="confirm-item-name">—</div>
+    <div class="confirm-detail">
+      <span id="confirm-new-stock">—</span>
+      <span class="price" id="confirm-price">$—</span>
+    </div>
+    <div class="confirm-btns">
+      <button class="btn-cancel"  onclick="closeBuyOverlay()">❌ 取消</button>
+      <button class="btn-confirm" onclick="confirmBuy()">✅ 確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 刪除確認 Overlay ══ -->
+<div id="del-overlay" onclick="closeDelOverlay(event)">
+  <div class="del-box" onclick="event.stopPropagation()">
+    <div class="del-icon">🗑️</div>
+    <div class="del-title">刪除 <span id="del-item-name">—</span>？</div>
+    <div class="del-sub">刪除後無法復原，資料也會從 Google Sheets 移除。</div>
+    <div class="del-btns">
+      <button class="btn-del-cancel"  onclick="closeDelOverlay()">取消</button>
+      <button class="btn-del-confirm" onclick="confirmDelete()">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 新增/編輯 Modal ══ -->
+<div class="modal-backdrop" id="item-modal" onclick="closeItemModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title" id="modal-title">➕ 新增品項</div>
+
+    <div class="form-group">
+      <label>品名 *</label>
+      <input type="text" id="f-name" placeholder="例：牛奶" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>目前庫存</label>
+        <input type="number" id="f-stock" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label>建議購買量</label>
+        <input type="number" id="f-suggest" placeholder="3" min="1" />
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>單價（元）</label>
+        <input type="number" id="f-price" placeholder="0" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Emoji 圖示</label>
+        <input type="text" id="f-emoji" placeholder="🛍️" maxlength="2" />
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeItemModal()">取消</button>
+      <button class="modal-ok"     id="modal-ok-btn" onclick="submitItemForm()">✅ 儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// 狀態 & 設定
+// ══════════════════════════════════════
+let API_URL      = localStorage.getItem('api_url')      || '';
+let DAILY_BUDGET = parseInt(localStorage.getItem('daily_budget')) || 500;
+
+let allData       = [];
+let currentFilter = 'need';
+let pendingBuyId  = null;
+let pendingDelId  = null;
+let editingId     = null;   // null = 新增，number = 編輯
+
+const TODAY = new Date().toLocaleDateString('zh-TW');
+
+// ── 今日花費 ──
+function getTodaySpent() {
+  const s = JSON.parse(localStorage.getItem('today_spent') || '{}');
+  return s.date === TODAY ? (s.amount || 0) : 0;
+}
+function addTodaySpent(amt) {
+  const cur = getTodaySpent();
+  localStorage.setItem('today_spent', JSON.stringify({ date: TODAY, amount: cur + amt }));
+}
+
+// ── 今日已買 ──
+function getBoughtToday() {
+  const s = JSON.parse(localStorage.getItem('bought_today') || '{}');
+  return s.date === TODAY ? (s.items || {}) : {};
+}
+function markBoughtToday(id) {
+  const items = getBoughtToday();
+  items[id] = true;
+  localStorage.setItem('bought_today', JSON.stringify({ date: TODAY, items }));
+}
+
+// ── 本機 ID 計數器 (離線新增用) ──
+function nextLocalId() {
+  const max = allData.reduce((m, i) => Math.max(m, i.id || 0), 0);
+  return max + 1;
+}
+
+// ══════════════════════════════════════
+// 頁面切換
+// ══════════════════════════════════════
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+
+  if (name === 'settings') {
+    document.getElementById('input-api').value    = API_URL;
+    document.getElementById('input-budget').value = DAILY_BUDGET;
+  }
+  if (name === 'manage') renderMgmt();
+}
+
+// ══════════════════════════════════════
+// 日期 & 預算 UI
+// ══════════════════════════════════════
+function initDate() {
+  const now = new Date();
+  const wd  = ['日','一','二','三','四','五','六'];
+  document.getElementById('today-date').textContent =
+    `${now.getMonth()+1}/${now.getDate()}（週${wd[now.getDay()]}）`;
+}
+
+function updateBudgetUI() {
+  const spent  = getTodaySpent();
+  const remain = DAILY_BUDGET - spent;
+  document.getElementById('spent-val').textContent  = `$${spent}`;
+  document.getElementById('remain-val').textContent = `$${Math.max(0, remain)}`;
+  const pct = Math.min(100, Math.round(spent / DAILY_BUDGET * 100));
+  document.getElementById('budget-fill').style.width = pct + '%';
+}
+
+// ══════════════════════════════════════
+// Emoji 對照
+// ══════════════════════════════════════
+const EMOJI_MAP = {
+  '牛奶':'🥛','雞蛋':'🥚','蘋果':'🍎','香蕉':'🍌','白米':'🍚','麵條':'🍜','麵包':'🍞',
+  '豬肉':'🥩','雞肉':'🍗','魚':'🐟','蔬菜':'🥦','番茄':'🍅','馬鈴薯':'🥔','紅蘿蔔':'🥕',
+  '洗碗精':'🧴','衛生紙':'🧻','洗髮精':'🧴','牙膏':'🪥','沙拉油':'🫙','醬油':'🫙',
+  '豆腐':'⬜','豆漿':'🥛','優格':'🫙','起司':'🧀','奶油':'🧈','咖啡':'☕','茶':'🍵',
+  '水果':'🍑','橘子':'🍊','葡萄':'🍇','草莓':'🍓','洗衣粉':'🫧','衛生棉':'🩹',
+};
+
+function getEmoji(name, override) {
+  if (override) return override;
+  for (const [k, v] of Object.entries(EMOJI_MAP)) {
+    if (name.includes(k)) return v;
+  }
+  return '🛍️';
+}
+
+// ══════════════════════════════════════
+// 載入資料
+// ══════════════════════════════════════
+async function loadData(silent = false) {
+  if (!API_URL) {
+    loadDemo();
+    return;
+  }
+  if (!silent) {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('list').style.display    = 'none';
+    document.getElementById('empty').style.display   = 'none';
+  }
+  try {
+    const res = await fetch(API_URL + '?action=getAll', { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    let json;
+    try { json = JSON.parse(text); }
+    catch { throw new Error('API 回傳非 JSON 格式：' + text.slice(0, 100)); }
+    if (json.error) throw new Error(json.error);
+    allData = Array.isArray(json) ? json : (json.data || []);
+    document.getElementById('loading').style.display = 'none';
+    renderList();
+  } catch(e) {
+    console.error('loadData error:', e);
+    document.getElementById('loading').innerHTML =
+      `<div style="color:var(--red)">❌ 載入失敗<br><small>${e.message}</small><br><small style="color:#aaa">請至設定頁確認 API 網址，並確認 GAS 已部署</small></div>`;
+  }
+}
+
+function loadDemo() {
+  allData = [
+    { id:1, 品項:'牛奶',  庫存數量:1, 建議購買量:3, 今日已買:0, 單價:85,  emoji:'🥛' },
+    { id:2, 品項:'雞蛋',  庫存數量:4, 建議購買量:4, 今日已買:0, 單價:65,  emoji:'🥚' },
+    { id:3, 品項:'蘋果',  庫存數量:0, 建議購買量:5, 今日已買:0, 單價:120, emoji:'🍎' },
+    { id:4, 品項:'白米',  庫存數量:2, 建議購買量:3, 今日已買:0, 單價:250, emoji:'🍚' },
+    { id:5, 品項:'洗碗精',庫存數量:3, 建議購買量:3, 今日已買:0, 單價:89,  emoji:'🧴' },
+  ];
+  document.getElementById('loading').style.display = 'none';
+  renderList();
+  showToast('⚙️ 示範模式，請至設定頁填入 API 網址');
+}
+
+// ══════════════════════════════════════
+// 採購清單渲染
+// ══════════════════════════════════════
+function setFilter(f) {
+  currentFilter = f;
+  document.getElementById('chip-need').classList.toggle('active', f === 'need');
+  document.getElementById('chip-all').classList.toggle('active',  f === 'all');
+  renderList();
+}
+
+function renderList() {
+  const boughtToday = getBoughtToday();
+  const remain      = DAILY_BUDGET - getTodaySpent();
+
+  let items = currentFilter === 'need'
+    ? allData.filter(i => i.庫存數量 < i.建議購買量)
+    : allData;
+
+  const container = document.getElementById('list');
+
+  if (items.length === 0) {
+    document.getElementById('list').style.display  = 'none';
+    document.getElementById('empty').style.display = 'block';
+    updateBudgetUI();
+    return;
+  }
+
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('list').style.display  = 'flex';
+
+  items = [...items].sort((a, b) => {
+    const an = a.庫存數量 < a.建議購買量;
+    const bn = b.庫存數量 < b.建議購買量;
+    return (an === bn) ? 0 : an ? -1 : 1;
+  });
+
+  container.innerHTML = '';
+
+  items.forEach(item => {
+    const emoji      = getEmoji(item.品項, item.emoji);
+    const needBuy    = item.庫存數量 < item.建議購買量;
+    const boughtAlr  = !!boughtToday[item.id];
+    const noMoney    = item.單價 > remain;
+
+    let btnClass = 'can-buy', btnText = '🛒 加入購物車', btnDisabled = false;
+    if      (boughtAlr) { btnClass = 'done';      btnText = '✅ 今日已購買'; btnDisabled = true; }
+    else if (!needBuy)  { btnClass = 'done';      btnText = '✅ 庫存充足';   btnDisabled = true; }
+    else if (noMoney)   { btnClass = 'no-budget'; btnText = '💰 預算不足';   btnDisabled = true; }
+
+    const div = document.createElement('div');
+    div.className = `item-card ${boughtAlr ? 'bought' : needBuy ? 'needs-buy' : ''}`;
+    div.innerHTML = `
+      <div class="item-body">
+        <div class="item-emoji">${emoji}</div>
+        <div class="item-info">
+          <div class="item-name">${item.品項}</div>
+          <div class="item-stats">
+            <span class="stat-badge stock">📦 庫存 ${item.庫存數量}</span>
+            <span class="stat-badge suggest">🎯 建議 ${item.建議購買量}</span>
+            <span class="stat-badge price">💴 $${item.單價}</span>
+          </div>
+        </div>
+      </div>
+      <div class="item-action">
+        <button class="btn-buy ${btnClass}"
+          ${btnDisabled ? 'disabled' : `onclick="openBuyConfirm(${item.id})"`}>
+          ${btnText}
+        </button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  updateBudgetUI();
+}
+
+// ══════════════════════════════════════
+// 管理清單渲染
+// ══════════════════════════════════════
+function renderMgmt() {
+  document.getElementById('item-count').textContent = allData.length;
+  const container = document.getElementById('mgmt-list');
+  container.innerHTML = '';
+
+  allData.forEach(item => {
+    const emoji = getEmoji(item.品項, item.emoji);
+    const div = document.createElement('div');
+    div.className = 'mgmt-card';
+    div.innerHTML = `
+      <div class="mgmt-emoji">${emoji}</div>
+      <div class="mgmt-info">
+        <div class="mgmt-name">${item.品項}</div>
+        <div class="mgmt-sub">庫存 ${item.庫存數量} / 建議 ${item.建議購買量} 　$${item.單價}</div>
+      </div>
+      <div class="mgmt-actions">
+        <button class="btn-edit" onclick="openEditModal(${item.id})" title="編輯">✏️</button>
+        <button class="btn-del"  onclick="openDelConfirm(${item.id})" title="刪除">🗑️</button>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ══════════════════════════════════════
+// 購買流程
+// ══════════════════════════════════════
+function openBuyConfirm(id) {
+  const item = allData.find(i => i.id === id);
+  if (!item) return;
+  pendingBuyId = id;
+  document.getElementById('confirm-item-name').textContent = getEmoji(item.品項, item.emoji) + ' ' + item.品項;
+  document.getElementById('confirm-new-stock').textContent = `庫存 ${item.庫存數量} → ${item.庫存數量 + 1}`;
+  document.getElementById('confirm-price').textContent = `$${item.單價}`;
+  document.getElementById('buy-overlay').classList.add('show');
+}
+
+function closeBuyOverlay(e) {
+  if (e && e.target !== document.getElementById('buy-overlay')) return;
+  document.getElementById('buy-overlay').classList.remove('show');
+  pendingBuyId = null;
+}
+
+async function confirmBuy() {
+  const item = allData.find(i => i.id === pendingBuyId);
+  if (!item) return;
+  document.getElementById('buy-overlay').classList.remove('show');
+
+  const newStock = item.庫存數量 + 1;
+  item.庫存數量 = newStock;
+  markBoughtToday(item.id);
+  addTodaySpent(item.單價);
+  renderList();
+  showToast(`✅ ${item.品項} 已記錄購買！`);
+
+  if (API_URL) {
+    try {
+      await apiFetch('update', { id: item.id, 庫存數量: newStock, 今日已買: 1 });
+    } catch { showToast('⚠️ 同步失敗，資料暫存本地'); }
+  }
+  pendingBuyId = null;
+}
+
+// ══════════════════════════════════════
+// 新增 / 編輯 Modal
+// ══════════════════════════════════════
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = '➕ 新增品項';
+  document.getElementById('modal-ok-btn').textContent = '✅ 新增';
+  clearForm();
+  document.getElementById('item-modal').classList.add('show');
+  setTimeout(() => document.getElementById('f-name').focus(), 100);
+}
+
+function openEditModal(id) {
+  const item = allData.find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = '✏️ 編輯品項';
+  document.getElementById('modal-ok-btn').textContent = '💾 儲存';
+  document.getElementById('f-name').value    = item.品項;
+  document.getElementById('f-stock').value   = item.庫存數量;
+  document.getElementById('f-suggest').value = item.建議購買量;
+  document.getElementById('f-price').value   = item.單價;
+  document.getElementById('f-emoji').value   = item.emoji || '';
+  document.getElementById('item-modal').classList.add('show');
+}
+
+function closeItemModal(e) {
+  if (e && e.target !== document.getElementById('item-modal')) return;
+  document.getElementById('item-modal').classList.remove('show');
+}
+
+function clearForm() {
+  ['f-name','f-stock','f-suggest','f-price','f-emoji'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+
+async function submitItemForm() {
+  const name    = document.getElementById('f-name').value.trim();
+  const stock   = parseInt(document.getElementById('f-stock').value)   || 0;
+  const suggest = parseInt(document.getElementById('f-suggest').value) || 1;
+  const price   = parseInt(document.getElementById('f-price').value)   || 0;
+  const emoji   = document.getElementById('f-emoji').value.trim()      || '';
+
+  if (!name) { showToast('⚠️ 請填寫品名！'); return; }
+
+  document.getElementById('item-modal').classList.remove('show');
+
+  if (editingId !== null) {
+    // ── 編輯 ──
+    const item = allData.find(i => i.id === editingId);
+    if (item) {
+      item.品項 = name; item.庫存數量 = stock; item.建議購買量 = suggest;
+      item.單價 = price; item.emoji = emoji;
+    }
+    showToast(`✅ ${name} 已更新`);
+    if (API_URL) {
+      try { await apiFetch('update', { id: editingId, 品項: name, 庫存數量: stock, 建議購買量: suggest, 單價: price, emoji }); }
+      catch { showToast('⚠️ 同步失敗'); }
+    }
+  } else {
+    // ── 新增 ──
+    const newItem = {
+      id: nextLocalId(),
+      品項: name, 庫存數量: stock, 建議購買量: suggest,
+      今日已買: 0, 單價: price, emoji,
+    };
+    allData.push(newItem);
+    showToast(`✅ ${name} 已新增`);
+    if (API_URL) {
+      try {
+        const res = await apiFetch('add', newItem);
+        const json = await res.json();
+        if (json.newId) newItem.id = json.newId;  // update with server id
+      } catch { showToast('⚠️ 同步失敗'); }
+    }
+  }
+
+  renderList();
+  renderMgmt();
+}
+
+// ══════════════════════════════════════
+// 刪除流程
+// ══════════════════════════════════════
+function openDelConfirm(id) {
+  const item = allData.find(i => i.id === id);
+  if (!item) return;
+  pendingDelId = id;
+  document.getElementById('del-item-name').textContent = item.品項;
+  document.getElementById('del-overlay').classList.add('show');
+}
+
+function closeDelOverlay(e) {
+  if (e && e.target !== document.getElementById('del-overlay')) return;
+  document.getElementById('del-overlay').classList.remove('show');
+  pendingDelId = null;
+}
+
+async function confirmDelete() {
+  const item = allData.find(i => i.id === pendingDelId);
+  if (!item) return;
+  document.getElementById('del-overlay').classList.remove('show');
+
+  allData = allData.filter(i => i.id !== pendingDelId);
+  showToast(`🗑️ ${item.品項} 已刪除`);
+
+  if (API_URL) {
+    try { await apiFetch('delete', { id: pendingDelId }); }
+    catch { showToast('⚠️ 同步失敗'); }
+  }
+
+  renderList();
+  renderMgmt();
+  pendingDelId = null;
+}
+
+// ══════════════════════════════════════
+// API 輔助函數
+// ══════════════════════════════════════
+function apiFetch(action, body) {
+  return fetch(API_URL, {
+    method: 'POST',
+    mode: 'cors',
+    headers: { 'Content-Type': 'text/plain' },  // GAS 需用 text/plain 才不會 preflight 失敗
+    body: JSON.stringify({ action, ...body })
+  });
+}
+
+// ══════════════════════════════════════
+// 設定頁
+// ══════════════════════════════════════
+function saveSettings() {
+  API_URL      = document.getElementById('input-api').value.trim();
+  DAILY_BUDGET = parseInt(document.getElementById('input-budget').value) || 500;
+  localStorage.setItem('api_url', API_URL);
+  localStorage.setItem('daily_budget', DAILY_BUDGET);
+  showToast('💾 設定已儲存');
+  updateBudgetUI();
+  loadData();
+}
+
+function resetToday() {
+  localStorage.removeItem('today_spent');
+  localStorage.removeItem('bought_today');
+  updateBudgetUI();
+  renderList();
+  showToast('🔄 今日紀錄已重置');
+}
+
+// ══════════════════════════════════════
+// Toast
+// ══════════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════
+// Init
+// ══════════════════════════════════════
+initDate();
+updateBudgetUI();
+loadData();
+setInterval(() => loadData(true), 3 * 60 * 1000);
+</script>
+</body>
+</html>
