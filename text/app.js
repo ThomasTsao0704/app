@@ -151,6 +151,13 @@ function setMode(mode, el) { // 切換分析模式並更新按鈕選取狀態
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active')); // 移除所有按鈕的選取樣式
   el.classList.add('active'); // 為點擊的按鈕加上選取樣式
   document.getElementById('modeDesc').textContent = modeDescriptions[mode]; // 更新模式說明文字
+
+  // 清除舊模式的分析結果，避免認知錯亂
+  document.getElementById('summaryContent').innerHTML =
+    '<div class="empty-state"><span>🔄</span>模式已切換，請重新生成摘要</div>';
+  document.getElementById('scoreContent').innerHTML =
+    '<div class="empty-state"><span>🎯</span>點擊「產生評分報告」後顯示結果</div>';
+  document.getElementById('summaryLabel').textContent = '';
 }
 
 function setIndustry(val) { // 切換產業模板，空值代表一般模式
@@ -203,15 +210,39 @@ async function extractPDF() { // 讀取並解析 PDF 檔案的所有頁面文字
       const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise; // 使用 PDF.js 載入文件
 
       let fullText = ''; // 累積所有頁面的文字
-      const total = pdf.numPages; // 取得總頁數
+      const total     = pdf.numPages; // 取得總頁數
+      const startTime = Date.now();   // 記錄開始時間，用於 ETA 計算
 
       for (let i = 1; i <= total; i++) { // 逐頁擷取文字
-        const page = await pdf.getPage(i); // 取得第 i 頁
+        const page    = await pdf.getPage(i); // 取得第 i 頁
         const content = await page.getTextContent(); // 取得該頁的文字內容
-        const strings = content.items.map(item => item.str); // 提取每個文字元素的字串
-        fullText += strings.join(' ') + '\n'; // 合併並換行
+
+        // 依 transform 矩陣的 Y 座標排序（降序=從上到下），同行依 X 升序（從左到右）
+        const sorted = [...content.items].sort((a, b) => {
+          const dy = b.transform[5] - a.transform[5];
+          return Math.abs(dy) > 3 ? dy : a.transform[4] - b.transform[4];
+        });
+
+        // 依 Y 分組為行，避免欄位式排版錯亂與多餘空白
+        let lastY = null, lineBuf = [], pageLines = [];
+        sorted.forEach(item => {
+          const y = item.transform[5];
+          if (lastY === null || Math.abs(y - lastY) > 3) {
+            if (lineBuf.length) pageLines.push(lineBuf.join(''));
+            lineBuf = [item.str];
+            lastY   = y;
+          } else {
+            lineBuf.push(item.str);
+          }
+        });
+        if (lineBuf.length) pageLines.push(lineBuf.join(''));
+        fullText += pageLines.join('\n') + '\n';
+
         setProgress(Math.round((i / total) * 90)); // 更新進度條（最多到 90%）
-        setStatus(`解析第 ${i} / ${total} 頁...`, true); // 更新狀態列頁數
+        const elapsed   = (Date.now() - startTime) / 1000;
+        const remaining = i < total ? Math.round((elapsed / i) * (total - i)) : 0;
+        const etaStr    = remaining > 0 ? ` · 預計還需 ${remaining} 秒` : '';
+        setStatus(`解析第 ${i} / ${total} 頁...${etaStr}`, true); // 更新狀態列頁數
       }
 
       const cleaned = cleanText(fullText); // 清理多餘空白與換行
@@ -226,6 +257,7 @@ async function extractPDF() { // 讀取並解析 PDF 檔案的所有頁面文字
       setProgress(100); // 進度條設為完成
       setStatus(`解析完成 · ${total} 頁 · ${sentences.length} 句`, false); // 顯示完成訊息
       document.getElementById('btnSummary').disabled = false; // 啟用「生成摘要」按鈕
+      document.getElementById('btnScore').disabled   = false; // 同步啟用「產生評分報告」
       document.getElementById('btnExtract').disabled = false; // 重新啟用「解析 PDF」按鈕
       setTimeout(() => setProgress(0), 1500); // 1.5 秒後隱藏進度條
     } catch (err) {
@@ -326,7 +358,8 @@ function semanticScore(sentence, mode) { // 依語意修飾詞與物件權重計
     activeModel.keywords.risk.forEach(item => {
       if (sentence.includes(item.word)) score += item.weight; // 模型風險關鍵字扣分
     });
-    score *= activeModel.weights.growthMultiplier; // 套用成長乘數
+    if (score > 0) score *= activeModel.weights.growthMultiplier; // 正分套用成長乘數
+    else if (score < 0) score *= activeModel.weights.riskMultiplier; // 負分套用風險乘數
   }
 
   return parseFloat(score.toFixed(2));
@@ -430,9 +463,8 @@ function kpiScore(text) { // 依產業 KPI 關鍵詞驗證文件完整度並給�
 function generateScore() { // 依摘要與原文計算綜合評分並顯示圓形儀表板
   const summaryText = document.getElementById('summaryContent').innerText || ''; // 取得摘要區域的純文字
   const rawText = document.getElementById('rawText').value || ''; // 取得原始文字
-  if (!summaryText.includes('成長') && !summaryText.includes('重點') &&
-      !summaryText.includes('定義') && !summaryText.includes('趨勢')) {
-    alert('請先生成摘要'); // 若未產生摘要則提示
+  if (!rawText.trim()) { // 改為檢查原文，允許跳過摘要直接評分
+    alert('請先解析 PDF 文字');
     return;
   }
 
@@ -540,10 +572,12 @@ function generateScore() { // 依摘要與原文計算綜合評分並顯示圓�
 // ══════════════════════════════════════════
 function saveHistory(name, score, mode) { // 將評分結果存入 localStorage 歷史紀錄
   const item = {
-    name: name.replace('.pdf',''), // 移除副檔名
+    name:  name.replace('.pdf',''), // 移除副檔名
     score,
     mode,
-    time: new Date().toLocaleTimeString('zh-TW', {hour:'2-digit', minute:'2-digit'}) // 記錄當前時間（時:分）
+    time:  new Date().toISOString(), // 完整 ISO 日期，跨日後仍可辨識
+    pages: parseInt(document.getElementById('statPages').textContent) || 0,
+    chars: document.getElementById('statChars').textContent || '—',
   };
   analysisHistory.unshift(item); // 插入至陣列最前端（最新在上）
   if (analysisHistory.length > 10) analysisHistory.pop(); // 超過 10 筆時移除最舊的一筆
@@ -557,8 +591,14 @@ function renderHistory() { // 將歷史紀錄渲染至畫面的歷史面板
   if (!analysisHistory.length) { panel.style.display = 'none'; return; } // 無紀錄時隱藏面板
   panel.style.display = 'block'; // 有紀錄時顯示面板
 
-  const modeEmoji = { finance:'📊', news:'📰', study:'📚' }; // 各模式對應的 emoji
+  const modeEmoji  = { finance:'📊', news:'📰', study:'📚' }; // 各模式對應的 emoji
   const scoreColor = s => s >= 70 ? 'var(--green)' : s >= 45 ? 'var(--accent)' : 'var(--red)'; // 依分數決定顏色
+  const fmtTime = t => { // 將 ISO 日期格式化為 MM/DD HH:mm，相容舊格式
+    const d = new Date(t);
+    if (isNaN(d)) return t;
+    return [d.getMonth()+1, d.getDate()].map(n => String(n).padStart(2,'0')).join('/') +
+           ' ' + [d.getHours(), d.getMinutes()].map(n => String(n).padStart(2,'0')).join(':');
+  };
 
   list.innerHTML = analysisHistory.map(h => ` // 渲染每一筆歷史紀錄卡片
     <div class="history-item">
@@ -566,7 +606,7 @@ function renderHistory() { // 將歷史紀錄渲染至畫面的歷史面板
       <span class="h-name">${escapeHtml(h.name)}</span>
       <span class="h-mode">${h.mode}</span>
       <span class="h-score" style="color:${scoreColor(h.score)}">${h.score}</span>
-      <span class="h-time">${h.time}</span>
+      <span class="h-time">${fmtTime(h.time)}</span>
     </div>
   `).join('');
 }
@@ -832,12 +872,78 @@ function closeModelManager() { // 關閉模型管理視窗
 }
 
 // ══════════════════════════════════════════
+//  Export Functions
+// ══════════════════════════════════════════
+function downloadBlob(content, filename, type) { // 通用 Blob 下載輔助函式
+  const blob = new Blob([content], { type });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportSummaryTxt() { // 匯出加權摘要為 TXT 純文字檔
+  const sumEl = document.getElementById('summaryContent');
+  if (!sumEl.querySelector('.summary-item')) { alert('請先生成摘要'); return; }
+  const lines = [
+    'PDF 智能分析系統 ─ 加權摘要報告',
+    '='.repeat(38),
+    `檔案：${document.getElementById('fileName').textContent}`,
+    `統計：${document.getElementById('rawLabel').textContent}`,
+    `模式：${currentMode}　產業：${currentIndustry || '一般'}`,
+    '',
+    sumEl.innerText.trim(),
+    '',
+    `匯出時間：${new Date().toLocaleString('zh-TW')}`,
+  ].join('\n');
+  downloadBlob(lines, 'summary.txt', 'text/plain;charset=utf-8');
+}
+
+function exportScoreJson() { // 匯出評分報告為 JSON 結構化資料
+  const scoreNum = document.getElementById('scoreNum');
+  if (!scoreNum || !scoreNum.textContent || scoreNum.textContent === '0') {
+    alert('請先產生評分報告'); return;
+  }
+  const data = {
+    fileName:    document.getElementById('fileName').textContent,
+    score:       parseInt(scoreNum.textContent),
+    mode:        currentMode,
+    industry:    currentIndustry || null,
+    activeModel: getActiveModel()?.name || null,
+    stats: {
+      pages: document.getElementById('statPages').textContent,
+      chars: document.getElementById('statChars').textContent,
+      sents: document.getElementById('statSents').textContent,
+    },
+    summary:    document.getElementById('summaryContent').innerText.trim(),
+    exportTime: new Date().toISOString(),
+  };
+  downloadBlob(JSON.stringify(data, null, 2), 'score-report.json', 'application/json');
+}
+
+// ══════════════════════════════════════════
 //  Settings System (V4.2)
 // ══════════════════════════════════════════
 function openSettings() { // 開啟設定面板，填入目前設定的 JSON
   const combined = { keywords: keywordLibrary, industries: industryTemplates };
   document.getElementById('settingsEditor').value = JSON.stringify(combined, null, 2);
   document.getElementById('settingsModal').style.display = 'block';
+
+  // 初始化即時 JSON 驗證
+  const editor    = document.getElementById('settingsEditor');
+  const indicator = document.getElementById('jsonValidIndicator');
+  indicator.textContent = '✅ JSON 正確';
+  indicator.style.color = 'var(--green)';
+  editor.oninput = () => {
+    try {
+      JSON.parse(editor.value);
+      indicator.textContent = '✅ JSON 正確';
+      indicator.style.color = 'var(--green)';
+    } catch {
+      indicator.textContent = '❌ 格式錯誤';
+      indicator.style.color = 'var(--red)';
+    }
+  };
 }
 
 function closeSettings() { // 關閉設定面板

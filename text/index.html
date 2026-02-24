@@ -150,6 +150,7 @@
           <span class="panel-dot" style="background:var(--green)"></span>
           加權摘要
           <span id="summaryLabel" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--text-dim)"></span>
+          <button onclick="exportSummaryTxt()" title="匯出摘要為 TXT" style="margin-left:10px;padding:2px 9px;background:var(--bg-hover);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-size:10px;font-family:var(--mono);cursor:pointer">📥 TXT</button>
         </div>
         <div id="summaryContent">
           <div class="empty-state"><span>🧠</span>點擊「生成加權摘要」後顯示結果</div>
@@ -161,6 +162,7 @@
         <div class="panel-header">
           <span class="panel-dot" style="background:var(--yellow)"></span>
           評分報告
+          <button onclick="exportScoreJson()" title="匯出評分報告為 JSON" style="margin-left:auto;padding:2px 9px;background:var(--bg-hover);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-size:10px;font-family:var(--mono);cursor:pointer">📥 JSON</button>
         </div>
         <div id="scoreContent">
           <div class="empty-state"><span>🎯</span>點擊「產生評分報告」後顯示結果</div>
@@ -218,6 +220,7 @@
       spellcheck="false"></textarea>
 
     <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <span id="jsonValidIndicator" style="font-size:12px;font-family:var(--mono);align-self:center"></span>
       <button onclick="saveSettings()"   style="padding:10px 20px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer">💾 儲存</button>
       <button onclick="resetSettings()"  style="padding:10px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:var(--sans);font-size:13px;cursor:pointer">↩ 還原預設</button>
       <button onclick="exportSettings()" style="padding:10px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-family:var(--sans);font-size:13px;cursor:pointer">📤 匯出 JSON</button>
