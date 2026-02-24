@@ -12,7 +12,8 @@ if (typeof pdfjsLib !== 'undefined') {
 let currentMode = 'finance'; // 目前選擇的分析模式，預設為財報模式
 let currentFile = null; // 目前載入的 PDF 檔案，未選擇時為 null
 let analysisHistory = JSON.parse(localStorage.getItem('pdfHistory') || '[]'); // 從 localStorage 讀取歷史分析紀錄
-let currentIndustry = null; // 目前選擇的產業模板，null 為一般模式
+let currentIndustry  = null; // 目前選擇的產業模板，null 為一般模式
+let lastSummaryData  = null; // 摘要快取（供匯出使用）
 let models         = loadConfig('models', []);  // 模型資產列表
 let activeModelId  = null;                       // 目前啟用的模型 ID
 let editingModelId = null;                       // 目前正在編輯的模型 ID
@@ -158,6 +159,8 @@ function setMode(mode, el) { // 切換分析模式並更新按鈕選取狀態
   document.getElementById('scoreContent').innerHTML =
     '<div class="empty-state"><span>🎯</span>點擊「產生評分報告」後顯示結果</div>';
   document.getElementById('summaryLabel').textContent = '';
+  lastSummaryData = null;
+  document.getElementById('btnExportSummary').disabled = true;
 }
 
 function setIndustry(val) { // 切換產業模板，空值代表一般模式
@@ -441,6 +444,19 @@ function generateSummary() { // 依關鍵字權重對句子評分並產生分類
   document.getElementById('summaryLabel').textContent =
     `共 ${growthItems.length + riskItems.length + dataItems.length} 句`; // 顯示摘要句子總數
   document.getElementById('btnScore').disabled = false; // 啟用「產生評分報告」按鈕
+
+  // 儲存摘要資料供匯出使用
+  lastSummaryData = {
+    growthItems,
+    riskItems,
+    dataItems,
+    mode:      currentMode,
+    industry:  currentIndustry,
+    fileName:  currentFile?.name || 'document',
+    createdAt: new Date()
+  };
+  document.getElementById('btnExportSummary').disabled = false;
+
   setStatus('摘要生成完成'); // 更新狀態列
 }
 
@@ -633,6 +649,8 @@ function clearAll() { // 重設所有畫面狀態回初始值
   document.getElementById('btnExtract').disabled = true; // 停用「解析 PDF」按鈕
   document.getElementById('btnSummary').disabled = true; // 停用「生成摘要」按鈕
   document.getElementById('btnScore').disabled = true; // 停用「產生評分報告」按鈕
+  document.getElementById('btnExportSummary').disabled = true; // 停用「匯出摘要」按鈕
+  lastSummaryData = null; // 清除摘要快取
   currentFile = null; // 清除目前檔案
 
   // 重設上傳區域的顯示內容
@@ -882,21 +900,116 @@ function downloadBlob(content, filename, type) { // 通用 Blob 下載輔助函�
   URL.revokeObjectURL(url);
 }
 
-function exportSummaryTxt() { // 匯出加權摘要為 TXT 純文字檔
-  const sumEl = document.getElementById('summaryContent');
-  if (!sumEl.querySelector('.summary-item')) { alert('請先生成摘要'); return; }
-  const lines = [
-    'PDF 智能分析系統 ─ 加權摘要報告',
-    '='.repeat(38),
-    `檔案：${document.getElementById('fileName').textContent}`,
-    `統計：${document.getElementById('rawLabel').textContent}`,
-    `模式：${currentMode}　產業：${currentIndustry || '一般'}`,
+// ════════════════════════════════════════
+//  高品質摘要 TXT 匯出系統（商業版）
+// ════════════════════════════════════════
+function exportSummaryTxt() {
+
+  if (!lastSummaryData) {
+    alert('請先生成摘要');
+    return;
+  }
+
+  const {
+    growthItems,
+    riskItems,
+    dataItems,
+    mode,
+    industry,
+    fileName,
+    createdAt
+  } = lastSummaryData;
+
+  const modeNames = {
+    finance: '財報分析模式',
+    news:    '新聞解讀模式',
+    study:   '學習摘要模式'
+  };
+
+  const industryNames = {
+    semiconductor: '半導體',
+    finance:       '金融',
+    ai:            'AI產業'
+  };
+
+  const now = createdAt || new Date();
+
+  const dateStr =
+    `${now.getFullYear()}/` +
+    `${String(now.getMonth()+1).padStart(2,'0')}/` +
+    `${String(now.getDate()).padStart(2,'0')} ` +
+    `${String(now.getHours()).padStart(2,'0')}:` +
+    `${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const line = '═'.repeat(60);
+  const dash = '─'.repeat(60);
+
+  // 智慧斷行（支援中英文寬度）
+  function smartWrap(text, maxWidth = 52) {
+    let lines = [], current = '';
+    for (const ch of text) {
+      current += ch;
+      const width = [...current].reduce((w, c) =>
+        w + (c.charCodeAt(0) > 127 ? 2 : 1), 0);
+      if (width >= maxWidth) { lines.push(current); current = ''; }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  function renderSection(title, items, emptyText) {
+    let content = `\n  【 ${title} 】\n${dash}\n`;
+    if (!items.length) { content += `  ${emptyText}\n`; return content; }
+    items.forEach((item, idx) => {
+      const wrapped = smartWrap(item.text);
+      wrapped.forEach((lineText, lineIdx) => {
+        content += lineIdx === 0
+          ? `  ${idx+1}. ${lineText}\n`
+          : `      ${lineText}\n`;
+      });
+      const scoreTag = item.score >= 0 ? `+${item.score}` : `${item.score}`;
+      content += `     ▸ 權重分數：${scoreTag}\n\n`;
+    });
+    return content;
+  }
+
+  const totalCount = growthItems.length + riskItems.length + dataItems.length;
+
+  const report = [
+    line,
+    '  PDF 智能分析系統  —  加權摘要報告',
+    line,
     '',
-    sumEl.innerText.trim(),
+    `  檔案名稱：${fileName.replace('.pdf','')}`,
+    `  分析模式：${modeNames[mode] || mode}`,
+    `  產業模板：${industry ? (industryNames[industry] || industry) : '一般模式'}`,
+    `  生成時間：${dateStr}`,
+    `  摘要句數：共 ${totalCount} 句`,
     '',
-    `匯出時間：${new Date().toLocaleString('zh-TW')}`,
+    line,
+    '',
+    renderSection('📈 成長重點', growthItems, '（無符合成長關鍵字的句子）'),
+    renderSection('⚠️ 風險因素', riskItems,   '（無符合風險關鍵字的句子）'),
+    renderSection('📊 數據重點', dataItems,   '（未偵測到數據句子）'),
+    '',
+    line,
+    '  Generated by Industry Semantic Engine',
+    line,
+    ''
   ].join('\n');
-  downloadBlob(lines, 'summary.txt', 'text/plain;charset=utf-8');
+
+  // BOM 防 Windows 亂碼
+  const bom  = '\uFEFF';
+  const blob = new Blob([bom + report], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `${fileName.replace('.pdf','')}_摘要報告_` +
+    `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  setStatus('摘要報告已成功匯出');
 }
 
 function exportScoreJson() { // 匯出評分報告為 JSON 結構化資料
