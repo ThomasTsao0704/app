@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Global FX Intelligence Map</title>
+<!-- PWA -->
+<link rel="manifest" href="/static/manifest.json" />
+<meta name="theme-color" content="#00d4ff" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FX" />
+<link rel="icon" type="image/png" href="/static/icon-192.png" />
+<link rel="apple-touch-icon" href="/static/icon-192.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:      #0a0c0f;
+  --surface: #111318;
+  --border:  #1e2430;
+  --border2: #252d3a;
+  --text:    #c8d4e0;
+  --muted:   #4a5568;
+  --accent:  #00d4ff;
+  --accent2: #0088aa;
+  --up:      #00e676;
+  --down:    #ff4444;
+  --gold:    #ffd700;
+  --warn:    #ffb300;
+  --mono:    'IBM Plex Mono', monospace;
+  --sans:    'IBM Plex Sans TC', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Scanlines overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,212,255,0.012) 2px, rgba(0,212,255,0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  z-index: 200;
+}
+
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 24px; height: 24px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo-text { font-size: 14px; font-weight: 600; letter-spacing: 0.15em; color: var(--accent); }
+.logo-sub  { font-family: var(--sans); font-size: 10px; color: var(--muted); }
+
+/* Tab nav centered */
+.tab-nav { display: flex; gap: 4px; }
+.tab-btn {
+  padding: 6px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.05em;
+}
+.tab-btn:hover { border-color: var(--accent); color: var(--text); }
+.tab-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,212,255,0.08);
+}
+
+#clock { font-size: 13px; color: var(--accent); font-weight: 500; min-width: 80px; text-align: right; }
+
+/* ── Pages ── */
+.page { flex: 1; overflow: hidden; display: none; flex-direction: column; }
+.page.active { display: flex; }
+
+/* ── Geo Map page ── */
+#page-geo { position: relative; }
+
+#map {
+  width: 100%;
+  flex: 1;
+  background: #0d1117;
+}
+
+/* Floating controls */
+.map-controls {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-panel {
+  background: rgba(17,19,24,0.92);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 10px 12px;
+  backdrop-filter: blur(8px);
+}
+
+.map-panel-title {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.layer-btns { display: flex; flex-direction: column; gap: 4px; }
+.layer-btn {
+  padding: 5px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  white-space: nowrap;
+}
+.layer-btn:hover { border-color: var(--accent); color: var(--text); }
+.layer-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.1); }
+
+/* Legend */
+.legend-bar {
+  width: 140px;
+  height: 8px;
+  border-radius: 2px;
+  margin: 6px 0 4px;
+}
+.legend-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--muted);
+}
+
+/* ── Scrollable content pages ── */
+.page-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+
+.page-header {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.page-title { font-size: 18px; font-weight: 600; color: var(--accent); }
+.page-sub   { font-family: var(--sans); font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* ── City grid ── */
+.city-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.city-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  transition: border-color 0.15s;
+}
+.city-card:hover { border-color: var(--border2); }
+
+.city-rank {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.city-name    { font-size: 16px; font-weight: 600; color: var(--text); }
+.city-country { font-family: var(--sans); font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.city-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.city-stat-label { font-size: 10px; color: var(--muted); }
+.city-stat-value { font-size: 13px; font-weight: 500; }
+
+.pp-bar-wrap  { margin-top: 12px; }
+.pp-bar-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.pp-bar-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pp-bar-fill  {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* ── Capital table ── */
+.ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+}
+.ranking-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ranking-table th.right,
+.ranking-table td.right { text-align: right; }
+
+.ranking-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.ranking-table tr:hover td { background: rgba(0,212,255,0.03); }
+
+.rank-num  { color: var(--muted); font-size: 11px; }
+.cur-code  { font-weight: 600; color: var(--text); }
+.cur-name  { font-family: var(--sans); font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.mom-bar-cell { width: 80px; }
+.mom-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mom-val { font-size: 11px; min-width: 46px; text-align: right; }
+.mom-bar-mini {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.mom-bar-mini-fill { height: 100%; border-radius: 2px; }
+
+/* Signal badges */
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sig-strong_buy { background: rgba(0,230,118,0.15); color: var(--up); border: 1px solid rgba(0,230,118,0.3); }
+.sig-stable_up  { background: rgba(0,230,118,0.07); color: #69f0ae;  border: 1px solid rgba(0,230,118,0.15); }
+.sig-neutral    { background: rgba(74,85,104,0.2);  color: var(--muted); border: 1px solid var(--border2); }
+.sig-watch      { background: rgba(255,179,0,0.12); color: var(--warn); border: 1px solid rgba(255,179,0,0.3); }
+.sig-risk       { background: rgba(255,68,68,0.12); color: var(--down); border: 1px solid rgba(255,68,68,0.3); }
+
+/* Alerts */
+.alerts-grid { display: grid; gap: 8px; }
+.alert-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+.alert-icon { font-size: 16px; flex-shrink: 0; }
+.alert-body {}
+.alert-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.alert-msg   { font-family: var(--sans); font-size: 11px; color: var(--muted); }
+.alert-cur   { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.08em; }
+
+.alert-opportunity { background: rgba(0,230,118,0.07); border-color: rgba(0,230,118,0.25); }
+.alert-opportunity .alert-title { color: var(--up); }
+.alert-info        { background: rgba(0,212,255,0.07); border-color: rgba(0,212,255,0.25); }
+.alert-info .alert-title        { color: var(--accent); }
+.alert-watch       { background: rgba(255,179,0,0.07); border-color: rgba(255,179,0,0.25); }
+.alert-watch .alert-title       { color: var(--warn); }
+.alert-warning     { background: rgba(255,68,68,0.07); border-color: rgba(255,68,68,0.25); }
+.alert-warning .alert-title     { color: var(--down); }
+
+.section-title {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* Loading / Error */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 200px; color: var(--muted); gap: 8px;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-msg {
+  background: rgba(255,68,68,0.08);
+  border: 1px solid rgba(255,68,68,0.3);
+  border-radius: 4px;
+  padding: 12px 16px;
+  color: #ff8888;
+  font-family: var(--sans);
+  margin: 16px;
+}
+
+/* Leaflet dark overrides */
+.leaflet-container { background: #0d1117 !important; }
+.leaflet-tile      { filter: brightness(0.6) saturate(0.4); }
+.leaflet-popup-content-wrapper {
+  background: var(--surface) !important;
+  border: 1px solid var(--border2) !important;
+  color: var(--text) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6) !important;
+  border-radius: 4px !important;
+}
+.leaflet-popup-tip { background: var(--surface) !important; }
+.leaflet-popup-content { font-family: var(--mono) !important; font-size: 12px !important; }
+
+@media (max-width: 768px) {
+  .city-grid { grid-template-columns: 1fr 1fr; }
+  .ranking-table th:nth-child(n+5),
+  .ranking-table td:nth-child(n+5) { display: none; }
+}
+@media (max-width: 480px) {
+  .city-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Compare Page ── */
+.compare-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.compare-selects {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.select-group { display: flex; flex-direction: column; gap: 5px; }
+.select-label { font-size: 9px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; }
+
+.cmp-select {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+  min-width: 170px;
+  appearance: none;
+}
+.cmp-select:focus { border-color: var(--accent); }
+
+.cmp-vs { font-size: 14px; color: var(--muted); padding-bottom: 8px; }
+
+.swap-btn {
+  padding: 7px 13px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.swap-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.cmp-toolbar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.range-btns  { display: flex; gap: 4px; }
+.range-btn {
+  padding: 6px 13px;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.05em;
+}
+.range-btn:hover { border-color: var(--accent); color: var(--text); }
+.range-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.08); }
+
+.mode-btns { display: flex; gap: 4px; }
+.mode-btn {
+  padding: 6px 13px;
+  font-family: var(--mono);
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--muted);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.05em;
+}
+.mode-btn:hover { border-color: var(--gold); color: var(--text); }
+.mode-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(255,215,0,0.07); }
+
+.cmp-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.cmp-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+.cmp-stat-label { font-size: 9px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+.cmp-stat-value { font-size: 20px; font-weight: 600; color: var(--text); }
+.cmp-stat-sub   { font-family: var(--sans); font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+.cmp-chart-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px 20px 20px;
+}
+.cmp-chart-title { font-size: 9px; letter-spacing: 0.12em; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+#cmp-chart { width: 100% !important; height: 340px !important; }
+
+@media (max-width: 768px) { .cmp-stats-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .cmp-stats-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <div>
+      <div class="logo-text">FX · INTELLIGENCE</div>
+      <div class="logo-sub">Global FX Intelligence Map</div>
+    </div>
+  </div>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="geo">🌍 Geo Map</button>
+    <button class="tab-btn"        data-tab="city">💰 City</button>
+    <button class="tab-btn"        data-tab="capital">📈 Capital</button>
+    <button class="tab-btn"        data-tab="compare">📊 Compare</button>
+  </nav>
+
+  <div id="clock">──:──:──</div>
+</header>
+
+<!-- ── Geo Map ── -->
+<div id="page-geo" class="page active">
+  <div class="map-controls">
+    <!-- Layer selector -->
+    <div class="map-panel">
+      <div class="map-panel-title">圖層 · LAYER</div>
+      <div class="layer-btns">
+        <button class="layer-btn active" data-layer="ppp">▪ PPP 偏離度</button>
+        <button class="layer-btn"        data-layer="momentum">▪ 貨幣動能</button>
+        <button class="layer-btn"        data-layer="city">▪ 城市購買力</button>
+      </div>
+    </div>
+    <!-- Legend -->
+    <div class="map-panel" id="map-legend">
+      <div class="map-panel-title" id="legend-title">PPP 偏離度</div>
+      <div class="legend-bar" id="legend-bar"
+           style="background: linear-gradient(to right, #1565c0, #64b5f6, #888, #ef9a9a, #c62828)"></div>
+      <div class="legend-labels">
+        <span id="legend-lo">低估</span>
+        <span>0</span>
+        <span id="legend-hi">高估</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<!-- ── City ── -->
+<div id="page-city" class="page">
+  <div class="page-scroll">
+    <div class="page-header">
+      <div class="page-title">💰 City Purchasing Power</div>
+      <div class="page-sub">城市購買力比較 · 月均薪資 ÷ 生活成本 × 匯率調整</div>
+    </div>
+    <div id="city-grid" class="city-grid">
+      <div class="loading"><div class="spinner"></div>&nbsp;載入中</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Capital Flow ── -->
+<div id="page-capital" class="page">
+  <div class="page-scroll">
+    <div class="page-header">
+      <div class="page-title">📈 Capital Flow Dashboard</div>
+      <div class="page-sub">貨幣強弱排名 · 動能 = 0.5 × 30日 + 0.5 × 90日報酬</div>
+    </div>
+
+    <div class="section-title">CURRENCY STRENGTH RANKING</div>
+    <div id="ranking-wrap">
+      <div class="loading"><div class="spinner"></div>&nbsp;載入中</div>
+    </div>
+
+    <div class="section-title" style="margin-top:28px">INVESTMENT ALERTS · 投資警示</div>
+    <div id="alerts-wrap" class="alerts-grid">
+      <div class="loading"><div class="spinner"></div>&nbsp;載入中</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Compare ── -->
+<div id="page-compare" class="page">
+  <div class="page-scroll">
+    <div class="page-header">
+      <div class="page-title">📊 Rate Compare</div>
+      <div class="page-sub">選取兩種貨幣，查看長期匯率走勢對比</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="compare-controls">
+      <div class="compare-selects">
+        <div class="select-group">
+          <div class="select-label">基礎貨幣</div>
+          <select id="cmp-base" class="cmp-select"></select>
+        </div>
+        <div class="cmp-vs">vs</div>
+        <div class="select-group">
+          <div class="select-label">對比貨幣</div>
+          <select id="cmp-quote" class="cmp-select"></select>
+        </div>
+        <button id="cmp-swap" class="swap-btn" title="交換">⇄</button>
+      </div>
+      <div class="cmp-toolbar">
+        <div class="range-btns">
+          <button class="range-btn"        data-range="1">1Y</button>
+          <button class="range-btn"        data-range="3">3Y</button>
+          <button class="range-btn active" data-range="5">5Y</button>
+          <button class="range-btn"        data-range="0">ALL</button>
+        </div>
+        <div class="mode-btns">
+          <button class="mode-btn active" data-mode="cross">直接匯率</button>
+          <button class="mode-btn"        data-mode="norm">強弱對比</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="cmp-stats" class="cmp-stats-row">
+      <div class="loading" style="grid-column:1/-1"><div class="spinner"></div>&nbsp;載入中</div>
+    </div>
+
+    <!-- Chart -->
+    <div class="cmp-chart-wrap">
+      <div id="cmp-chart-title" class="cmp-chart-title">匯率走勢</div>
+      <canvas id="cmp-chart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';   // same origin; set to 'http://localhost:8000' if running separately
+
+// ── Clock ────────────────────────────────────────────────────────────────────
+(function clock() {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('zh-TW', { hour12: false });
+  setTimeout(clock, 1000);
+})();
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+const tabs = { geo: false, city: false, capital: false, compare: false };
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.page').forEach(p =>
+    p.classList.toggle('active', p.id === 'page-' + id));
+
+  if (!tabs[id]) {
+    tabs[id] = true;
+    if (id === 'geo')     initGeo();
+    if (id === 'city')    initCity();
+    if (id === 'capital') initCapital();
+    if (id === 'compare') initCompare();
+  } else if (id === 'geo' && mapObj) {
+    setTimeout(() => mapObj.invalidateSize(), 50);
+  }
+}
+
+document.querySelectorAll('.tab-btn').forEach(b =>
+  b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function apiFetch(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ── Color helpers ─────────────────────────────────────────────────────────────
+function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
+
+function pppColor(dev) {
+  // dev < 0 = undervalued (blue), dev > 0 = overvalued (red)
+  if (dev < -20) return '#1565c0';
+  if (dev < -10) return '#1976d2';
+  if (dev <   0) return '#64b5f6';
+  if (dev <  10) return '#ef9a9a';
+  if (dev <  20) return '#e53935';
+  return '#b71c1c';
+}
+
+function momentumColor(mom) {
+  if (mom >  1.0) return '#00e676';
+  if (mom >  0.3) return '#69f0ae';
+  if (mom > -0.3) return '#78909c';
+  if (mom > -1.0) return '#ff8a65';
+  return '#ff4444';
+}
+
+function ppColor(pp, max) {
+  const t = pp / max;
+  // low PP = yellow, high PP = cyan
+  const r = Math.round(lerp(255, 0,   t));
+  const g = Math.round(lerp(183, 212, t));
+  const b = Math.round(lerp(0,   255, t));
+  return `rgb(${r},${g},${b})`;
+}
+
+const signalLabels = {
+  strong_buy: '⬆ 配置區',
+  stable_up:  '↑ 穩定升',
+  neutral:    '● 中性',
+  watch:      '↓ 觀察',
+  risk:       '⬇ 風險',
+};
+
+// ── GEO MAP ───────────────────────────────────────────────────────────────────
+let mapObj = null;
+let geoData = null, mapMarkers = [];
+
+async function initGeo() {
+  // Init Leaflet
+  mapObj = L.map('map', { zoomControl: true }).setView([25, 110], 3);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 10,
+  }).addTo(mapObj);
+
+  try {
+    geoData = await apiFetch('/api/geo');
+    renderMapLayer('ppp');
+  } catch(e) {
+    document.getElementById('map').insertAdjacentHTML('beforeend',
+      `<div class="error-msg" style="position:absolute;top:60px;left:60px;z-index:1000">
+        無法載入地圖資料：${e.message}</div>`);
+  }
+
+  // Layer switcher
+  document.querySelectorAll('.layer-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderMapLayer(btn.dataset.layer);
+    })
+  );
+}
+
+function clearMapMarkers() {
+  mapMarkers.forEach(m => mapObj.removeLayer(m));
+  mapMarkers = [];
+}
+
+function renderMapLayer(layer) {
+  clearMapMarkers();
+
+  if (layer === 'city') {
+    renderCityLayer();
+    updateLegend('city');
+    return;
+  }
+
+  updateLegend(layer);
+
+  geoData.forEach(d => {
+    const color  = layer === 'ppp' ? pppColor(d.ppp_deviation) : momentumColor(d.momentum);
+    const radius = 10;
+    const popup  = buildGeoPopup(d);
+
+    const circle = L.circleMarker([d.lat, d.lon], {
+      radius,
+      color,
+      fillColor: color,
+      fillOpacity: 0.75,
+      weight: 1.5,
+      opacity: 0.9,
+    }).bindPopup(popup);
+
+    circle.addTo(mapObj);
+    mapMarkers.push(circle);
+  });
+}
+
+function buildGeoPopup(d) {
+  const momClass = d.momentum >= 0 ? 'color:#00e676' : 'color:#ff4444';
+  const pppClass = d.ppp_deviation < 0 ? 'color:#64b5f6' : 'color:#ef9a9a';
+  return `
+    <div style="min-width:160px">
+      <div style="font-weight:600;color:#00d4ff;margin-bottom:6px">${d.country} · ${d.currency}</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px">
+        <span style="color:#4a5568">最新匯率</span><span>1 USD = ${d.latest_rate.toFixed(4)}</span>
+        <span style="color:#4a5568">PPP 偏離</span><span style="${pppClass}">${d.ppp_deviation > 0 ? '+' : ''}${d.ppp_deviation}%</span>
+        <span style="color:#4a5568">30日動能</span><span style="${momClass}">${d.momentum_30d >= 0 ? '+' : ''}${d.momentum_30d}%</span>
+        <span style="color:#4a5568">90日動能</span><span style="${momClass}">${d.momentum_90d >= 0 ? '+' : ''}${d.momentum_90d}%</span>
+        <span style="color:#4a5568">波動率σ</span><span>${d.volatility.toFixed(3)}</span>
+      </div>
+    </div>`;
+}
+
+async function renderCityLayer() {
+  let cities;
+  try { cities = await apiFetch('/api/city'); } catch { return; }
+
+  const maxPP = Math.max(...cities.map(c => c.purchasing_power));
+
+  cities.forEach(c => {
+    const color  = ppColor(c.purchasing_power, maxPP);
+    const radius = 8 + (c.purchasing_power / maxPP) * 12;
+    const popup  = buildCityPopup(c);
+
+    const circle = L.circleMarker([c.lat, c.lon], {
+      radius,
+      color,
+      fillColor: color,
+      fillOpacity: 0.8,
+      weight: 1.5,
+    }).bindPopup(popup);
+
+    circle.addTo(mapObj);
+    mapMarkers.push(circle);
+  });
+}
+
+function buildCityPopup(c) {
+  const rate = c.usd_rate ? `1 USD = ${c.usd_rate.toFixed(2)}` : 'USD base';
+  return `
+    <div style="min-width:150px">
+      <div style="font-weight:600;color:#00d4ff;margin-bottom:6px">${c.city} · ${c.country}</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:11px">
+        <span style="color:#4a5568">購買力分數</span><span style="color:#00e676;font-weight:600">${c.purchasing_power.toFixed(0)}</span>
+        <span style="color:#4a5568">月均薪資</span><span>$${c.avg_salary_usd.toLocaleString()}</span>
+        <span style="color:#4a5568">生活成本</span><span>${c.cost_index}/100</span>
+        <span style="color:#4a5568">當地匯率</span><span>${rate}</span>
+      </div>
+    </div>`;
+}
+
+function updateLegend(layer) {
+  const bar   = document.getElementById('legend-bar');
+  const title = document.getElementById('legend-title');
+  const lo    = document.getElementById('legend-lo');
+  const hi    = document.getElementById('legend-hi');
+
+  if (layer === 'ppp') {
+    title.textContent = 'PPP 偏離度';
+    bar.style.background = 'linear-gradient(to right, #1565c0, #64b5f6, #888, #ef9a9a, #c62828)';
+    lo.textContent = '低估'; hi.textContent = '高估';
+  } else if (layer === 'momentum') {
+    title.textContent = '貨幣動能';
+    bar.style.background = 'linear-gradient(to right, #ff4444, #ff8a65, #78909c, #69f0ae, #00e676)';
+    lo.textContent = '走弱'; hi.textContent = '走強';
+  } else {
+    title.textContent = '城市購買力';
+    bar.style.background = 'linear-gradient(to right, #ffb700, #00d4ff)';
+    lo.textContent = '低'; hi.textContent = '高';
+  }
+}
+
+// ── CITY ─────────────────────────────────────────────────────────────────────
+async function initCity() {
+  const grid = document.getElementById('city-grid');
+  try {
+    const data = await apiFetch('/api/city');
+    const maxPP = Math.max(...data.map(c => c.purchasing_power));
+
+    grid.innerHTML = data.map((c, i) => {
+      const pct   = (c.purchasing_power / maxPP * 100).toFixed(1);
+      const color = ppColor(c.purchasing_power, maxPP);
+      const rate  = c.usd_rate ? `1 USD = ${c.usd_rate.toFixed(2)} ${c.currency_code || ''}` : 'USD base';
+      return `
+        <div class="city-card">
+          <div class="city-rank"># ${i + 1}</div>
+          <div class="city-name">${c.city}</div>
+          <div class="city-country">${c.country}</div>
+
+          <div class="city-stat">
+            <span class="city-stat-label">月均薪資</span>
+            <span class="city-stat-value">$${c.avg_salary_usd.toLocaleString()}</span>
+          </div>
+          <div class="city-stat">
+            <span class="city-stat-label">生活成本</span>
+            <span class="city-stat-value">${c.cost_index} / NYC 100</span>
+          </div>
+          <div class="city-stat">
+            <span class="city-stat-label">匯率</span>
+            <span class="city-stat-value" style="font-size:11px;color:var(--muted)">${rate}</span>
+          </div>
+
+          <div class="pp-bar-wrap">
+            <div class="pp-bar-label">
+              <span>購買力分數</span>
+              <span style="color:${color};font-weight:600">${c.purchasing_power.toFixed(0)}</span>
+            </div>
+            <div class="pp-bar-track">
+              <div class="pp-bar-fill" style="width:${pct}%;background:${color}"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = `<div class="error-msg">載入失敗：${e.message}</div>`;
+  }
+}
+
+// ── CAPITAL ───────────────────────────────────────────────────────────────────
+async function initCapital() {
+  const rankWrap   = document.getElementById('ranking-wrap');
+  const alertsWrap = document.getElementById('alerts-wrap');
+
+  try {
+    const [capitalData, alertsData] = await Promise.all([
+      apiFetch('/api/capital'),
+      apiFetch('/api/alerts'),
+    ]);
+
+    const maxMomAbs = Math.max(...capitalData.map(d => Math.abs(d.momentum)), 0.1);
+
+    rankWrap.innerHTML = `
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>幣別</th>
+            <th class="right">30日動能</th>
+            <th class="right">90日動能</th>
+            <th class="right">綜合動能</th>
+            <th class="right">波動率σ</th>
+            <th class="right">PPP偏離</th>
+            <th>訊號</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${capitalData.map(d => {
+            const mc      = momentumColor(d.momentum);
+            const barPct  = Math.abs(d.momentum) / maxMomAbs * 100;
+            const pppTxt  = (d.ppp_deviation > 0 ? '+' : '') + d.ppp_deviation.toFixed(0) + '%';
+            const pppCol  = d.ppp_deviation < 0 ? 'var(--accent)' : 'var(--down)';
+            const sig     = d.signal;
+            return `
+              <tr>
+                <td class="rank-num">${d.rank}</td>
+                <td>
+                  <div class="cur-code">${d.currency_code}</div>
+                  <div class="cur-name">${d.currency_name}</div>
+                </td>
+                <td class="right" style="color:${momentumColor(d.momentum_30d)}">
+                  ${d.momentum_30d >= 0 ? '+' : ''}${d.momentum_30d.toFixed(2)}%
+                </td>
+                <td class="right" style="color:${momentumColor(d.momentum_90d)}">
+                  ${d.momentum_90d >= 0 ? '+' : ''}${d.momentum_90d.toFixed(2)}%
+                </td>
+                <td>
+                  <div class="mom-bar-wrap">
+                    <span class="mom-val" style="color:${mc}">${d.momentum >= 0 ? '+' : ''}${d.momentum.toFixed(2)}%</span>
+                    <div class="mom-bar-mini">
+                      <div class="mom-bar-mini-fill" style="width:${barPct}%;background:${mc}"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="right" style="color:var(--muted)">${d.volatility.toFixed(3)}</td>
+                <td class="right" style="color:${pppCol}">${pppTxt}</td>
+                <td><span class="signal-badge sig-${sig}">${signalLabels[sig] || sig}</span></td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+
+    if (alertsData.length === 0) {
+      alertsWrap.innerHTML = '<div style="color:var(--muted);font-size:12px">目前無警示</div>';
+    } else {
+      alertsWrap.innerHTML = alertsData.map(a => {
+        const icons = { opportunity: '🟢', info: '🔵', watch: '🟡', warning: '🔴' };
+        return `
+          <div class="alert-card alert-${a.type}">
+            <div class="alert-icon">${icons[a.type] || '⚪'}</div>
+            <div class="alert-body">
+              <div class="alert-title">${a.title}</div>
+              <div class="alert-msg">${a.message}</div>
+              <div class="alert-cur">${a.currency_code} · ${a.currency_name}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    rankWrap.innerHTML   = `<div class="error-msg">載入失敗：${e.message}</div>`;
+    alertsWrap.innerHTML = '';
+  }
+}
+
+// ── COMPARE ───────────────────────────────────────────────────────────────────
+// AUDD (AUD) and XEUD (EUR) are stored as X/USD (1 unit = X USD).
+// All others are stored as USD/X (1 USD = X units).
+const CMP_DIRECT = new Set(['AUDD', 'XEUD']);
+
+// Returns "how many USD you get for 1 unit of this currency"
+function toUsdValue(code, rate) {
+  return CMP_DIRECT.has(code) ? rate : 1 / rate;
+}
+
+let cmpChart = null;
+
+async function initCompare() {
+  let currencies;
+  try {
+    currencies = await apiFetch('/api/currencies');
+  } catch(e) {
+    document.getElementById('cmp-stats').innerHTML =
+      `<div class="error-msg" style="grid-column:1/-1">載入失敗：${e.message}</div>`;
+    return;
+  }
+
+  const baseEl  = document.getElementById('cmp-base');
+  const quoteEl = document.getElementById('cmp-quote');
+  const opts = currencies.map(c =>
+    `<option value="${c.code}">${c.code} · ${c.name}</option>`
+  ).join('');
+  baseEl.innerHTML  = opts;
+  quoteEl.innerHTML = opts;
+  if (currencies.length >= 2) quoteEl.selectedIndex = 1;
+
+  baseEl.addEventListener('change',  loadComparison);
+  quoteEl.addEventListener('change', loadComparison);
+
+  document.getElementById('cmp-swap').addEventListener('click', () => {
+    const tmp = baseEl.value;
+    baseEl.value  = quoteEl.value;
+    quoteEl.value = tmp;
+    loadComparison();
+  });
+
+  document.querySelectorAll('#page-compare .range-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#page-compare .range-btn')
+        .forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadComparison();
+    })
+  );
+
+  document.querySelectorAll('.mode-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadComparison();
+    })
+  );
+
+  loadComparison();
+}
+
+async function loadComparison() {
+  const baseCode  = document.getElementById('cmp-base').value;
+  const quoteCode = document.getElementById('cmp-quote').value;
+  const years     = parseInt(document.querySelector('#page-compare .range-btn.active').dataset.range);
+  const mode      = document.querySelector('.mode-btn.active').dataset.mode;
+  const statsEl   = document.getElementById('cmp-stats');
+
+  if (baseCode === quoteCode) {
+    statsEl.innerHTML = '<div class="error-msg" style="grid-column:1/-1">請選擇不同的兩種貨幣</div>';
+    return;
+  }
+
+  statsEl.innerHTML =
+    '<div class="loading" style="grid-column:1/-1"><div class="spinner"></div>&nbsp;載入中</div>';
+
+  let sinceParam = '';
+  if (years > 0) {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - years);
+    sinceParam = `?since=${d.toISOString().slice(0, 10)}`;
+  }
+
+  try {
+    const [baseHist, quoteHist] = await Promise.all([
+      apiFetch(`/api/history/${baseCode}${sinceParam}`),
+      apiFetch(`/api/history/${quoteCode}${sinceParam}`),
+    ]);
+
+    const baseMap  = new Map(baseHist.history.map(p => [p.date, p.rate]));
+    const quoteMap = new Map(quoteHist.history.map(p => [p.date, p.rate]));
+    const dates    = [...baseMap.keys()].filter(d => quoteMap.has(d)).sort();
+
+    if (dates.length === 0) {
+      statsEl.innerHTML =
+        '<div class="error-msg" style="grid-column:1/-1">無共同資料區間</div>';
+      return;
+    }
+
+    // Format date labels as YYYY/MM
+    const labels = dates.map(d => d.slice(0, 7).replace('-', '/'));
+
+    if (mode === 'cross') {
+      // Direct cross-rate: 1 BASE = X QUOTE
+      const rates = dates.map(d => {
+        const usdBase  = toUsdValue(baseCode,  baseMap.get(d));
+        const usdQuote = toUsdValue(quoteCode, quoteMap.get(d));
+        return +(usdBase / usdQuote).toFixed(6);
+      });
+
+      const cur    = rates[rates.length - 1];
+      const first  = rates[0];
+      const change = (cur - first) / Math.abs(first) * 100;
+      const high   = Math.max(...rates);
+      const low    = Math.min(...rates);
+      const prec   = cur < 1 ? 4 : cur < 100 ? 3 : 2;
+      const chgCol = change >= 0 ? 'var(--up)' : 'var(--down)';
+      const sign   = v => v >= 0 ? '+' : '';
+
+      statsEl.innerHTML = `
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">目前匯率</div>
+          <div class="cmp-stat-value">${cur.toFixed(prec)}</div>
+          <div class="cmp-stat-sub">1 ${baseHist.currency_name} = ${cur.toFixed(prec)} ${quoteHist.currency_name}</div>
+        </div>
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">期間漲跌</div>
+          <div class="cmp-stat-value" style="color:${chgCol}">${sign(change)}${change.toFixed(2)}%</div>
+          <div class="cmp-stat-sub">vs 起點 ${labels[0]}</div>
+        </div>
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">期間最高</div>
+          <div class="cmp-stat-value" style="color:var(--up)">${high.toFixed(prec)}</div>
+          <div class="cmp-stat-sub">${baseHist.currency_name} 最強</div>
+        </div>
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">期間最低</div>
+          <div class="cmp-stat-value" style="color:var(--down)">${low.toFixed(prec)}</div>
+          <div class="cmp-stat-sub">${baseHist.currency_name} 最弱</div>
+        </div>`;
+
+      document.getElementById('cmp-chart-title').textContent =
+        `1 ${baseHist.currency_name} (${baseCode}) = X ${quoteHist.currency_name} (${quoteCode})`;
+
+      renderCrossChart(labels, rates, baseHist, quoteHist, prec);
+
+    } else {
+      // Normalized: both vs USD, indexed to 100 at period start
+      const baseUsd  = dates.map(d => toUsdValue(baseCode,  baseMap.get(d)));
+      const quoteUsd = dates.map(d => toUsdValue(quoteCode, quoteMap.get(d)));
+      const baseNorm  = baseUsd.map(v  => +(v  / baseUsd[0]  * 100).toFixed(3));
+      const quoteNorm = quoteUsd.map(v => +(v / quoteUsd[0] * 100).toFixed(3));
+
+      const bFinal = baseNorm[baseNorm.length - 1];
+      const qFinal = quoteNorm[quoteNorm.length - 1];
+      const bChg   = bFinal - 100;
+      const qChg   = qFinal - 100;
+      const fmt    = v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+      const stronger = bFinal >= qFinal ? baseHist.currency_name : quoteHist.currency_name;
+
+      statsEl.innerHTML = `
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">${baseHist.currency_name} vs USD</div>
+          <div class="cmp-stat-value" style="color:${bChg >= 0 ? 'var(--up)' : 'var(--down)'}">${fmt(bChg)}</div>
+          <div class="cmp-stat-sub">指數現值 ${bFinal.toFixed(1)}</div>
+        </div>
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">${quoteHist.currency_name} vs USD</div>
+          <div class="cmp-stat-value" style="color:${qChg >= 0 ? 'var(--up)' : 'var(--down)'}">${fmt(qChg)}</div>
+          <div class="cmp-stat-sub">指數現值 ${qFinal.toFixed(1)}</div>
+        </div>
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">區間較強貨幣</div>
+          <div class="cmp-stat-value" style="color:var(--accent);font-size:15px">${stronger}</div>
+          <div class="cmp-stat-sub">相對 USD 表現較好</div>
+        </div>
+        <div class="cmp-stat-card">
+          <div class="cmp-stat-label">指數差距</div>
+          <div class="cmp-stat-value">${Math.abs(bFinal - qFinal).toFixed(1)}</div>
+          <div class="cmp-stat-sub">點（起點基準 100）</div>
+        </div>`;
+
+      document.getElementById('cmp-chart-title').textContent =
+        `貨幣強度 vs USD · 起點 = 100 · ${labels[0]}`;
+
+      renderNormChart(labels, baseNorm, quoteNorm, baseHist, quoteHist);
+    }
+
+  } catch(e) {
+    statsEl.innerHTML =
+      `<div class="error-msg" style="grid-column:1/-1">載入失敗：${e.message}</div>`;
+  }
+}
+
+function cmpChartBase() {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#111318',
+        borderColor: '#252d3a',
+        borderWidth: 1,
+        titleColor: '#00d4ff',
+        bodyColor: '#c8d4e0',
+        titleFont: { family: 'IBM Plex Mono' },
+        bodyFont:  { family: 'IBM Plex Mono' },
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: '#1e2430' },
+        ticks: { color: '#4a5568', font: { family: 'IBM Plex Mono', size: 10 }, maxTicksLimit: 8 },
+      },
+      y: {
+        grid: { color: '#1e2430' },
+        ticks: { color: '#4a5568', font: { family: 'IBM Plex Mono', size: 10 } },
+      },
+    },
+  };
+}
+
+function renderCrossChart(labels, data, baseHist, quoteHist, prec) {
+  if (cmpChart) { cmpChart.destroy(); cmpChart = null; }
+  const opts = cmpChartBase();
+  opts.plugins.tooltip.callbacks = {
+    label: ctx =>
+      `1 ${baseHist.currency_name} = ${ctx.parsed.y.toFixed(prec)} ${quoteHist.currency_name}`,
+  };
+  cmpChart = new Chart(
+    document.getElementById('cmp-chart').getContext('2d'),
+    {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          borderColor: '#00d4ff',
+          backgroundColor: 'rgba(0,212,255,0.06)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.1,
+        }],
+      },
+      options: opts,
+    }
+  );
+}
+
+function renderNormChart(labels, baseData, quoteData, baseHist, quoteHist) {
+  if (cmpChart) { cmpChart.destroy(); cmpChart = null; }
+  const opts = cmpChartBase();
+  opts.plugins.legend = {
+    display: true,
+    labels: { color: '#c8d4e0', font: { family: 'IBM Plex Mono', size: 11 }, boxWidth: 16 },
+  };
+  opts.plugins.tooltip.callbacks = {
+    label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`,
+  };
+  cmpChart = new Chart(
+    document.getElementById('cmp-chart').getContext('2d'),
+    {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: baseHist.currency_name,
+            data: baseData,
+            borderColor: '#00d4ff',
+            backgroundColor: 'rgba(0,212,255,0.04)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.1,
+          },
+          {
+            label: quoteHist.currency_name,
+            data: quoteData,
+            borderColor: '#ffd700',
+            backgroundColor: 'rgba(255,215,0,0.04)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.1,
+          },
+        ],
+      },
+      options: opts,
+    }
+  );
+}
+
+// ── Boot: init geo on load ────────────────────────────────────────────────────
+tabs.geo = true;
+initGeo();
+
+// ── PWA: Service Worker registration ─────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => {
+        // Check for updates on each visit
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available – show subtle hint
+              const hint = document.createElement('div');
+              hint.style.cssText =
+                'position:fixed;bottom:12px;right:12px;z-index:9999;' +
+                'background:#111318;border:1px solid #00d4ff;border-radius:4px;' +
+                'padding:10px 14px;font-family:IBM Plex Mono,monospace;font-size:11px;' +
+                'color:#00d4ff;cursor:pointer;';
+              hint.textContent = '↻  新版本已就緒，點擊重新整理';
+              hint.addEventListener('click', () => location.reload());
+              document.body.appendChild(hint);
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[SW] 註冊失敗:', err));
+  });
+}
+</script>
+</body>
+</html>

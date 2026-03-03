@@ -1,0 +1,41 @@
+{
+  "name": "FX Intelligence · 外匯智能地圖",
+  "short_name": "FX",
+  "description": "全球外匯智能分析儀表板，提供匯率走勢、城市購買力與資本動能分析",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0c0f",
+  "theme_color": "#00d4ff",
+  "lang": "zh-TW",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Geo Map",
+      "short_name": "地圖",
+      "url": "/#geo",
+      "description": "全球匯率地圖"
+    },
+    {
+      "name": "Rate Compare",
+      "short_name": "比較",
+      "url": "/#compare",
+      "description": "匯率走勢對比"
+    }
+  ]
+}
