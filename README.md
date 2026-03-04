@@ -1,22 +1,38 @@
-# 食譜 WebApp（PWA + GitHub Pages）
+# 瑞士旅遊 2026
 
-已加上 PWA：支援「加到主畫面」、離線瀏覽。
-- `manifest.json`：App 名稱、圖示、顏色與 scope
-- `sw.js`：Service Worker，安裝時快取 App Shell 與資料（含 `recipes.csv`），採 **stale-while-revalidate**
-- `index.html`：已連結 manifest 與註冊 SW
-- `icon-192.png`, `icon-512.png`：安裝圖示
-- `.nojekyll`：避免 Pages 處理檔案
+## 行程概覽
 
-## 部署（GitHub Pages）
-1. 上傳整個資料夾內容到 GitHub 儲存庫根目錄（main branch）。
-2. 設定 **Settings → Pages → Deploy from a branch**，Branch 選 **main / root**。
-3. 重新整理頁面一次，並在瀏覽器網址列點「安裝」或在 Chrome → 三點 → 安裝 App。
+**日期**：2026/6/13 (六) - 6/24 (三)，共12天
+**人數**：6位成人
+**交通**：自駕 + 火車
 
-## 更新與版本
-- 每次我都會在 `sw.js` 內嵌新版本號（v20250820035521）。若修改檔案並重新部署，使用者重新載入即會更新快取。
-- 若看到舊畫面，請嘗試強制重新整理（Ctrl+F5）。
+---
 
-## 離線行為
-- 首次開啟必須連網以安裝快取；之後離線可開啟上次的內容（搜尋與瀏覽仍可用，新增資料依你實作儲存方式而定）。
+## 快速導覽
 
-生成時間：2025-08-20 03:55:21
+| 文件 | 說明 |
+|------|------|
+| [瑞士旅遊規劃](docs/瑞士旅遊規劃.md) | 每日行程安排 |
+| [住宿選項分析](docs/住宿選項分析.md) | 住宿預訂詳情與比較 |
+| [租車車款比較](docs/租車車款比較報告.md) | 租車選項分析 |
+| [交通成本分析](docs/六人交通成本比較分析.md) | 自駕 vs 火車成本比較 |
+
+---
+
+## 住宿總覽
+
+| 日期 | 地點 | 飯店 | 狀態 | 訂單 |
+|------|------|------|------|------|
+| 6/13 | 蘇黎世機場 | Zleep Hotel | ✅ 已訂 | [EN](docs/orders/hotel/2026-0613_Zurich-Kloten_Zleep-Hotel.pdf) / [中文](docs/orders/hotel/zh/2026-0613_Zurich-Kloten_Zleep-Hotel_zh.pdf) |
+| 6/14-15 | Goldau | Anstatthotel | ✅ 已訂 | [EN](docs/orders/hotel/2026-0614_Goldau_Anstatthotel.pdf) / [中文](docs/orders/hotel/zh/2026-0614_Goldau_Anstatthotel_zh.pdf) |
+| 6/16-19 | Interlaken | KARL Apartment | ✅ 已訂 | [EN](docs/orders/hotel/2026-0616_Interlaken_KARL-Apartment.pdf) / [中文](docs/orders/hotel/zh/2026-0616_Interlaken_KARL-Apartment_zh.pdf) |
+| 6/20 | Täsch | Hotel Matterhorn Inn | ✅ 已訂 | [EN](docs/orders/hotel/2026-0620_Tasch_Hotel-Matterhorn-Inn.pdf) / [中文](docs/orders/hotel/zh/2026-0620_Tasch_Hotel-Matterhorn-Inn_zh.pdf) |
+| 6/21-22 | Celerina | Chesa Pradatsch Suot 5 | ✅ 已訂 | [EN](docs/orders/hotel/2026-0621_Celerina_Chesa-Pradatsch-Suot-5.pdf) / [中文](docs/orders/hotel/zh/2026-0621_Celerina_Chesa-Pradatsch-Suot-5_zh.pdf) |
+| 6/23 | 蘇黎世 | - | ⏳ 待訂 | - |
+
+---
+
+## 訂單文件
+
+- [飯店確認書 (英文)](docs/orders/hotel/README.md)
+- [飯店確認書 (中文)](docs/orders/hotel/zh/README.md)
