@@ -1,5 +1,5 @@
 @echo off
-echo === FX Terminal ===
+echo === FX Intelligence Map ===
 echo.
 
 if not exist fx.db (
@@ -8,6 +8,15 @@ if not exist fx.db (
     echo.
 )
 
-echo 啟動伺服器：http://localhost:8000
-python run.py
+echo 生成靜態資料...
+python scripts\export_static.py
+if errorlevel 1 (
+    echo 匯出失敗，請確認 fx.db 是否存在。
+    pause
+    exit /b 1
+)
+echo.
+
+echo 啟動靜態伺服器：http://localhost:8000
+python serve.py
 pause

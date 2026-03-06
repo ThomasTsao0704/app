@@ -1,11 +1,31 @@
-// ── FX Intelligence · Service Worker ──────────────────────────────────────────
-const STATIC_CACHE = 'fx-static-v2';
-const CDN_CACHE    = 'fx-cdn-v1';
+// ── FX Intelligence · Service Worker v4 (static build) ──────────────────────
+// All data is pre-generated in data.js – no API calls needed.
+// Strategy:
+//   App shell + data.js → cache-first  (pre-cached on install)
+//   CDN libs             → cache-first  (pre-cached on install)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// App shell to precache on install
-const PRECACHE = ['/'];
+const STATIC_CACHE = 'fx-static-v4';
+const CDN_CACHE    = 'fx-cdn-v2';
 
-// CDN hostnames to cache-first at runtime
+// App shell files to pre-cache on install
+const APP_SHELL = [
+  '/',
+  '/data.js',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+];
+
+// CDN assets to pre-cache (exact versioned URLs)
+const CDN_PRECACHE = [
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+  'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans+TC:wght@300;400;500&display=swap',
+];
+
+// CDN hostnames for runtime cache-first
 const CDN_HOSTS = [
   'fonts.googleapis.com',
   'fonts.gstatic.com',
@@ -13,16 +33,28 @@ const CDN_HOSTS = [
   'cdn.jsdelivr.net',
 ];
 
-// ── Install: precache app shell ───────────────────────────────────────────────
+// ── Install: pre-cache app shell + CDN libs ───────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(c => c.addAll(PRECACHE))
-      .then(() => self.skipWaiting())   // activate immediately
+    Promise.all([
+      // App shell — must succeed
+      caches.open(STATIC_CACHE).then(c => c.addAll(APP_SHELL)),
+
+      // CDN libs — best-effort (allSettled so one failure doesn't block install)
+      caches.open(CDN_CACHE).then(cache =>
+        Promise.allSettled(
+          CDN_PRECACHE.map(url =>
+            fetch(url, { mode: 'cors', credentials: 'omit' })
+              .then(r => { if (r.ok) cache.put(url, r); })
+              .catch(() => {})
+          )
+        )
+      ),
+    ]).then(() => self.skipWaiting())
   );
 });
 
-// ── Activate: purge old caches ────────────────────────────────────────────────
+// ── Activate: purge stale caches ──────────────────────────────────────────────
 self.addEventListener('activate', e => {
   const keep = new Set([STATIC_CACHE, CDN_CACHE]);
   e.waitUntil(
@@ -30,46 +62,55 @@ self.addEventListener('activate', e => {
       .then(keys => Promise.all(
         keys.filter(k => !keep.has(k)).map(k => caches.delete(k))
       ))
-      .then(() => self.clients.claim())  // take control without reload
+      .then(() => self.clients.claim())
   );
 });
 
-// ── Fetch: routing strategy ───────────────────────────────────────────────────
+// ── Fetch: request routing ────────────────────────────────────────────────────
 self.addEventListener('fetch', e => {
   const { request } = e;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
 
-  // 1. API calls: always network, never cache
-  if (url.pathname.startsWith('/api/')) return;
-
-  // 2. CDN assets: cache-first (versioned, rarely change)
+  // CDN assets → cache-first
   if (CDN_HOSTS.some(h => url.hostname.includes(h))) {
-    e.respondWith(
-      caches.open(CDN_CACHE).then(cache =>
-        cache.match(request).then(hit => {
-          if (hit) return hit;
-          return fetch(request).then(resp => {
-            if (resp.ok) cache.put(request, resp.clone());
-            return resp;
-          });
-        })
-      )
-    );
+    e.respondWith(cdnFirst(request));
     return;
   }
 
-  // 3. Same-origin (app shell): network-first, cache as offline fallback
-  e.respondWith(
-    fetch(request)
-      .then(resp => {
-        if (resp.ok) {
-          const clone = resp.clone();
-          caches.open(STATIC_CACHE).then(c => c.put(request, clone));
-        }
-        return resp;
-      })
-      .catch(() => caches.match(request))
-  );
+  // Same-origin (app shell + data.js) → cache-first, then network
+  e.respondWith(appShellFirst(request));
 });
+
+// ── Strategy: cache-first (CDN) ───────────────────────────────────────────────
+async function cdnFirst(request) {
+  const cache  = await caches.open(CDN_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const resp = await fetch(request, { mode: 'cors', credentials: 'omit' });
+    if (resp.ok) cache.put(request, resp.clone());
+    return resp;
+  } catch {
+    return new Response('', { status: 503, statusText: 'Offline' });
+  }
+}
+
+// ── Strategy: cache-first (app shell) ────────────────────────────────────────
+async function appShellFirst(request) {
+  const cache  = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
+  try {
+    const resp = await fetch(request);
+    if (resp.ok) cache.put(request, resp.clone());
+    return resp;
+  } catch {
+    // SPA fallback for navigation requests
+    const fallback = await cache.match('/');
+    return fallback || new Response('Offline', { status: 503 });
+  }
+}

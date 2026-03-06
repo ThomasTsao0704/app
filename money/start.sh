@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "=== FX Terminal ==="
+echo "=== FX Intelligence Map ==="
 
 if [ ! -f fx.db ]; then
     echo "首次啟動：匯入 CSV 資料..."
@@ -7,5 +7,9 @@ if [ ! -f fx.db ]; then
     echo ""
 fi
 
-echo "啟動伺服器：http://localhost:8000"
-python3 run.py
+echo "生成靜態資料..."
+python3 scripts/export_static.py || { echo "匯出失敗"; exit 1; }
+echo ""
+
+echo "啟動靜態伺服器：http://localhost:8000"
+python3 serve.py
