@@ -1,6 +1,6 @@
 {
-"name":"採購資料庫",
-"short_name":"採購",
+"name":"盤前分析",
+"short_name":"股票",
 "start_url":"./index.html",
 "display":"standalone",
 "background_color":"#fafafa",
@@ -18,4 +18,5 @@
 "type":"image/png"
 }
 ]
+
 }
