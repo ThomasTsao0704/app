@@ -1,1074 +1,2452 @@
-<!doctype html>
-<!--
-  ================================================================
-  採購資料庫 · PWA（採購 / 資料 / 管理三分頁版）
-  ================================================================
-  整體說明：
-    此為升級版採購資料庫，欄位全面改為英文（id/item/unit/price/shop），
-    並新增舊資料自動遷移、Toast 提示、管理頁內嵌表格編輯等功能。
-
-  三個主要分頁：
-  ┌─ 🛒 採購分頁（page-cart）【預設顯示】
-  │     顯示全部品項，每列可直接輸入數量（±按鈕或數字輸入）；
-  │     支援關鍵字搜尋與廠商篩選；
-  │     底部即時顯示合計、清順/寶成分廠商小計、已選品項數；
-  │     「匯出（彙總＋複製）」→ 整理選購清單並複製至剪貼簿。
-  ├─ 📄 資料分頁（page-data）
-  │     瀏覽所有品項（支援搜尋）；
-  │     管理者可新增/更新品項、匯出 CSV 資料庫。
-  └─ 🛠 管理分頁（page-admin，需登入才可見）
-        直接在表格內編輯/新增/刪除/複製品項，按「儲存變更」才寫入；
-        支援 CSV 匯入（英/中標頭自動對應）、清空資料庫、設定 PIN、
-        下載 CSV 範本、顯示目前資料筆數與未儲存狀態。
-
-  資料層說明：
-    - LS_DB      → localStorage（品項資料，英文欄位 id/item/unit/price/shop）
-    - LS_QTY     → localStorage（各品項購物數量，以 id 為 key）
-    - LS_FACTORY → localStorage（預設廠商品項快取）
-    - PIN_KEY    → localStorage（管理者 PIN，預設 0000）
-    - OLD_KEY    → 舊版相容：自動將 procure-db-v1 中文欄位遷移至新格式
-
-  技術特色：
-    - 舊版資料自動遷移（migrate()）
-    - uid() 自動產生唯一 ID，避免空 id 衝突
-    - Toast 通知取代傳統 alert（成功綠色 / 失敗紅色，自動消失）
-    - PWA：Service Worker 離線快取 + 安裝提示
-    - intFmt：使用 Intl.NumberFormat 輸出台灣慣用的整數千分位格式
-  ================================================================
--->
-<html lang="zh-Hant">
-
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>採購資料庫 · 採購 / 資料 / 管理 · PWA</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#111111">
-    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
-    <!-- ============================
-         CSS 樣式區塊
-         - :root 定義全域 CSS 變數（圓角、邊框色、灰色、背景色、主色）
-         - .wrap 最大寬度 1000px 水平置中
-         - .tabs / .tab 分頁標籤（active 黑底白字）
-         - .badge 狀態徽章（唯讀/管理者），admin 樣式為淺綠色
-         - .hidden display:none，用來顯示/隱藏各分頁與元件
-         - .card 白色卡片容器（含陰影與圓角）
-         - .qty 數量控制元件（減號按鈕 + 數字輸入 + 加號按鈕）
-         - .summary / .grid-3 採購頁底部彙總區（3 欄格線，小螢幕轉 1 欄）
-         - .toast 右下角浮動提示（slide-in 動畫，.show 顯示，.error 紅色）
-         - dialog / .dlg 彈出對話框（登入、設定 PIN）
-         ============================ -->
-    <style>
-        :root {
-            --radius: 12px;
-            --border: #e5e7eb;
-            --muted: #6b7280;
-            --bg: #fafafa;
-            --primary: #111;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>交易紀律系統 v4</title>
+<meta name="theme-color" content="#090c0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="交易紀律">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090c0f;
+    --bg2: #0e1317;
+    --bg3: #141a20;
+    --border: #1e2830;
+    --border2: #253040;
+    --amber: #f5a623;
+    --amber2: #d4891c;
+    --green: #00e5a0;
+    --red: #ff4d6a;
+    --blue: #3ab8ff;
+    --purple: #a78bfa;
+    --text: #d0dbe8;
+    --text2: #7a90a8;
+    --text3: #4a5f72;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Sora', sans-serif;
+    --radius: 6px;
+  }
 
-        * {
-            box-sizing: border-box
-        }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial, sans-serif;
-            margin: 0;
-            background: var(--bg);
-            color: #111
-        }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
 
-        .wrap {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 18px
-        }
+  /* Scanline effect */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
 
-        h1 {
-            font-size: 1.25rem;
-            margin: 8px 0 6px
-        }
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
 
-        .sub {
-            color: var(--muted);
-            margin: 0 0 12px
-        }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-        .tabs {
-            display: flex;
-            gap: 8px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 12px;
-            align-items: center
-        }
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--amber);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    display: flex; align-items: center; justify-content: center;
+  }
 
-        .tab {
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-bottom: none;
-            border-radius: 10px 10px 0 0;
-            background: #fff;
-            cursor: pointer
-        }
+  .logo-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
 
-        .tab.active {
-            background: #111;
-            color: #fff;
-            border-color: #111
-        }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+  }
 
-        .right {
-            margin-left: auto
-        }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 2px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            font-size: .85rem;
-            background: #fff
-        }
+  .live-clock {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+  }
 
-        .badge.readonly {
-            background: #fff
-        }
+  .regime-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
 
-        .badge.admin {
-            background: #eefbf1;
-            border-color: #b7ebc6
-        }
+  .regime-趨勢 { background: rgba(0,229,160,0.15); color: var(--green); border: 1px solid rgba(0,229,160,0.3); }
+  .regime-震盪 { background: rgba(245,166,35,0.15); color: var(--amber); border: 1px solid rgba(245,166,35,0.3); }
+  .regime-恐慌 { background: rgba(255,77,106,0.15); color: var(--red); border: 1px solid rgba(255,77,106,0.3); }
+  .regime-泡沫 { background: rgba(167,139,250,0.15); color: var(--purple); border: 1px solid rgba(167,139,250,0.3); }
 
-        .hidden {
-            display: none !important
-        }
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    padding: 0 24px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+    overflow-x: auto;
+  }
 
-        .card {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, .03)
-        }
+  .tab {
+    padding: 10px 18px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    white-space: nowrap;
+    font-family: var(--mono);
+  }
 
-        .row {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap
-        }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
 
-        input,
-        button,
-        select {
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 10px
-        }
+  /* ── LAYOUT ── */
+  .page { display: none; padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+  .page.active { display: block; }
 
-        input,
-        select {
-            flex: 1;
-            min-width: 120px
-        }
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .col-span-2 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 3; }
 
-        button {
-            cursor: pointer;
-            background: var(--primary);
-            color: #fff
-        }
+  /* ── CARD ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
 
-        button.secondary {
-            background: #fff;
-            color: #111
-        }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
 
-        button[disabled] {
-            opacity: .5;
-            cursor: not-allowed
-        }
+  .card-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
 
-        .muted {
-            color: var(--muted);
-            font-size: .92rem
-        }
+  .card-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
 
-        .tag {
-            display: inline-block;
-            padding: 2px 8px;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            font-size: .85rem;
-            color: #333;
-            background: #fafafa
-        }
+  /* ── FORM ELEMENTS ── */
+  label {
+    display: block;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    font-family: var(--mono);
+  }
 
-        table {
-            width: 100%;
-            border-collapse: collapse
-        }
+  input[type="text"], input[type="number"], input[type="date"],
+  textarea, select {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 8px 10px;
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    transition: border-color .2s;
+  }
 
-        th,
-        td {
-            padding: 10px;
-            border-bottom: 1px solid var(--border);
-            text-align: left;
-            vertical-align: top
-        }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--amber);
+  }
 
-        tr:hover {
-            background: #f7f7f7
-        }
+  select { cursor: pointer; }
 
-        .num {
-            font-variant-numeric: tabular-nums
-        }
+  textarea { resize: vertical; min-height: 60px; }
 
-        .table-wrap {
-            overflow: auto
-        }
+  .form-row { margin-bottom: 12px; }
 
-        .actions button {
-            padding: 6px 10px;
-            font-size: .9rem
-        }
+  .form-inline { display: flex; gap: 10px; align-items: flex-end; }
+  .form-inline > * { flex: 1; }
 
-        /* Qty control */
-        .qty {
-            display: flex;
-            align-items: center;
-            gap: 6px
-        }
+  /* ── SLIDER ── */
+  .slider-wrapper { display: flex; align-items: center; gap: 10px; }
 
-        .qty input {
-            width: 78px;
-            text-align: right;
-            padding: 6px 8px;
-            border: 1px solid var(--border);
-            border-radius: 10px
-        }
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    outline: none;
+    padding: 0;
+  }
 
-        .qty button {
-            width: 28px;
-            height: 28px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: #fff;
-            line-height: 0
-        }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+  }
 
-        /* Grid cards */
-        .summary {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            margin-top: 12px
-        }
+  .slider-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--amber);
+    min-width: 30px;
+    text-align: right;
+  }
 
-        .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px
-        }
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all .2s;
+  }
 
-        /* Dialog */
-        dialog {
-            border: none;
-            border-radius: 16px;
-            padding: 0;
-            width: min(90vw, 420px)
-        }
+  .btn-primary {
+    background: var(--amber);
+    color: var(--bg);
+    font-weight: 700;
+  }
 
-        .dlg {
-            padding: 18px
-        }
+  .btn-primary:hover { background: var(--amber2); transform: translateY(-1px); }
 
-        .dlg h3 {
-            margin: 0 0 10px
-        }
+  .btn-outline {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+  }
 
-        .dlg .row {
-            margin-top: 8px
-        }
+  .btn-outline:hover { border-color: var(--amber); color: var(--amber); }
 
-        .dlg footer {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 12px
-        }
+  .btn-danger {
+    background: rgba(255,77,106,0.1);
+    color: var(--red);
+    border: 1px solid rgba(255,77,106,0.3);
+  }
 
-        .overlay::backdrop {
-            background: rgba(0, 0, 0, .4)
-        }
+  .btn-danger:hover { background: rgba(255,77,106,0.2); }
 
-        /* Toast */
-        .toast {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            background: #16a34a;
-            color: #fff;
-            padding: 10px 14px;
-            border-radius: 12px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, .15);
-            opacity: 0;
-            transform: translateY(12px);
-            pointer-events: none;
-            transition: opacity .25s ease, transform .25s ease;
-            font-size: .95rem
-        }
+  .btn-green {
+    background: rgba(0,229,160,0.1);
+    color: var(--green);
+    border: 1px solid rgba(0,229,160,0.3);
+  }
 
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0)
-        }
+  .btn-sm { padding: 4px 10px; font-size: 10px; }
 
-        .toast.error {
-            background: #dc2626
-        }
+  .btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
 
-        @media (max-width:700px) {
-            .grid-3 {
-                grid-template-columns: 1fr
-            }
-        }
-    </style>
+  /* ── REGIME SELECTOR ── */
+  .regime-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+  .regime-option {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .2s;
+  }
+
+  .regime-option .r-icon { font-size: 20px; margin-bottom: 4px; }
+  .regime-option .r-name { font-family: var(--mono); font-size: 11px; }
+  .regime-option .r-desc { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  .regime-option[data-regime="趨勢"].selected,
+  .regime-option[data-regime="趨勢"]:hover { border-color: var(--green); background: rgba(0,229,160,0.08); }
+  .regime-option[data-regime="震盪"].selected,
+  .regime-option[data-regime="震盪"]:hover { border-color: var(--amber); background: rgba(245,166,35,0.08); }
+  .regime-option[data-regime="恐慌"].selected,
+  .regime-option[data-regime="恐慌"]:hover { border-color: var(--red); background: rgba(255,77,106,0.08); }
+  .regime-option[data-regime="泡沫"].selected,
+  .regime-option[data-regime="泡沫"]:hover { border-color: var(--purple); background: rgba(167,139,250,0.08); }
+
+  /* ── WEIGHT TABLE ── */
+  .weight-table { width: 100%; border-collapse: collapse; }
+  .weight-table th { font-family: var(--mono); font-size: 10px; color: var(--text3); text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); letter-spacing: 1px; }
+  .weight-table td { padding: 6px 8px; border-bottom: 1px solid rgba(30,40,48,0.5); }
+  .weight-table tr:last-child td { border-bottom: none; }
+
+  .weight-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 4px; }
+  .weight-fill { height: 100%; background: var(--amber); border-radius: 2px; transition: width .3s; }
+
+  .weight-total {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-align: right;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .weight-total.ok { color: var(--green); }
+  .weight-total.bad { color: var(--red); }
+
+  /* ── STOCK ROW ── */
+  .stock-row {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+
+  .stock-row-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .stock-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+    background: rgba(245,166,35,0.1);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  /* ── DIRECTION TOGGLE ── */
+  .dir-toggle { display: flex; gap: 4px; }
+  .dir-btn {
+    padding: 4px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .dir-btn.long.active { background: rgba(0,229,160,0.15); color: var(--green); border-color: var(--green); }
+  .dir-btn.short.active { background: rgba(255,77,106,0.15); color: var(--red); border-color: var(--red); }
+  .dir-btn.watch.active { background: rgba(58,184,255,0.15); color: var(--blue); border-color: var(--blue); }
+
+  /* ── STAT CARDS ── */
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .stat-green { color: var(--green); }
+  .stat-red { color: var(--red); }
+  .stat-amber { color: var(--amber); }
+  .stat-blue { color: var(--blue); }
+
+  /* ── JOURNAL TABLE ── */
+  .journal-table { width: 100%; border-collapse: collapse; }
+  .journal-table th {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .journal-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(30,40,48,0.6);
+    font-size: 12px;
+  }
+  .journal-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .tag-long { color: var(--green); font-family: var(--mono); font-size: 10px; }
+  .tag-short { color: var(--red); font-family: var(--mono); font-size: 10px; }
+  .tag-watch { color: var(--blue); font-family: var(--mono); font-size: 10px; }
+
+  .r-pos { color: var(--green); font-family: var(--mono); }
+  .r-neg { color: var(--red); font-family: var(--mono); }
+  .r-zero { color: var(--text3); font-family: var(--mono); }
+
+  /* ── BIAS CHART ── */
+  .bias-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .bias-label { font-size: 11px; min-width: 120px; color: var(--text2); }
+  .bias-bar-bg { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bias-bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+  .bias-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    min-width: 30px;
+    text-align: right;
+    color: var(--text3);
+  }
+
+  /* ── SECTION DIVIDER ── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    padding: 12px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    z-index: 9999;
+    transform: translateX(120%);
+    transition: transform .3s ease;
+    max-width: 300px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.success { border-left-color: var(--green); }
+  .toast.error { border-left-color: var(--red); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--amber);
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: .5; }
+
+  /* ── GAUGE ── */
+  .gauge-wrap { position: relative; display: inline-block; }
+  .gauge-svg { display: block; }
+  .gauge-val {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  /* ── CHIP ── */
+  .chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 1px;
+    margin: 2px;
+  }
+  .chip-amber { background: rgba(245,166,35,0.15); color: var(--amber); border: 1px solid rgba(245,166,35,0.2); }
+  .chip-green { background: rgba(0,229,160,0.12); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+  .chip-red   { background: rgba(255,77,106,0.12); color: var(--red); border: 1px solid rgba(255,77,106,0.2); }
+  .chip-blue  { background: rgba(58,184,255,0.12); color: var(--blue); border: 1px solid rgba(58,184,255,0.2); }
+
+  /* ── MONTH REPORT ── */
+  .report-section { margin-bottom: 24px; }
+  .report-section h3 { font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: 2px; margin-bottom: 12px; }
+
+  .equity-bar-container { display: flex; flex-direction: column; gap: 4px; }
+  .equity-day {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .equity-date { color: var(--text3); min-width: 60px; }
+  .equity-bar-bg { flex: 1; height: 12px; background: var(--border); border-radius: 2px; overflow: hidden; position: relative; }
+  .equity-bar-pos { height: 100%; background: var(--green); border-radius: 2px; }
+  .equity-bar-neg { height: 100%; background: var(--red); border-radius: 2px; position: absolute; right: 0; top: 0; }
+  .equity-r { min-width: 40px; text-align: right; }
+
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  
+  @media (max-width: 768px) {
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .col-span-2, .col-span-3 { grid-column: span 1; }
+    header { padding: 10px 16px; }
+    .page { padding: 16px; }
+  }
+
+  /* ── PWA INSTALL ── */
+  .hidden { display: none !important; }
+
+  .btn-install {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: rgba(245,166,35,0.12);
+    border: 1px solid rgba(245,166,35,0.4);
+    border-radius: var(--radius);
+    color: var(--amber);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all .2s;
+    animation: pulse-install 2s ease-in-out infinite;
+  }
+
+  .btn-install:hover {
+    background: rgba(245,166,35,0.22);
+    border-color: var(--amber);
+    transform: translateY(-1px);
+  }
+
+  .btn-install:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    animation: none;
+  }
+
+  .btn-install .install-icon {
+    font-size: 13px;
+  }
+
+  @keyframes pulse-install {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0); }
+    50%       { box-shadow: 0 0 0 4px rgba(245,166,35,0.12); }
+  }
+
+  /* iOS install tip */
+  .ios-tip {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--amber);
+    border-radius: 8px;
+    padding: 14px 18px;
+    max-width: 320px;
+    width: 90%;
+    z-index: 9998;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text2);
+    transition: transform .3s ease;
+    text-align: center;
+  }
+
+  .ios-tip.show { transform: translateX(-50%) translateY(0); }
+  .ios-tip strong { color: var(--amber); font-family: var(--mono); font-size: 11px; }
+  .ios-tip .ios-close {
+    position: absolute;
+    top: 8px; right: 10px;
+    background: none; border: none;
+    color: var(--text3); font-size: 14px; cursor: pointer;
+  }
+</style>
 </head>
-
 <body>
-    <div class="wrap">
-        <h1>採購資料庫 · PWA</h1>
-        <p class="sub">分頁：🛒採購（購物車）／📄資料（表格）／🛠管理（登入後可見）。預設 PIN：<span class="tag">0000</span>。</p>
 
-        <div class="tabs">
-            <button class="tab" data-tab="cart">🛒 採購</button>
-            <button class="tab" data-tab="data">📄 資料</button>
-            <button class="tab hidden" data-tab="admin" id="adminTab">🛠 管理</button>
-            <span class="right"></span>
-            <span id="modeBadge" class="badge readonly">🔒 唯讀模式</span>
-            <button id="loginBtn" class="secondary">管理者登入</button>
-            <button id="installBtn" class="secondary hidden" title="安裝離線 App">📲 安裝 App</button>
-            <button id="logoutBtn" class="secondary hidden">登出</button>
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <div>
+      <div class="logo-text">TRADING DISCIPLINE</div>
+      <div class="logo-sub">系統 v4.0</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-clock" id="liveClock">--:--:--</div>
+    <div class="regime-badge regime-震盪" id="regimeBadge" onclick="jumpToRegime()">REGIME: 震盪</div>
+    <button class="btn-install hidden" id="installBtn" title="安裝為桌面 App">
+      <span class="install-icon">⬇</span>
+      <span>安裝 App</span>
+    </button>
+  </div>
+</header>
+
+<!-- iOS INSTALL TIP -->
+<div class="ios-tip" id="iosTip">
+  <button class="ios-close" onclick="document.getElementById('iosTip').classList.remove('show')">✕</button>
+  <strong>安裝為桌面 App（iOS）</strong><br>
+  點擊底部 <strong>分享</strong> 按鈕 →<br>選擇「<strong>加入主畫面</strong>」
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('premarket')">⬡ 盤前預判</div>
+  <div class="tab" onclick="switchTab('postmarket')">⬢ 盤後結案</div>
+  <div class="tab" onclick="switchTab('journal')">◈ 交易日誌</div>
+  <div class="tab" onclick="switchTab('stats')">▣ 統計分析</div>
+  <div class="tab" onclick="switchTab('bias')">◉ 偏誤追蹤</div>
+  <div class="tab" onclick="switchTab('report')">▤ 月報生成</div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 1: 盤前預判
+════════════════════════════════════════ -->
+<div class="page active" id="page-premarket">
+
+  <div class="section-label">REGIME & ORIENTATION</div>
+  <div class="grid-2" style="gap:16px; margin-bottom:16px;">
+
+    <!-- Market Regime -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">市場 REGIME</span>
+        <span class="card-badge chip chip-amber">v4 NEW</span>
+      </div>
+      <div class="regime-grid" id="regimeGrid">
+        <div class="regime-option" data-regime="趨勢" onclick="selectRegime('趨勢')">
+          <div class="r-icon">📈</div>
+          <div class="r-name" style="color:var(--green)">趨勢</div>
+          <div class="r-desc">持有 / 順勢</div>
         </div>
-
-        <!-- 🛒 採購 -->
-        <section id="page-cart">
-            <div class="card">
-                <div class="row">
-                    <input id="cartQ" type="search" placeholder="搜尋編號 / 品項 / 單位 / 廠商…" />
-                    <select id="shopFilter">
-                        <option value="">全部廠商</option>
-                    </select>
-                    <button id="resetQty" class="secondary">清空數量</button>
-                    <button id="cartExport" class="secondary">匯出（彙總＋複製）</button>
-                </div>
-                <p class="muted" style="margin-top:8px">僅影響本機購物車數量；不會修改資料庫內容。</p>
-            </div>
-
-            <div class="card table-wrap">
-                <table id="cartTbl">
-                    <thead>
-                        <tr>
-                            <th>編號</th>
-                            <th>品項</th>
-                            <th>單位</th>
-                            <th class="num">單價</th>
-                            <th>廠商</th>
-                            <th class="num">數量</th>
-                            <th class="num">小計</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <section class="summary">
-                <div class="card">
-                    <div class="row" style="align-items:center;justify-content:space-between">
-                        <div>
-                            <div class="muted">未稅合計（所有品項）</div>
-                            <div id="grandCount" class="muted" style="font-size:.9rem"></div>
-                        </div>
-                        <div id="grandTotal" class="num" style="font-weight:700;font-size:1.25rem">$0</div>
-                    </div>
-                </div>
-                <div class="grid-3">
-                    <div class="card">
-                        <div class="muted">清順 小計</div>
-                        <div id="sum-qingshun" class="num" style="font-weight:700">$0</div>
-                    </div>
-                    <div class="card">
-                        <div class="muted">寶成 小計</div>
-                        <div id="sum-baocheng" class="num" style="font-weight:700">$0</div>
-                    </div>
-                    <div class="card">
-                        <div class="muted">已選擇品項數</div>
-                        <div id="pickedCount" class="num" style="font-weight:700">0</div>
-                    </div>
-                </div>
-            </section>
-        </section>
-
-        <!-- 📄 資料 -->
-        <section id="page-data" class="hidden">
-            <div class="card">
-                <div class="row" style="margin-bottom:8px">
-                    <input id="id" placeholder="編號（= id，如 PR-20250828-001 或 A01）" />
-                    <input id="item" placeholder="品項（型號/規格）" />
-                    <input id="unit" placeholder="單位（個/包/箱…）" />
-                    <input id="price" placeholder="價錢（數字）" inputmode="decimal" />
-                    <input id="vendor" placeholder="廠商（= shop）" />
-                </div>
-                <div class="row">
-                    <button id="addBtn" disabled>新增 / 更新</button>
-                    <span class="muted">提示：相同「編號(id)」會視為更新同一筆（需登入）。</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="row">
-                    <input id="q" type="search" placeholder="搜尋：編號 / 品項 / 廠商…" />
-                    <button id="exportBtn" class="secondary">匯出 CSV（資料庫）</button>
-                </div>
-            </div>
-
-            <div class="card table-wrap">
-                <table id="tbl">
-                    <thead>
-                        <tr>
-                            <th>編號</th>
-                            <th>品項</th>
-                            <th>單位</th>
-                            <th class="num">價錢</th>
-                            <th>廠商</th>
-                            <th>動作</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <div id="count" class="muted" style="margin-top:8px"></div>
-            </div>
-        </section>
-
-        <!-- 🛠 管理 -->
-        <section id="page-admin" class="hidden">
-            <div class="card">
-                <h3>🛡 管理功能</h3>
-                <div class="row" style="margin-top:8px">
-                    <input id="csvFile" type="file" accept=".csv" />
-                    <button class="secondary" id="importBtn" disabled>從 CSV 匯入</button>
-                    <button class="secondary" id="clearBtn" title="清空本機資料（請謹慎）" disabled>清空資料</button>
-                    <button class="secondary" id="setPinBtn" disabled>設定管理者 PIN</button>
-                    <span class="right"></span>
-                    <span id="dbInfo" class="badge">資料 0 筆</span>
-                </div>
-                <p class="muted" style="margin-top:8px">
-                    資料庫欄位：<code>{id,item,unit,price,shop}</code>。可匯入中文標頭檔案，系統會自動對應並轉換。</p>
-            </div>
-
-            <div class="card table-wrap">
-                <table id="dbTable">
-                    <thead>
-                        <tr>
-                            <th style="width:64px">操作</th>
-                            <th>id</th>
-                            <th>item</th>
-                            <th>unit</th>
-                            <th class="num">price</th>
-                            <th>shop</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <div class="row" style="margin-top:10px">
-                    <button id="dbAdd" class="secondary">新增品項</button>
-                    <button id="dbSave">儲存變更</button>
-                    <button id="dbExport" class="secondary">匯出 CSV</button>
-                    <button id="dbTemplate" class="secondary">下載 CSV 模板</button>
-                </div>
-            </div>
-        </section>
+        <div class="regime-option selected" data-regime="震盪" onclick="selectRegime('震盪')">
+          <div class="r-icon">↔️</div>
+          <div class="r-name" style="color:var(--amber)">震盪</div>
+          <div class="r-desc">快進快出</div>
+        </div>
+        <div class="regime-option" data-regime="恐慌" onclick="selectRegime('恐慌')">
+          <div class="r-icon">🔻</div>
+          <div class="r-name" style="color:var(--red)">恐慌</div>
+          <div class="r-desc">等反彈 / 少動</div>
+        </div>
+        <div class="regime-option" data-regime="泡沫" onclick="selectRegime('泡沫')">
+          <div class="r-icon">🫧</div>
+          <div class="r-name" style="color:var(--purple)">泡沫</div>
+          <div class="r-desc">追強 / 設停損</div>
+        </div>
+      </div>
+      <div id="regimeTip" style="margin-top:10px; font-size:11px; color:var(--text3); padding:8px; background:var(--bg3); border-radius:4px; border-left:2px solid var(--amber)">
+        震盪市場策略：倉位小、停損快、不追價、區間高賣低買。
+      </div>
     </div>
 
-    <!-- 登入對話框 -->
-    <dialog id="dlgLogin" class="overlay">
-        <div class="dlg">
-            <h3>管理者登入</h3>
-            <p class="muted">本機輕量保護；請勿使用與其他服務相同密碼。預設 PIN：0000</p>
-            <div class="row"><input id="pinInput" type="password" placeholder="輸入 PIN" autofocus /></div>
-            <footer>
-                <button class="secondary" id="cancelLogin">取消</button>
-                <button id="confirmLogin">登入</button>
-            </footer>
+    <!-- Stand & Confidence -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">① 立場與把握度</span>
+      </div>
+      <div class="form-row">
+        <label>市場</label>
+        <select id="market">
+          <option>TW 台股</option>
+          <option>US 美股</option>
+          <option>CN A股</option>
+          <option>CRYPTO</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>盤前偏向</label>
+        <select id="bias">
+          <option>震盪</option>
+          <option>偏多</option>
+          <option>偏空</option>
+          <option>強勢上漲</option>
+          <option>趨勢下跌</option>
+          <option>不確定</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>信心值 <span style="color:var(--text3)">(Confidence)</span></label>
+        <div class="slider-wrapper">
+          <input type="range" min="0" max="1" step="0.05" value="0.55" id="confidence" oninput="updateSlider('confidence','confVal')">
+          <div class="slider-val" id="confVal">0.55</div>
         </div>
-    </dialog>
-
-    <!-- 設定 PIN 對話框 -->
-    <dialog id="dlgSetPin" class="overlay">
-        <div class="dlg">
-            <h3>設定管理者 PIN</h3>
-            <p class="muted">僅本機儲存；請記好你的 PIN。</p>
-            <div class="row">
-                <input id="newPin1" type="password" placeholder="新的 PIN（4~12位）" />
-                <input id="newPin2" type="password" placeholder="再輸入一次" />
-            </div>
-            <footer>
-                <button class="secondary" id="cancelSetPin">取消</button>
-                <button id="confirmSetPin">設定</button>
-            </footer>
+      </div>
+      <div class="form-row">
+        <label>不確定性 <span style="color:var(--text3)">(Uncertainty)</span></label>
+        <div class="slider-wrapper">
+          <input type="range" min="0" max="1" step="0.05" value="0.45" id="uncertainty" oninput="updateSlider('uncertainty','uncertVal')">
+          <div class="slider-val" id="uncertVal">0.45</div>
         </div>
-    </dialog>
+      </div>
+      <div class="form-row">
+        <label>日期</label>
+        <input type="date" id="tradeDate">
+      </div>
+    </div>
+  </div>
 
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <!-- Hypothesis + Invalidation -->
+  <div class="section-label">CORE LOGIC</div>
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">② 核心假設 (HYPOTHESIS)</span>
+      </div>
+      <textarea id="hypothesis" placeholder="用一句話描述今日市場的核心邏輯…&#10;例：資金仍在但追價意願下降，高檔震盪。" rows="3"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">③ 失效條件 (INVALIDATION)</span>
+      </div>
+      <div class="form-row">
+        <label>失效條件</label>
+        <input type="text" id="invalidation" placeholder="台股跌破昨日低點且成交量放大">
+      </div>
+      <div class="form-row">
+        <label>檢查時間</label>
+        <select id="checkTime">
+          <option>開盤30分鐘</option>
+          <option>開盤60分鐘</option>
+          <option>午盤</option>
+          <option>任何時點</option>
+        </select>
+      </div>
+    </div>
+  </div>
 
-    <script>
-        /* ========= PWA =========
-           頁面載入後向瀏覽器登記 sw.js，啟用 Service Worker 離線快取。
-        */
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
-        }
-
-        /* ========= 常數與共用工具函式 =========
-           LS_DB / LS_QTY / LS_FACTORY → localStorage 的 key 名稱
-           OLD_KEY → 舊版資料 key，用於自動遷移
-           PIN_KEY → 管理者 PIN 的 localStorage key
-           $ → document.querySelector 簡寫
-           intFmt → Intl.NumberFormat 台灣整數千分位（例：1,234）
-           escCSV → 若字串含逗號/引號/換行則加上 CSV 引號包覆
-           uid()  → 以時間戳 + 遞增序號產生短唯一 ID（例：N3x1b2k1）
-           toInt  → 去除 $、逗號、空白後轉為整數（非數字回傳 0）
-           toast  → 顯示右下角提示訊息（預設 1.8 秒後淡出，error=true 顯示紅色）
-        */
-        const LS_DB = 'cart-db-v1';
-        const LS_QTY = 'cart-qty-v1';
-        const LS_FACTORY = 'cart-db-factory-v1';
-        const OLD_KEY = 'procure-db-v1';
-        const PIN_KEY = 'procure-admin-pin';
-        const DEFAULT_PIN = '0000';
-
-        const $ = sel => document.querySelector(sel);
-        const intFmt = new Intl.NumberFormat('zh-Hant-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        const escCSV = s => /[",\n]/.test(s) ? '"' + String(s).replaceAll('"', '""') + '"' : String(s);
-        const uid = (() => { let n = 1; return (p = 'I') => `${p}${(Date.now() % 1e7).toString(36)}${n++}`; })();
-        const toInt = v => Number(String(v ?? '').replace(/[$,\s]/g, '').trim()) || 0;
-        const toast = (text, { error = false, duration = 1800 } = {}) => {
-            const t = $('#toast'); t.textContent = text; t.classList.toggle('error', !!error);
-            t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), duration);
-        };
-
-        /* ========= 全域狀態 =========
-           state.data  → 目前載入的所有品項陣列（id/item/unit/price/shop）
-           state.qty   → 各品項的購物數量（{ [id]: number }）
-           state.dirty → 管理頁有未儲存的編輯時為 true
-        */
-        const state = { data: [], qty: {}, dirty: false };
-
-        /* ========= 舊版資料自動遷移 =========
-           若 localStorage 中存有舊版（procure-db-v1）中文欄位資料，
-           自動轉換為新版英文欄位格式並存回 LS_DB，
-           同時移除舊版 key，確保向下相容。
-        */
-        (function migrate() {
-            try {
-                const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
-                if (Array.isArray(old) && old.length) {
-                    const mapped = old.map(r => ({
-                        id: String(r['編號'] || '').trim() || uid('M'),
-                        item: String(r['品項'] || '').trim(),
-                        unit: String(r['單位'] || '').trim(),
-                        price: Number(r['價錢']) || 0,
-                        shop: String(r['廠商'] || '').trim()
-                    }));
-                    localStorage.setItem(LS_DB, JSON.stringify(mapped));
-                    localStorage.removeItem(OLD_KEY);
-                }
-            } catch { }
-        })();
-
-        /* ========= 內建預設品項 =========
-           BUILTIN_DEFAULT → 預設的 8 筆品項（清順/寶成兩家廠商）；
-           loadFactory()   → 優先讀取 LS_FACTORY（使用者曾自訂過的預設），
-                             若無則回傳 BUILTIN_DEFAULT 副本。
-        */
-        const BUILTIN_DEFAULT = [
-            { id: 'A01', item: '吸管', unit: '50支/包', price: 284, shop: '清順' },
-            { id: 'A02', item: '冰砂吸管', unit: '50支/包', price: 1351, shop: '清順' },
-            { id: 'A03', item: '9x9 紙巾', unit: '20包/箱', price: 1637, shop: '清順' },
-            { id: 'A04', item: '抽取式 衛生紙', unit: '20包/箱', price: 1720, shop: '清順' },
-            { id: 'A05', item: '廚房紙巾', unit: '50支/包', price: 1896, shop: '清順' },
-            { id: 'B01', item: '牛皮紙 外帶盒(S)', unit: '50個/條', price: 1944, shop: '寶成' },
-            { id: 'B02', item: '牛皮紙 外帶盒(L)', unit: '50個/條', price: 1973, shop: '寶成' },
-            { id: 'B03', item: '外帶比薩盒', unit: '50個/條', price: 1994, shop: '寶成' }
-        ];
-        const loadFactory = () => {
-            try { const x = JSON.parse(localStorage.getItem(LS_FACTORY) || 'null'); if (Array.isArray(x) && x.length) return x; }
-            catch { }
-            return BUILTIN_DEFAULT.slice();
-        };
-
-        /* ========= 初始化資料庫與購物數量 =========
-           initDB()   → 從 LS_DB 讀取品項資料；若無則載入預設品項。
-           qty 載入   → 從 LS_QTY 讀取各品項數量，新品項預設數量為 0。
-        */
-        (function initDB() {
-            try {
-                const saved = JSON.parse(localStorage.getItem(LS_DB) || 'null');
-                if (Array.isArray(saved) && saved.length) { state.data = saved; }
-                else { state.data = loadFactory(); }
-            } catch { state.data = loadFactory(); }
-        })();
-        try { const q = JSON.parse(localStorage.getItem(LS_QTY) || '{}'); state.qty = (q && typeof q === 'object') ? q : {}; } catch { state.qty = {}; }
-        for (const d of state.data) { if (!(d.id in state.qty)) state.qty[d.id] = 0; }
-
-        /* ========= 管理者登入與 PIN 管理 =========
-           getPin()  → 取得目前 PIN（無設定則回傳預設值 0000）
-           isAdmin() → 檢查 sessionStorage 是否有 admin=1（當次登入）
-           setAdmin()→ 設定或清除 sessionStorage 的登入旗標
-           applyModeUI() → 依登入狀態同步所有 UI：
-             - 管理者：啟用所有寫入按鈕、顯示管理分頁標籤
-             - 唯讀：所有寫入按鈕 disabled、隱藏管理分頁標籤
-        */
-        const modeBadge = $('#modeBadge'), loginBtn = $('#loginBtn'), logoutBtn = $('#logoutBtn'), adminTabBtn = $('#adminTab');
-        const dlgLogin = $('#dlgLogin'), pinInput = $('#pinInput'), cancelLogin = $('#cancelLogin'), confirmLogin = $('#confirmLogin');
-        const dlgSetPin = $('#dlgSetPin'), newPin1 = $('#newPin1'), newPin2 = $('#newPin2');
-
-        const getPin = () => localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
-        const isAdmin = () => sessionStorage.getItem('admin') === '1';
-        const setAdmin = on => on ? sessionStorage.setItem('admin', '1') : sessionStorage.removeItem('admin');
-
-        function applyModeUI() {
-            const admin = isAdmin();
-            modeBadge.textContent = admin ? '✅ 管理者模式' : '🔒 唯讀模式';
-            modeBadge.classList.toggle('admin', admin);
-            modeBadge.classList.toggle('readonly', !admin);
-            loginBtn.classList.toggle('hidden', admin);
-            logoutBtn.classList.toggle('hidden', !admin);
-            adminTabBtn.classList.toggle('hidden', !admin);
-            // 控制可寫按鈕
-            $('#addBtn').disabled = !admin;
-            $('#importBtn').disabled = !admin;
-            $('#clearBtn').disabled = !admin;
-            $('#setPinBtn').disabled = !admin;
-            renderData(); renderDB();
-        }
-
-        /* ========= 分頁切換與 URL Hash =========
-           showTab(name)    → 顯示指定分頁，隱藏其餘分頁，並更新 URL hash；
-                              非管理者嘗試進入 admin 時自動跳回 cart。
-           initFromHash()   → 依 URL hash 決定初始顯示哪個分頁（預設 cart）。
-           hashchange 事件  → 支援瀏覽器上下頁切換。
-        */
-        const tabs = document.querySelectorAll('.tab');
-        const pageCart = $('#page-cart'), pageData = $('#page-data'), pageAdmin = $('#page-admin');
-
-        function showTab(name) {
-            tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-            pageCart.classList.toggle('hidden', name !== 'cart');
-            pageData.classList.toggle('hidden', name !== 'data');
-            pageAdmin.classList.toggle('hidden', name !== 'admin');
-            if (name === 'admin' && !isAdmin()) { location.hash = '#data'; return showTab('data'); }
-            location.hash = '#' + name;
-        }
-        function initFromHash() {
-            const h = (location.hash || '#cart').slice(1);
-            showTab(h === 'admin' && isAdmin() ? 'admin' : (h === 'data' ? 'data' : 'cart'));
-        }
-        tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
-        window.addEventListener('hashchange', initFromHash);
-
-        /* ========= 資料分頁 =========
-           renderData()   → 依搜尋關鍵字過濾 state.data，動態產生表格；
-                            管理者顯示「編輯/刪除」按鈕，唯讀顯示「唯讀」文字。
-           click 委派     → data-act="edit"：填入表單供修改
-                            data-act="del"：確認後刪除品項（連同購物車數量）
-           addBtn.onclick → 新增或覆寫品項（空 id 自動產生 uid，重複 id 需確認）
-           exportBtn      → 將 state.data 匯出為英文標頭 CSV 檔案（items.csv）
-        */
-        const qInp = $('#q'), id = $('#id'), item = $('#item'), unit = $('#unit'), price = $('#price'), vendor = $('#vendor');
-        const tbody = $('#tbl tbody'), count = $('#count');
-        const exportBtn = $('#exportBtn'), addBtn = $('#addBtn');
-
-        function renderData() {
-            const kw = (qInp.value || '').trim().toLowerCase();
-            const rows = state.data.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
-            const filtered = rows.filter(r => (`${r.id} ${r.item} ${r.shop}`.toLowerCase().includes(kw)));
-            const admin = isAdmin();
-            tbody.innerHTML = filtered.map(r => `
+  <!-- Weight Table -->
+  <div class="section-label">JUDGMENT WEIGHTS</div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="card-title">④ 判斷來源（四類權重 = 100%）</span>
+      <span id="totalWeightBadge" class="chip chip-green">總計 100%</span>
+    </div>
+    <table class="weight-table">
+      <thead>
         <tr>
-          <td>${r.id}</td>
-          <td>${r.item}</td>
-          <td>${r.unit}</td>
-          <td class="num">${intFmt.format(r.price)}</td>
-          <td>${r.shop}</td>
-          <td class="actions">
-            ${admin ? `
-              <button class="secondary" data-act="edit" data-row='${encodeURIComponent(JSON.stringify(r))}'>編輯</button>
-              <button data-act="del" data-id="${r.id.replace(/"/g, '&quot;')}">刪除</button>
-            ` : `<span class="muted">唯讀</span>`}
-          </td>
-        </tr>`).join('');
-            count.textContent = `共 ${filtered.length} / ${rows.length} 筆`;
-        }
-        document.addEventListener('click', (ev) => {
-            const t = ev.target;
-            if (t.dataset.act === 'edit') {
-                if (!isAdmin()) return alert('請先以管理者登入');
-                const r = JSON.parse(decodeURIComponent(t.dataset.row));
-                id.value = r.id; item.value = r.item; unit.value = r.unit; price.value = r.price; vendor.value = r.shop;
-                id.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            if (t.dataset.act === 'del') {
-                if (!isAdmin()) return alert('請先以管理者登入');
-                const rid = t.dataset.id; const i = state.data.findIndex(x => x.id === rid);
-                if (i >= 0 && confirm(`刪除「${rid}」？`)) {
-                    state.data.splice(i, 1); delete state.qty[rid]; saveDB(); renderData(); renderCart();
-                    toast('已刪除一筆（含購物車數量）');
+          <th style="width:25%">類型</th>
+          <th style="width:15%">權重</th>
+          <th>依據（可逗號分隔多條）</th>
+          <th style="width:120px">視覺</th>
+        </tr>
+      </thead>
+      <tbody id="weightBody"></tbody>
+    </table>
+    <div class="weight-total ok" id="weightTotal">總計：100%</div>
+  </div>
+
+  <!-- Scenarios -->
+  <div class="section-label">SCENARIO PLANNING</div>
+  <div class="grid-3" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⑤ 主劇本 (MAIN)</span>
+        <span class="chip chip-green">主要</span>
+      </div>
+      <textarea id="scenMain" placeholder="指數開高後震盪，權值股輪動撐盤，小型股分歧。" rows="3"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">備用劇本 (ALT)</span>
+        <span class="chip chip-amber">次要</span>
+      </div>
+      <textarea id="scenAlt" placeholder="早盤拉高後回落，午盤量縮盤整。" rows="3"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">最糟劇本 (TAIL RISK)</span>
+        <span class="chip chip-red">尾部</span>
+      </div>
+      <textarea id="scenTail" placeholder="美股影響延續，台股開低走低，趨勢下跌。" rows="3"></textarea>
+    </div>
+  </div>
+
+  <!-- Action & Psychology -->
+  <div class="section-label">ACTION & PSYCHOLOGY</div>
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⑥ 行動設計</span>
+      </div>
+      <div class="form-inline">
+        <div class="form-row">
+          <label>策略</label>
+          <select id="strategy">
+            <option>觀察 + 低風險試單</option>
+            <option>積極進場</option>
+            <option>減倉 / 防守</option>
+            <option>完全觀望</option>
+            <option>只做空</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>倉位大小</label>
+          <select id="posSize">
+            <option>小 (≤20%)</option>
+            <option>中 (20-50%)</option>
+            <option>大 (50-80%)</option>
+            <option>滿倉 (≥80%)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>最大可承受風險（帳戶 %）</label>
+        <div class="slider-wrapper">
+          <input type="range" min="0" max="5" step="0.25" value="1" id="maxRisk" oninput="updateSlider('maxRisk','riskVal')">
+          <div class="slider-val" id="riskVal">1%</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">⑦ 人性檢查</span>
+      </div>
+      <div class="form-inline">
+        <div class="form-row">
+          <label>睡眠狀態</label>
+          <select id="sleep">
+            <option>充足</option>
+            <option>普通</option>
+            <option>不足</option>
+            <option>嚴重不足</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>情緒狀態</label>
+          <select id="emotion">
+            <option>穩定</option>
+            <option>略緊張</option>
+            <option>焦慮</option>
+            <option>過度興奮</option>
+            <option>沮喪</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>偏誤警告（今日可能犯的錯）</label>
+        <input type="text" id="biasWarning" placeholder="例：過度追AI股 / 太早停損 / 過度分散">
+      </div>
+    </div>
+  </div>
+
+  <!-- Trade Plans -->
+  <div class="section-label">TRADE PLANS</div>
+  <div id="tradePlanList"></div>
+  <button class="btn btn-outline" onclick="addTradePlan()" style="margin-bottom:16px;">+ 新增股票計畫</button>
+
+  <!-- Save -->
+  <div class="btn-row">
+    <button class="btn btn-outline" onclick="clearPremarket()">清除</button>
+    <button class="btn btn-primary" onclick="savePremarket()">⬡ 儲存盤前預判</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 2: 盤後結案
+════════════════════════════════════════ -->
+<div class="page" id="page-postmarket">
+  <div class="section-label">POST-MARKET REVIEW</div>
+
+  <div id="pm-noplan" class="empty-state" style="display:none">
+    <div class="empty-icon">📋</div>
+    <div>請先完成今日盤前預判</div>
+  </div>
+
+  <div id="pm-content">
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">結案日期</span>
+        </div>
+        <div class="form-row">
+          <label>選擇日期</label>
+          <select id="closeDate" onchange="loadPostmarket()"></select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">假設驗證</span>
+        </div>
+        <div class="form-row">
+          <label>核心假設是否成立？</label>
+          <select id="hypValid">
+            <option value="">-- 選擇 --</option>
+            <option value="correct">✅ 正確</option>
+            <option value="partial">⚡ 部分正確</option>
+            <option value="wrong">❌ 錯誤</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>失效條件是否觸發？</label>
+          <select id="invTriggered">
+            <option value="no">❌ 未觸發（原假設成立）</option>
+            <option value="yes">⚠️ 觸發（需出場）</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="pm-trades-section">
+      <div class="section-label">TRADE RESULTS</div>
+      <div id="pm-trade-list"></div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">今日復盤心得</span>
+        </div>
+        <textarea id="pmReview" rows="4" placeholder="今天哪裡做對了？哪裡做錯了？下次要改什麼？"></textarea>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">偏誤觸發記錄</span>
+        </div>
+        <div id="biasCheckboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="savePostmarket()">⬢ 完成結案</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 3: 交易日誌
+════════════════════════════════════════ -->
+<div class="page" id="page-journal">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+    <div class="section-label" style="margin:0">TRADE JOURNAL</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <select id="journalFilter" onchange="renderJournal()" style="width:auto; padding:6px 10px; font-size:11px;">
+        <option value="all">全部</option>
+        <option value="long">多單</option>
+        <option value="short">空單</option>
+        <option value="closed">已結案</option>
+        <option value="open">未結案</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV()">匯出 CSV</button>
+    </div>
+  </div>
+
+  <div class="card" style="overflow:auto;">
+    <table class="journal-table" id="journalTable">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>代碼</th>
+          <th>方向</th>
+          <th>REGIME</th>
+          <th>信心</th>
+          <th>進場條件</th>
+          <th>停損</th>
+          <th>目標</th>
+          <th>結果</th>
+          <th>R倍數</th>
+          <th>假設</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="journalBody">
+      </tbody>
+    </table>
+    <div id="journalEmpty" class="empty-state" style="display:none">
+      <div class="empty-icon">📔</div>
+      <div>尚無交易記錄</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 4: 統計分析
+════════════════════════════════════════ -->
+<div class="page" id="page-stats">
+  <div class="section-label">PERFORMANCE STATS</div>
+
+  <div class="grid-4" style="margin-bottom:16px;" id="statsCards">
+    <div class="stat-card">
+      <div class="stat-label">WIN RATE</div>
+      <div class="stat-value stat-green" id="s-winrate">--%</div>
+      <div class="stat-sub" id="s-wintrades">-- / -- 筆</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">AVG R-MULTIPLE</div>
+      <div class="stat-value stat-amber" id="s-avgR">--R</div>
+      <div class="stat-sub">期望值</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PROFIT FACTOR</div>
+      <div class="stat-value stat-blue" id="s-pf">--</div>
+      <div class="stat-sub">獲利因子</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">MAX DRAWDOWN</div>
+      <div class="stat-value stat-red" id="s-dd">--R</div>
+      <div class="stat-sub">最大回撤</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">REGIME 勝率分析</span>
+      </div>
+      <div id="regimeStats"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">R倍數分佈</span>
+      </div>
+      <canvas id="rDistChart" height="160"></canvas>
+      <div id="rDistEmpty" class="empty-state" style="display:none; padding:20px;">
+        <div>無足夠數據</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">信心值 vs 勝率</span>
+      </div>
+      <div id="confStats"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">累積 R 曲線</span>
+      </div>
+      <canvas id="equityChart" height="160"></canvas>
+      <div id="equityEmpty" class="empty-state" style="display:none; padding:20px;">
+        <div>無足夠數據</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 5: 偏誤追蹤
+════════════════════════════════════════ -->
+<div class="page" id="page-bias">
+  <div class="section-label">COGNITIVE BIAS TRACKER</div>
+
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">偏誤頻率排行</span>
+      </div>
+      <div id="biasRanking"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">偏誤 vs R倍數影響</span>
+      </div>
+      <div id="biasImpact"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">偏誤觸發時間軸</span>
+    </div>
+    <div id="biasTimeline"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PAGE 6: 月報
+════════════════════════════════════════ -->
+<div class="page" id="page-report">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+    <div class="section-label" style="margin:0">MONTHLY REPORT</div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <select id="reportMonth" onchange="renderReport()" style="width:auto; padding:6px 10px; font-size:11px;"></select>
+      <button class="btn btn-outline btn-sm" onclick="printReport()">列印 / PDF</button>
+    </div>
+  </div>
+
+  <div id="reportContent"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- REGIME MODAL -->
+<div class="modal-overlay" id="regimeModal">
+  <div class="modal">
+    <div class="modal-title">切換市場 REGIME</div>
+    <div class="regime-grid" id="modalRegimeGrid">
+      <div class="regime-option" data-regime="趨勢" onclick="selectRegimeModal('趨勢')">
+        <div class="r-icon">📈</div>
+        <div class="r-name" style="color:var(--green)">趨勢</div>
+        <div class="r-desc">持有 / 順勢</div>
+      </div>
+      <div class="regime-option" data-regime="震盪" onclick="selectRegimeModal('震盪')">
+        <div class="r-icon">↔️</div>
+        <div class="r-name" style="color:var(--amber)">震盪</div>
+        <div class="r-desc">快進快出</div>
+      </div>
+      <div class="regime-option" data-regime="恐慌" onclick="selectRegimeModal('恐慌')">
+        <div class="r-icon">🔻</div>
+        <div class="r-name" style="color:var(--red)">恐慌</div>
+        <div class="r-desc">等反彈 / 少動</div>
+      </div>
+      <div class="regime-option" data-regime="泡沫" onclick="selectRegimeModal('泡沫')">
+        <div class="r-icon">🫧</div>
+        <div class="r-name" style="color:var(--purple)">泡沫</div>
+        <div class="r-desc">追強 / 設停損</div>
+      </div>
+    </div>
+    <div style="margin-top:16px; text-align:right;">
+      <button class="btn btn-outline" onclick="closeModal('regimeModal')">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+// DATA LAYER
+// ════════════════════════════════════════
+const DB = {
+  get(key, def = null) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch { return def; }
+  },
+  set(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { console.warn('Storage full'); }
+  }
+};
+
+// State
+let currentRegime = DB.get('regime', '震盪');
+let tradePlanCount = 0;
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initClock();
+  initWeightTable();
+  initTodayDate();
+  addTradePlan();
+  initBiasCheckboxes();
+  updateRegimeDisplay();
+  renderJournal();
+  renderStats();
+  renderBias();
+  initReportMonths();
+  renderReport();
+  loadPremarketDraft();
+  initCloseDateOptions();
+});
+
+// ════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════
+function initClock() {
+  function tick() {
+    const now = new Date();
+    document.getElementById('liveClock').textContent =
+      now.toTimeString().slice(0,8) + ' TWN';
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+// ════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i === ['premarket','postmarket','journal','stats','bias','report'].indexOf(name)));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+  if (name === 'bias') renderBias();
+  if (name === 'report') renderReport();
+  if (name === 'postmarket') initCloseDateOptions();
+}
+
+// ════════════════════════════════════════
+// REGIME
+// ════════════════════════════════════════
+const REGIME_TIPS = {
+  '趨勢': '趨勢市場策略：持有主線股、讓利潤奔跑、停損設在重要支撐、不要頻繁進出。',
+  '震盪': '震盪市場策略：倉位小、停損快、不追價、區間高賣低買。',
+  '恐慌': '恐慌市場策略：減少交易頻率、等待反彈確認、保留現金、避免底摸。',
+  '泡沫': '泡沫市場策略：追強股動能、嚴格停損、獲利時積極出場、警惕逆轉。'
+};
+
+function selectRegime(r) {
+  currentRegime = r;
+  DB.set('regime', r);
+  document.querySelectorAll('#regimeGrid .regime-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.regime === r);
+  });
+  document.getElementById('regimeTip').textContent = REGIME_TIPS[r];
+  updateRegimeDisplay();
+}
+
+function selectRegimeModal(r) {
+  selectRegime(r);
+  closeModal('regimeModal');
+  showToast('Regime 已更新為：' + r, 'success');
+}
+
+function updateRegimeDisplay() {
+  const badge = document.getElementById('regimeBadge');
+  badge.textContent = 'REGIME: ' + currentRegime;
+  badge.className = 'regime-badge regime-' + currentRegime;
+  document.querySelectorAll('#modalRegimeGrid .regime-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.regime === currentRegime);
+  });
+}
+
+function jumpToRegime() {
+  document.getElementById('regimeModal').classList.add('open');
+}
+
+// ════════════════════════════════════════
+// SLIDER
+// ════════════════════════════════════════
+function updateSlider(id, valId) {
+  const v = parseFloat(document.getElementById(id).value);
+  const el = document.getElementById(valId);
+  if (id === 'maxRisk') el.textContent = v + '%';
+  else el.textContent = v.toFixed(2);
+}
+
+// ════════════════════════════════════════
+// WEIGHT TABLE
+// ════════════════════════════════════════
+const WEIGHT_TYPES = ['技術面', '籌碼/法人', '情緒/新聞', 'Macro/總經'];
+const WEIGHT_DEFAULTS = [40, 30, 20, 10];
+const WEIGHT_COLORS = ['#f5a623','#00e5a0','#3ab8ff','#a78bfa'];
+
+function initWeightTable() {
+  const tbody = document.getElementById('weightBody');
+  WEIGHT_TYPES.forEach((type, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--text2);font-size:11px;">${type}</td>
+      <td>
+        <input type="number" id="w${i}" value="${WEIGHT_DEFAULTS[i]}" min="0" max="100"
+          style="width:60px; padding:4px 6px; text-align:center;"
+          oninput="updateWeightTotal()">
+      </td>
+      <td>
+        <input type="text" id="wd${i}" placeholder="例：指數仍在短期上升趨勢，前高量縮" style="font-size:12px;">
+      </td>
+      <td>
+        <div class="weight-bar">
+          <div class="weight-fill" id="wbar${i}" style="width:${WEIGHT_DEFAULTS[i]}%; background:${WEIGHT_COLORS[i]}"></div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateWeightTotal();
+}
+
+function updateWeightTotal() {
+  let total = 0;
+  WEIGHT_TYPES.forEach((_, i) => {
+    const v = parseInt(document.getElementById(`w${i}`)?.value || 0);
+    total += v;
+    const bar = document.getElementById(`wbar${i}`);
+    if (bar) bar.style.width = Math.min(v, 100) + '%';
+  });
+  const el = document.getElementById('weightTotal');
+  const badge = document.getElementById('totalWeightBadge');
+  el.textContent = `總計：${total}%`;
+  const ok = total === 100;
+  el.className = `weight-total ${ok ? 'ok' : 'bad'}`;
+  badge.className = ok ? 'chip chip-green' : 'chip chip-red';
+  badge.textContent = `總計 ${total}%`;
+}
+
+// ════════════════════════════════════════
+// DATE
+// ════════════════════════════════════════
+function initTodayDate() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('tradeDate').value = today;
+}
+
+// ════════════════════════════════════════
+// TRADE PLAN
+// ════════════════════════════════════════
+function addTradePlan(data = {}) {
+  tradePlanCount++;
+  const n = tradePlanCount;
+  const container = document.getElementById('tradePlanList');
+  const div = document.createElement('div');
+  div.className = 'stock-row';
+  div.id = `plan-${n}`;
+  div.innerHTML = `
+    <div class="stock-row-header">
+      <span class="stock-num">STOCK #${n}</span>
+      <div class="dir-toggle">
+        <button class="dir-btn long ${data.dir==='long'?'active':''}" onclick="setDir(${n},'long')">多 LONG</button>
+        <button class="dir-btn watch ${!data.dir||data.dir==='watch'?'active':''}" onclick="setDir(${n},'watch')">觀察</button>
+        <button class="dir-btn short ${data.dir==='short'?'active':''}" onclick="setDir(${n},'short')">空 SHORT</button>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removePlan(${n})">✕</button>
+    </div>
+    <input type="hidden" id="dir-${n}" value="${data.dir||'watch'}">
+    <div class="grid-3">
+      <div class="form-row">
+        <label>股票代碼</label>
+        <input type="text" id="code-${n}" value="${data.code||''}" placeholder="2330" style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--amber)">
+      </div>
+      <div class="form-row">
+        <label>單檔信心</label>
+        <div class="slider-wrapper">
+          <input type="range" min="0" max="1" step="0.05" value="${data.conf||0.55}" id="sconf-${n}" oninput="updateSlider('sconf-${n}','sconfv-${n}')">
+          <div class="slider-val" id="sconfv-${n}">${(data.conf||0.55).toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>進場條件</label>
+        <input type="text" id="entry-${n}" value="${data.entry||''}" placeholder="回測5日線不破且量縮">
+      </div>
+      <div class="form-row">
+        <label>停損條件</label>
+        <input type="text" id="sl-${n}" value="${data.sl||''}" placeholder="跌破5日線">
+      </div>
+      <div class="form-row">
+        <label>目標</label>
+        <input type="text" id="tp-${n}" value="${data.tp||''}" placeholder="前高附近">
+      </div>
+      <div class="form-row">
+        <label>失效條件</label>
+        <input type="text" id="inv-${n}" value="${data.inv||''}" placeholder="開盤30分鐘跌破昨日低">
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function setDir(n, dir) {
+  document.getElementById(`dir-${n}`).value = dir;
+  const row = document.getElementById(`plan-${n}`);
+  row.querySelectorAll('.dir-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.classList.contains(dir)) b.classList.add('active');
+  });
+}
+
+function removePlan(n) {
+  const el = document.getElementById(`plan-${n}`);
+  if (el) el.remove();
+}
+
+// ════════════════════════════════════════
+// SAVE PREMARKET
+// ════════════════════════════════════════
+function collectTradePlans() {
+  const plans = [];
+  document.querySelectorAll('.stock-row').forEach(row => {
+    const n = row.id.replace('plan-','');
+    const code = document.getElementById(`code-${n}`)?.value?.trim();
+    if (!code) return;
+    plans.push({
+      code,
+      dir: document.getElementById(`dir-${n}`)?.value,
+      conf: parseFloat(document.getElementById(`sconf-${n}`)?.value),
+      entry: document.getElementById(`entry-${n}`)?.value,
+      sl: document.getElementById(`sl-${n}`)?.value,
+      tp: document.getElementById(`tp-${n}`)?.value,
+      inv: document.getElementById(`inv-${n}`)?.value,
+    });
+  });
+  return plans;
+}
+
+function validatePremarket() {
+  const errors = [];
+  if (!document.getElementById('hypothesis').value.trim()) errors.push('核心假設');
+  if (!document.getElementById('invalidation').value.trim()) errors.push('失效條件');
+  let total = 0;
+  WEIGHT_TYPES.forEach((_,i) => total += parseInt(document.getElementById(`w${i}`)?.value||0));
+  if (total !== 100) errors.push('判斷權重須等於100%（目前 '+total+'%）');
+  if (!document.getElementById('scenMain').value.trim()) errors.push('主劇本');
+  return errors;
+}
+
+function savePremarket() {
+  const errors = validatePremarket();
+  if (errors.length) {
+    showToast('❌ 請完成：' + errors.join('、'), 'error');
+    return;
+  }
+  const date = document.getElementById('tradeDate').value;
+  const weights = WEIGHT_TYPES.map((type, i) => ({
+    type,
+    weight: parseInt(document.getElementById(`w${i}`).value),
+    basis: document.getElementById(`wd${i}`).value
+  }));
+  const record = {
+    date,
+    regime: currentRegime,
+    market: document.getElementById('market').value,
+    bias: document.getElementById('bias').value,
+    confidence: parseFloat(document.getElementById('confidence').value),
+    uncertainty: parseFloat(document.getElementById('uncertainty').value),
+    hypothesis: document.getElementById('hypothesis').value,
+    invalidation: document.getElementById('invalidation').value,
+    checkTime: document.getElementById('checkTime').value,
+    weights,
+    scenarios: {
+      main: document.getElementById('scenMain').value,
+      alt: document.getElementById('scenAlt').value,
+      tail: document.getElementById('scenTail').value,
+    },
+    action: {
+      strategy: document.getElementById('strategy').value,
+      posSize: document.getElementById('posSize').value,
+      maxRisk: parseFloat(document.getElementById('maxRisk').value),
+    },
+    psychology: {
+      sleep: document.getElementById('sleep').value,
+      emotion: document.getElementById('emotion').value,
+      biasWarning: document.getElementById('biasWarning').value,
+    },
+    plans: collectTradePlans(),
+    savedAt: new Date().toISOString(),
+    status: 'open'
+  };
+
+  const all = DB.get('premarkets', {});
+  all[date] = record;
+  DB.set('premarkets', all);
+
+  // Also add to journal
+  addJournalFromPremarket(record);
+
+  showToast('✅ 盤前預判已儲存：' + date, 'success');
+  DB.set('premarket_draft', null);
+}
+
+function clearPremarket() {
+  if (confirm('確定清除所有填寫內容？')) {
+    document.getElementById('hypothesis').value = '';
+    document.getElementById('invalidation').value = '';
+    document.getElementById('scenMain').value = '';
+    document.getElementById('scenAlt').value = '';
+    document.getElementById('scenTail').value = '';
+    document.getElementById('biasWarning').value = '';
+    document.getElementById('tradePlanList').innerHTML = '';
+    tradePlanCount = 0;
+    addTradePlan();
+  }
+}
+
+function loadPremarketDraft() {
+  // Auto-restore today's draft if it exists
+  const today = new Date().toISOString().slice(0,10);
+  const all = DB.get('premarkets', {});
+  if (all[today]) {
+    const rec = all[today];
+    // Silently restore — or show a note
+  }
+}
+
+// ════════════════════════════════════════
+// JOURNAL
+// ════════════════════════════════════════
+function addJournalFromPremarket(rec) {
+  const journal = DB.get('journal', []);
+  rec.plans.forEach(plan => {
+    // Check if entry already exists
+    const exists = journal.find(j => j.date === rec.date && j.code === plan.code);
+    if (!exists) {
+      journal.push({
+        id: `${rec.date}-${plan.code}-${Date.now()}`,
+        date: rec.date,
+        code: plan.code,
+        dir: plan.dir,
+        regime: rec.regime,
+        confidence: plan.conf,
+        entry: plan.entry,
+        sl: plan.sl,
+        tp: plan.tp,
+        inv: plan.inv,
+        hypothesis: rec.hypothesis,
+        result: null,
+        rMultiple: null,
+        hypCorrect: null,
+        notes: '',
+        status: 'open'
+      });
+    }
+  });
+  DB.set('journal', journal);
+  renderJournal();
+}
+
+function renderJournal() {
+  const journal = DB.get('journal', []);
+  const filter = document.getElementById('journalFilter')?.value || 'all';
+  let entries = [...journal].sort((a,b) => b.date.localeCompare(a.date));
+
+  if (filter === 'long') entries = entries.filter(e => e.dir === 'long');
+  else if (filter === 'short') entries = entries.filter(e => e.dir === 'short');
+  else if (filter === 'closed') entries = entries.filter(e => e.status === 'closed');
+  else if (filter === 'open') entries = entries.filter(e => e.status !== 'closed');
+
+  const tbody = document.getElementById('journalBody');
+  const empty = document.getElementById('journalEmpty');
+  if (!tbody) return;
+
+  if (entries.length === 0) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  tbody.innerHTML = entries.map(e => {
+    const dirClass = e.dir === 'long' ? 'tag-long' : e.dir === 'short' ? 'tag-short' : 'tag-watch';
+    const dirLabel = e.dir === 'long' ? 'LONG▲' : e.dir === 'short' ? 'SHORT▼' : 'WATCH';
+    let rHtml = '<span class="r-zero">--</span>';
+    if (e.rMultiple !== null && e.rMultiple !== undefined && e.rMultiple !== '') {
+      const r = parseFloat(e.rMultiple);
+      rHtml = `<span class="${r > 0 ? 'r-pos' : r < 0 ? 'r-neg' : 'r-zero'}">${r > 0 ? '+' : ''}${r.toFixed(2)}R</span>`;
+    }
+    const regBadge = `<span class="chip chip-${e.regime==='趨勢'?'green':e.regime==='恐慌'?'red':e.regime==='泡沫'?'blue':'amber'}" style="font-size:9px;">${e.regime||'--'}</span>`;
+    const hypBadge = e.hypCorrect === 'correct' ? '✅' : e.hypCorrect === 'partial' ? '⚡' : e.hypCorrect === 'wrong' ? '❌' : '--';
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--text3);">${e.date}</td>
+      <td style="font-family:var(--mono);font-size:14px;font-weight:700;color:var(--amber)">${e.code}</td>
+      <td><span class="${dirClass}">${dirLabel}</span></td>
+      <td>${regBadge}</td>
+      <td style="font-family:var(--mono);font-size:11px;">${(e.confidence||0).toFixed(2)}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--text2)">${e.entry||'--'}</td>
+      <td style="font-size:11px;color:var(--text2)">${e.sl||'--'}</td>
+      <td style="font-size:11px;color:var(--text2)">${e.tp||'--'}</td>
+      <td style="font-size:11px;">${e.result||'<span style="color:var(--text3)">未結案</span>'}</td>
+      <td>${rHtml}</td>
+      <td style="text-align:center">${hypBadge}</td>
+      <td>
+        <button class="btn btn-outline btn-sm" onclick="editJournalEntry('${e.id}')">結案</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteJournalEntry('${e.id}')" style="margin-left:4px;">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editJournalEntry(id) {
+  const journal = DB.get('journal', []);
+  const entry = journal.find(e => e.id === id);
+  if (!entry) return;
+
+  const result = prompt(`${entry.code} 結果描述（例：停損出場 / 達目標出場 / 持有中）`, entry.result || '');
+  if (result === null) return;
+  const rStr = prompt('R倍數（獲利填正數，虧損填負數，例：2.5 或 -1）', entry.rMultiple || '');
+  if (rStr === null) return;
+
+  entry.result = result;
+  entry.rMultiple = rStr !== '' ? parseFloat(rStr) : null;
+  entry.status = 'closed';
+  entry.hypCorrect = entry.hypCorrect || null;
+
+  DB.set('journal', journal);
+  renderJournal();
+  renderStats();
+  showToast('✅ 已更新：' + entry.code, 'success');
+}
+
+function deleteJournalEntry(id) {
+  if (!confirm('確定刪除此交易記錄？')) return;
+  const journal = DB.get('journal', []).filter(e => e.id !== id);
+  DB.set('journal', journal);
+  renderJournal();
+  renderStats();
+}
+
+function exportCSV() {
+  const journal = DB.get('journal', []);
+  if (!journal.length) { showToast('無數據可匯出', 'error'); return; }
+  const headers = ['日期','代碼','方向','Regime','信心值','進場條件','停損','目標','結果','R倍數','假設驗證'];
+  const rows = journal.map(e => [
+    e.date, e.code, e.dir, e.regime, e.confidence,
+    `"${e.entry||''}"`, `"${e.sl||''}"`, `"${e.tp||''}"`,
+    `"${e.result||''}"`, e.rMultiple || '', e.hypCorrect || ''
+  ]);
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `trading_journal_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ════════════════════════════════════════
+// POST-MARKET
+// ════════════════════════════════════════
+const BIASES = ['過度追強','太早停損','倉位過大','違反計畫進場','情緒性加碼','忽視失效條件','過度分散','錯過進場','停損太寬','追高殺低'];
+
+function initBiasCheckboxes() {
+  const el = document.getElementById('biasCheckboxes');
+  if (!el) return;
+  el.innerHTML = BIASES.map(b =>
+    `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text2);font-family:var(--sans);letter-spacing:0;font-size:11px;margin-bottom:2px;">
+      <input type="checkbox" value="${b}" style="width:auto;accent-color:var(--amber)">
+      ${b}
+    </label>`
+  ).join('');
+}
+
+function initCloseDateOptions() {
+  const all = DB.get('premarkets', {});
+  const sel = document.getElementById('closeDate');
+  if (!sel) return;
+  const dates = Object.keys(all).sort().reverse();
+  sel.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
+  if (dates.length) loadPostmarket();
+  else {
+    document.getElementById('pm-content').style.display = 'none';
+    document.getElementById('pm-noplan').style.display = 'block';
+  }
+}
+
+function loadPostmarket() {
+  const date = document.getElementById('closeDate')?.value;
+  if (!date) return;
+  const all = DB.get('premarkets', {});
+  const rec = all[date];
+  if (!rec) return;
+
+  // Load PM data if exists
+  const pmData = DB.get('postmarkets', {});
+  const pm = pmData[date] || {};
+
+  document.getElementById('hypValid').value = pm.hypValid || '';
+  document.getElementById('invTriggered').value = pm.invTriggered || 'no';
+
+  // Render trade results
+  const tlist = document.getElementById('pm-trade-list');
+  const journal = DB.get('journal', []);
+  const dayTrades = journal.filter(j => j.date === date);
+
+  tlist.innerHTML = dayTrades.map((t, i) => `
+    <div class="card" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--amber)">${t.code}</span>
+        <span class="${t.dir==='long'?'tag-long':t.dir==='short'?'tag-short':'tag-watch'}">${t.dir==='long'?'LONG':'SHORT'}</span>
+      </div>
+      <div class="grid-3">
+        <div class="form-row">
+          <label>結果描述</label>
+          <input type="text" id="pm-result-${t.id}" value="${t.result||''}" placeholder="停損/目標達成/持有中">
+        </div>
+        <div class="form-row">
+          <label>R倍數</label>
+          <input type="number" id="pm-r-${t.id}" value="${t.rMultiple||''}" placeholder="2.5 或 -1" step="0.1" style="font-family:var(--mono)">
+        </div>
+        <div class="form-row">
+          <label>假設驗證</label>
+          <select id="pm-hyp-${t.id}">
+            <option value="">--</option>
+            <option value="correct" ${t.hypCorrect==='correct'?'selected':''}>✅ 正確</option>
+            <option value="partial" ${t.hypCorrect==='partial'?'selected':''}>⚡ 部分</option>
+            <option value="wrong" ${t.hypCorrect==='wrong'?'selected':''}>❌ 錯誤</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div style="color:var(--text3);font-size:11px;padding:8px;">此日期無交易計畫</div>';
+
+  if (pm.review) document.getElementById('pmReview').value = pm.review;
+  if (pm.biasesTriggered) {
+    document.querySelectorAll('#biasCheckboxes input').forEach(cb => {
+      cb.checked = pm.biasesTriggered.includes(cb.value);
+    });
+  }
+}
+
+function savePostmarket() {
+  const date = document.getElementById('closeDate')?.value;
+  if (!date) return;
+
+  // Update journal entries
+  const journal = DB.get('journal', []);
+  const dayTrades = journal.filter(j => j.date === date);
+  dayTrades.forEach(t => {
+    const resultEl = document.getElementById(`pm-result-${t.id}`);
+    const rEl = document.getElementById(`pm-r-${t.id}`);
+    const hypEl = document.getElementById(`pm-hyp-${t.id}`);
+    if (resultEl) t.result = resultEl.value;
+    if (rEl && rEl.value !== '') t.rMultiple = parseFloat(rEl.value);
+    if (hypEl) t.hypCorrect = hypEl.value;
+    t.status = 'closed';
+  });
+  DB.set('journal', journal);
+
+  // Save PM summary
+  const biasesTriggered = Array.from(document.querySelectorAll('#biasCheckboxes input:checked')).map(cb => cb.value);
+  const pm = {
+    date,
+    hypValid: document.getElementById('hypValid').value,
+    invTriggered: document.getElementById('invTriggered').value,
+    review: document.getElementById('pmReview').value,
+    biasesTriggered,
+    savedAt: new Date().toISOString()
+  };
+
+  const pmData = DB.get('postmarkets', {});
+  pmData[date] = pm;
+  DB.set('postmarkets', pmData);
+
+  // Save bias events
+  if (biasesTriggered.length) saveBiasEvents(date, biasesTriggered);
+
+  renderJournal();
+  renderStats();
+  showToast('✅ 盤後結案完成：' + date, 'success');
+}
+
+// ════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════
+function renderStats() {
+  const journal = DB.get('journal', []);
+  const closed = journal.filter(e => e.status === 'closed' && e.rMultiple !== null && e.rMultiple !== undefined && e.rMultiple !== '');
+  const rs = closed.map(e => parseFloat(e.rMultiple)).filter(r => !isNaN(r));
+
+  if (rs.length === 0) {
+    document.getElementById('s-winrate').textContent = '--%';
+    document.getElementById('s-wintrades').textContent = '-- / -- 筆';
+    document.getElementById('s-avgR').textContent = '--R';
+    document.getElementById('s-pf').textContent = '--';
+    document.getElementById('s-dd').textContent = '--R';
+    document.getElementById('regimeStats').innerHTML = '<div class="empty-state" style="padding:20px;"><div>無足夠數據</div></div>';
+    document.getElementById('confStats').innerHTML = '<div class="empty-state" style="padding:20px;"><div>無足夠數據</div></div>';
+    return;
+  }
+
+  const wins = rs.filter(r => r > 0);
+  const winRate = (wins.length / rs.length * 100).toFixed(1);
+  const avgR = (rs.reduce((a,b)=>a+b,0)/rs.length).toFixed(2);
+  const grossWin = wins.reduce((a,b)=>a+b,0);
+  const grossLoss = Math.abs(rs.filter(r=>r<0).reduce((a,b)=>a+b,0));
+  const pf = grossLoss === 0 ? '∞' : (grossWin / grossLoss).toFixed(2);
+
+  // Max drawdown
+  let peak = 0, cumR = 0, maxDD = 0;
+  rs.forEach(r => {
+    cumR += r;
+    if (cumR > peak) peak = cumR;
+    const dd = peak - cumR;
+    if (dd > maxDD) maxDD = dd;
+  });
+
+  document.getElementById('s-winrate').textContent = winRate + '%';
+  document.getElementById('s-winrate').className = 'stat-value ' + (parseFloat(winRate) >= 50 ? 'stat-green' : 'stat-red');
+  document.getElementById('s-wintrades').textContent = `${wins.length} / ${rs.length} 筆`;
+  document.getElementById('s-avgR').textContent = (avgR > 0 ? '+' : '') + avgR + 'R';
+  document.getElementById('s-avgR').className = 'stat-value ' + (parseFloat(avgR) >= 0 ? 'stat-green' : 'stat-red');
+  document.getElementById('s-pf').textContent = pf;
+  document.getElementById('s-dd').textContent = '-' + maxDD.toFixed(2) + 'R';
+
+  // Regime stats
+  const regimes = ['趨勢','震盪','恐慌','泡沫'];
+  const regColors = { '趨勢': 'green', '震盪': 'amber', '恐慌': 'red', '泡沫': 'blue' };
+  const regimeEl = document.getElementById('regimeStats');
+  regimeEl.innerHTML = regimes.map(reg => {
+    const regTrades = closed.filter(e => e.regime === reg && e.rMultiple !== null);
+    if (regTrades.length === 0) return `<div class="bias-row" style="opacity:.4"><div class="bias-label">${reg}</div><div class="bias-bar-bg" style="flex:1"></div><div class="bias-count">0筆</div></div>`;
+    const regRs = regTrades.map(e=>parseFloat(e.rMultiple)).filter(r=>!isNaN(r));
+    const wRate = (regRs.filter(r=>r>0).length / regRs.length * 100).toFixed(0);
+    const c = regColors[reg];
+    return `<div class="bias-row">
+      <div class="bias-label">${reg}</div>
+      <div class="bias-bar-bg"><div class="bias-bar-fill" style="width:${wRate}%;background:var(--${c})"></div></div>
+      <div class="bias-count" style="color:var(--${c})">${wRate}% (${regTrades.length}筆)</div>
+    </div>`;
+  }).join('');
+
+  // R distribution chart
+  renderRDist(rs);
+
+  // Confidence buckets
+  const confBuckets = [
+    { label: '0.0–0.4', min: 0, max: 0.4 },
+    { label: '0.4–0.6', min: 0.4, max: 0.6 },
+    { label: '0.6–0.8', min: 0.6, max: 0.8 },
+    { label: '0.8–1.0', min: 0.8, max: 1.01 },
+  ];
+  const confEl = document.getElementById('confStats');
+  confEl.innerHTML = confBuckets.map(b => {
+    const bucket = closed.filter(e => e.confidence >= b.min && e.confidence < b.max);
+    if (bucket.length === 0) return `<div class="bias-row" style="opacity:.4"><div class="bias-label">${b.label}</div><div class="bias-bar-bg"></div><div class="bias-count">0筆</div></div>`;
+    const bRs = bucket.map(e=>parseFloat(e.rMultiple)).filter(r=>!isNaN(r));
+    const wRate = (bRs.filter(r=>r>0).length / bRs.length * 100).toFixed(0);
+    return `<div class="bias-row">
+      <div class="bias-label">${b.label}</div>
+      <div class="bias-bar-bg"><div class="bias-bar-fill" style="width:${wRate}%;background:var(--blue)"></div></div>
+      <div class="bias-count">${wRate}% (${bucket.length}筆)</div>
+    </div>`;
+  }).join('');
+
+  // Equity curve
+  renderEquityCurve(rs);
+}
+
+function renderRDist(rs) {
+  const canvas = document.getElementById('rDistChart');
+  const empty = document.getElementById('rDistEmpty');
+  if (!canvas) return;
+  if (rs.length < 2) { canvas.style.display='none'; if(empty) empty.style.display='block'; return; }
+  canvas.style.display='block'; if(empty) empty.style.display='none';
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 400;
+  canvas.height = 160;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const min = Math.floor(Math.min(...rs) - 0.5);
+  const max = Math.ceil(Math.max(...rs) + 0.5);
+  const buckets = [];
+  const step = Math.max(0.5, (max-min)/20);
+  for (let v = min; v < max; v += step) buckets.push({ start: v, end: v+step, count: 0 });
+  rs.forEach(r => {
+    const b = buckets.find(b => r >= b.start && r < b.end);
+    if (b) b.count++;
+  });
+  const maxCount = Math.max(...buckets.map(b=>b.count)) || 1;
+  const bw = W / buckets.length;
+  const pad = 24;
+
+  buckets.forEach((b, i) => {
+    const h = ((b.count / maxCount) * (H - pad - 4));
+    const x = i * bw;
+    const y = H - pad - h;
+    ctx.fillStyle = b.start >= 0 ? 'rgba(0,229,160,0.7)' : 'rgba(255,77,106,0.7)';
+    ctx.fillRect(x + 1, y, bw - 2, h);
+  });
+
+  // Zero line
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  const zeroX = buckets.findIndex(b => b.start >= 0) * bw;
+  ctx.beginPath(); ctx.moveTo(zeroX, 0); ctx.lineTo(zeroX, H-pad); ctx.stroke();
+
+  // X labels
+  ctx.fillStyle = '#4a5f72';
+  ctx.font = '9px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  buckets.forEach((b, i) => {
+    if (i % Math.ceil(buckets.length/6) === 0) {
+      ctx.fillText(b.start.toFixed(1), i*bw + bw/2, H - 6);
+    }
+  });
+}
+
+function renderEquityCurve(rs) {
+  const canvas = document.getElementById('equityChart');
+  const empty = document.getElementById('equityEmpty');
+  if (!canvas) return;
+  if (rs.length < 2) { canvas.style.display='none'; if(empty) empty.style.display='block'; return; }
+  canvas.style.display='block'; if(empty) empty.style.display='none';
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || 400;
+  canvas.height = 160;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const cumR = [0];
+  rs.forEach(r => cumR.push(cumR[cumR.length-1] + r));
+  const minV = Math.min(...cumR);
+  const maxV = Math.max(...cumR);
+  const range = maxV - minV || 1;
+  const pad = { t:10, b:20, l:30, r:10 };
+
+  const toY = v => pad.t + (1 - (v - minV)/range) * (H - pad.t - pad.b);
+  const toX = i => pad.l + (i / (cumR.length-1)) * (W - pad.l - pad.r);
+
+  // Zero line
+  const zy = toY(0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(pad.l, zy); ctx.lineTo(W-pad.r, zy); ctx.stroke();
+
+  // Fill
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(0));
+  cumR.forEach((v, i) => ctx.lineTo(toX(i), toY(v)));
+  ctx.lineTo(toX(cumR.length-1), toY(0));
+  ctx.closePath();
+  const last = cumR[cumR.length-1];
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  if (last >= 0) {
+    grad.addColorStop(0,'rgba(0,229,160,0.3)');
+    grad.addColorStop(1,'rgba(0,229,160,0)');
+  } else {
+    grad.addColorStop(0,'rgba(255,77,106,0.3)');
+    grad.addColorStop(1,'rgba(255,77,106,0)');
+  }
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  cumR.forEach((v, i) => i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)));
+  ctx.strokeStyle = last >= 0 ? '#00e5a0' : '#ff4d6a';
+  ctx.lineWidth = 2; ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#4a5f72'; ctx.font = '9px Space Mono, monospace'; ctx.textAlign = 'left';
+  ctx.fillText(maxV.toFixed(1)+'R', 2, pad.t + 10);
+  ctx.fillText(minV.toFixed(1)+'R', 2, H - pad.b);
+}
+
+// ════════════════════════════════════════
+// BIAS
+// ════════════════════════════════════════
+function saveBiasEvents(date, biases) {
+  const events = DB.get('biasEvents', []);
+  biases.forEach(b => {
+    if (!events.find(e => e.date === date && e.bias === b)) {
+      events.push({ date, bias: b });
+    }
+  });
+  DB.set('biasEvents', events);
+}
+
+function renderBias() {
+  const events = DB.get('biasEvents', []);
+
+  // Ranking
+  const counts = {};
+  events.forEach(e => { counts[e.bias] = (counts[e.bias]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const maxCount = sorted[0]?.[1] || 1;
+  const colors = ['#ff4d6a','#f5a623','#3ab8ff','#a78bfa','#00e5a0'];
+
+  const rankEl = document.getElementById('biasRanking');
+  if (sorted.length === 0) {
+    rankEl.innerHTML = '<div class="empty-state" style="padding:20px;"><div>無偏誤記錄</div></div>';
+  } else {
+    rankEl.innerHTML = sorted.map(([bias, count], i) => `
+      <div class="bias-row">
+        <div class="bias-label" style="font-size:11px;">${i+1}. ${bias}</div>
+        <div class="bias-bar-bg"><div class="bias-bar-fill" style="width:${count/maxCount*100}%;background:${colors[i%5]}"></div></div>
+        <div class="bias-count">${count}次</div>
+      </div>
+    `).join('');
+  }
+
+  // Timeline
+  const timelineEl = document.getElementById('biasTimeline');
+  const recent = [...events].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 20);
+  if (recent.length === 0) {
+    timelineEl.innerHTML = '<div class="empty-state" style="padding:20px;"><div>無偏誤記錄</div></div>';
+  } else {
+    // Group by date
+    const byDate = {};
+    recent.forEach(e => { if(!byDate[e.date]) byDate[e.date]=[]; byDate[e.date].push(e.bias); });
+    timelineEl.innerHTML = Object.entries(byDate).map(([date, biases]) => `
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);min-width:80px;padding-top:2px;">${date}</div>
+        <div>${biases.map(b=>`<span class="chip chip-red" style="font-size:9px;">${b}</span>`).join('')}</div>
+      </div>
+    `).join('');
+  }
+
+  // Impact (R when bias triggered vs not)
+  const journal = DB.get('journal', []);
+  const closed = journal.filter(e => e.status === 'closed' && e.rMultiple !== null);
+  const pmData = DB.get('postmarkets', {});
+
+  const impactEl = document.getElementById('biasImpact');
+  if (sorted.length === 0 || closed.length === 0) {
+    impactEl.innerHTML = '<div class="empty-state" style="padding:20px;"><div>需要更多數據</div></div>';
+    return;
+  }
+
+  const impacts = sorted.slice(0,5).map(([bias]) => {
+    const datesWithBias = events.filter(e=>e.bias===bias).map(e=>e.date);
+    const tradesWithBias = closed.filter(t => datesWithBias.includes(t.date));
+    const tradesWithout = closed.filter(t => !datesWithBias.includes(t.date));
+    const avgWith = tradesWithBias.length ? (tradesWithBias.reduce((a,e)=>a+parseFloat(e.rMultiple),0)/tradesWithBias.length).toFixed(2) : null;
+    const avgWithout = tradesWithout.length ? (tradesWithout.reduce((a,e)=>a+parseFloat(e.rMultiple),0)/tradesWithout.length).toFixed(2) : null;
+    return { bias, avgWith, avgWithout, count: tradesWithBias.length };
+  });
+
+  impactEl.innerHTML = impacts.map(({ bias, avgWith, avgWithout, count }) => {
+    if (avgWith === null) return `<div style="color:var(--text3);font-size:11px;padding:6px 0;border-bottom:1px solid var(--border)">${bias}：數據不足</div>`;
+    const diff = avgWith !== null && avgWithout !== null ? (parseFloat(avgWith) - parseFloat(avgWithout)).toFixed(2) : null;
+    const color = diff !== null && parseFloat(diff) < 0 ? 'var(--red)' : 'var(--green)';
+    return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;">
+      <span style="color:var(--text2)">${bias}</span>
+      <span>觸發時：<span style="font-family:var(--mono);color:${parseFloat(avgWith)>=0?'var(--green)':'var(--red)'}">${avgWith>=0?'+':''}${avgWith}R</span></span>
+      ${diff !== null ? `<span style="color:${color};font-family:var(--mono)">影響 ${parseFloat(diff)>0?'+':''}${diff}R</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// MONTHLY REPORT
+// ════════════════════════════════════════
+function initReportMonths() {
+  const sel = document.getElementById('reportMonth');
+  const months = new Set();
+  const journal = DB.get('journal', []);
+  journal.forEach(e => months.add(e.date.slice(0,7)));
+  const now = new Date().toISOString().slice(0,7);
+  months.add(now);
+  const sorted = [...months].sort().reverse();
+  sel.innerHTML = sorted.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function renderReport() {
+  const month = document.getElementById('reportMonth')?.value;
+  if (!month) return;
+  const journal = DB.get('journal', []);
+  const closed = journal.filter(e => e.date.startsWith(month) && e.status === 'closed' && e.rMultiple !== null);
+  const rs = closed.map(e => parseFloat(e.rMultiple)).filter(r => !isNaN(r));
+  const pmData = DB.get('postmarkets', {});
+  const biasEvents = DB.get('biasEvents', []).filter(e => e.date.startsWith(month));
+
+  const container = document.getElementById('reportContent');
+
+  if (rs.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div>${month} 無已結案交易數據</div></div>`;
+    return;
+  }
+
+  const wins = rs.filter(r=>r>0);
+  const winRate = (wins.length/rs.length*100).toFixed(1);
+  const totalR = rs.reduce((a,b)=>a+b,0).toFixed(2);
+  const avgR = (rs.reduce((a,b)=>a+b,0)/rs.length).toFixed(2);
+  const grossWin = wins.reduce((a,b)=>a+b,0);
+  const grossLoss = Math.abs(rs.filter(r=>r<0).reduce((a,b)=>a+b,0));
+  const pf = grossLoss === 0 ? '∞' : (grossWin/grossLoss).toFixed(2);
+
+  const biasCounts = {};
+  biasEvents.forEach(e => { biasCounts[e.bias] = (biasCounts[e.bias]||0)+1; });
+  const topBias = Object.entries(biasCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  // By-day equity
+  const dayRs = {};
+  closed.forEach(e => { if (!dayRs[e.date]) dayRs[e.date]=0; dayRs[e.date] += parseFloat(e.rMultiple); });
+  const days = Object.entries(dayRs).sort((a,b)=>a[0].localeCompare(b[0]));
+  const maxAbsR = Math.max(...days.map(d=>Math.abs(d[1]))) || 1;
+
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="report-stats">
+      <div class="stat-card">
+        <div class="stat-label">月度勝率</div>
+        <div class="stat-value ${parseFloat(winRate)>=50?'stat-green':'stat-red'}">${winRate}%</div>
+        <div class="stat-sub">${wins.length}/${rs.length} 筆</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">月度 R 合計</div>
+        <div class="stat-value ${parseFloat(totalR)>=0?'stat-green':'stat-red'}">${parseFloat(totalR)>=0?'+':''}${totalR}R</div>
+        <div class="stat-sub">共 ${rs.length} 筆</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">平均 R</div>
+        <div class="stat-value ${parseFloat(avgR)>=0?'stat-green':'stat-red'}">${parseFloat(avgR)>=0?'+':''}${avgR}R</div>
+        <div class="stat-sub">每筆期望值</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">獲利因子</div>
+        <div class="stat-value stat-blue">${pf}</div>
+        <div class="stat-sub">Profit Factor</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div class="card report-section">
+        <h3>每日 R 表現</h3>
+        <div class="equity-bar-container">
+          ${days.map(([d, r]) => {
+            const pct = Math.abs(r)/maxAbsR*80;
+            return `<div class="equity-day">
+              <div class="equity-date">${d.slice(5)}</div>
+              <div class="equity-bar-bg">
+                ${r >= 0 
+                  ? `<div class="equity-bar-pos" style="width:${pct}%"></div>`
+                  : `<div class="equity-bar-neg" style="width:${pct}%"></div>`
                 }
-            }
-        });
-        qInp.oninput = renderData;
+              </div>
+              <div class="equity-r ${r>=0?'r-pos':'r-neg'}">${r>=0?'+':''}${r.toFixed(2)}R</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
 
-        // 新增/更新（含覆寫確認、清空欄位）
-        addBtn.onclick = () => {
-            if (!isAdmin()) return alert('請先以管理者登入');
-            const rec = {
-                id: (id.value || '').trim(),
-                item: (item.value || '').trim(),
-                unit: (unit.value || '').trim(),
-                price: toInt(price.value || 0),
-                shop: (vendor.value || '').trim()
-            };
-            if (!rec.item || !rec.unit || !rec.shop) {
-                return alert('請完整填寫：品項、單位、廠商');
-            }
-            let i = -1;
-            if (!rec.id) {
-                rec.id = uid('N');
-            } else {
-                i = state.data.findIndex(x => x.id === rec.id);
-                if (i >= 0) {
-                    const ok = confirm(`編號「${rec.id}」已存在，要覆寫這筆資料嗎？`);
-                    if (!ok) return;
-                }
-            }
-            if (i >= 0) state.data[i] = rec; else state.data.push(rec);
-            if (!(rec.id in state.qty)) state.qty[rec.id] = 0;
-            saveDB(); renderData(); renderCart();
-            toast(i >= 0 ? '已更新一筆資料' : '已新增一筆資料');
-            id.value = item.value = unit.value = price.value = vendor.value = '';
-        };
-
-        exportBtn.onclick = () => {
-            const headers = ['id', 'item', 'unit', 'price', 'shop'];
-            const csv = [headers.join(',')].concat(
-                state.data.map(r => headers.map(h => escCSV(r[h] ?? '')).join(','))
-            ).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = 'items.csv'; a.click();
-        };
-
-        /* ========= 管理分頁 =========
-           renderDB()    → 將 state.data 渲染為可直接編輯的表格（每欄均為 input）；
-                           同時綁定「刪除」（立即移除）與「複製」（複製一行）按鈕。
-           collectDB()   → 從 DOM 表格讀回所有欄位值，寫回 state.data（儲存前呼叫）；
-                           偵測重複 id 時自動以 uid() 取代，確保唯一性。
-           saveDB()      → 清除孤兒 qty（品項已刪除但 qty 仍殘留），
-                           將 state.data 與 state.qty 一起寫回 localStorage。
-           markDirty()   → 更新 dbInfo 徽章顯示「未儲存 / 已儲存」狀態。
-           dbAdd         → 新增一筆空白品項列（uid 自動補 id）。
-           dbSave        → collectDB() + saveDB() + 重新渲染所有分頁。
-           dbExport      → 匯出管理頁目前資料為 items.csv。
-           dbTemplate    → 下載 CSV 匯入範本（template_items.csv）。
-           parseCSV()    → 支援引號跳脫的完整 CSV 解析（支援換行與逗號包在引號中）。
-           importBtn     → 觸發 csvFile 選擇器；
-           csvFile.onchange → 讀取 CSV 檔案，自動對應英/中標頭，
-                              匯入成功後取代 state.data（Toast 顯示筆數）。
-           clearBtn      → 確認後清空 localStorage 資料庫與購物車數量。
-           setPinBtn     → 開啟設定 PIN 對話框（4~12 位，二次確認）。
-        */
-        const dbTbody = $('#dbTable tbody');
-        const dbInfo = $('#dbInfo');
-        const dbAdd = $('#dbAdd'), dbSave = $('#dbSave'), dbExport = $('#dbExport'), dbTemplate = $('#dbTemplate');
-        const csvFile = $('#csvFile'), importBtn = $('#importBtn'), clearBtn = $('#clearBtn'), setPinBtn = $('#setPinBtn');
-
-        function markDirty(flag = true) { state.dirty = flag; dbInfo.textContent = `資料 ${state.data.length} 筆 · ${flag ? '未儲存' : '已儲存'}`; }
-        function renderDB() {
-            if ($('#page-admin').classList.contains('hidden')) return;
-            dbTbody.innerHTML = '';
-            for (const d of state.data) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-          <td><button data-act="del" data-id="${d.id}">刪除</button> <button class="secondary" data-act="dup" data-id="${d.id}">複製</button></td>
-          <td><input data-f="id" value="${d.id}"></td>
-          <td><input data-f="item" value="${d.item}"></td>
-          <td><input data-f="unit" value="${d.unit}"></td>
-          <td><input data-f="price" class="num" value="${d.price}"></td>
-          <td><input data-f="shop" value="${d.shop}"></td>`;
-                dbTbody.appendChild(tr);
-            }
-            dbTbody.querySelectorAll('button[data-act="del"]').forEach(b => b.addEventListener('click', () => {
-                const id = b.dataset.id; const i = state.data.findIndex(x => x.id === id);
-                if (i >= 0) { state.data.splice(i, 1); delete state.qty[id]; markDirty(); renderDB(); renderData(); renderCart(); toast('已刪除（含購物車數量）'); }
-            }));
-            dbTbody.querySelectorAll('button[data-act="dup"]').forEach(b => b.addEventListener('click', () => {
-                const id = b.dataset.id; const d = state.data.find(x => x.id === id); if (!d) return;
-                const c = { ...d, id: uid('D') }; state.data.push(c); state.qty[c.id] = 0; markDirty(); renderDB(); renderData(); renderCart(); toast('已複製');
-            }));
-            dbTbody.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => markDirty(true)));
-            markDirty(false);
+      <div class="card report-section">
+        <h3>本月偏誤分析</h3>
+        ${topBias.length === 0 
+          ? '<div class="empty-state" style="padding:20px;"><div>本月無偏誤記錄</div></div>'
+          : `<div style="margin-bottom:12px;">
+              ${topBias.map(([b,c]) => `
+                <div class="bias-row">
+                  <div class="bias-label">${b}</div>
+                  <div class="bias-bar-bg"><div class="bias-bar-fill" style="width:${c/topBias[0][1]*100}%;background:var(--red)"></div></div>
+                  <div class="bias-count">${c}次</div>
+                </div>`).join('')}
+            </div>`
         }
-        function collectDB() {
-            const rows = [...dbTbody.querySelectorAll('tr')].map(tr => {
-                const m = Object.fromEntries([...tr.querySelectorAll('input')].map(i => [i.dataset.f, i.value]));
-                return { id: (m.id || '').trim() || uid('I'), item: (m.item || '').trim(), unit: (m.unit || '').trim(), price: toInt(m.price || 0), shop: (m.shop || '').trim() };
-            });
-            // 去重 id
-            const seen = new Set(); for (const r of rows) { if (seen.has(r.id)) r.id = uid('I'); seen.add(r.id); }
-            state.data = rows; for (const d of state.data) { if (!(d.id in state.qty)) state.qty[d.id] = 0; }
-        }
+        <h3 style="margin-top:16px;">本月心得摘要</h3>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+          ${Object.entries(pmData)
+            .filter(([d]) => d.startsWith(month) && pmData[d].review)
+            .map(([d, pm]) => `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--text3);">${d}</span><br>${pm.review}
+            </div>`).join('') || '<div style="color:var(--text3)">無復盤記錄</div>'
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
 
-        // saveDB：清理 qty 孤兒
-        function saveDB() {
-            const valid = new Set(state.data.map(d => d.id));
-            for (const k of Object.keys(state.qty)) { if (!valid.has(k)) delete state.qty[k]; }
-            localStorage.setItem(LS_DB, JSON.stringify(state.data));
-            localStorage.setItem(LS_QTY, JSON.stringify(state.qty));
-            markDirty(false);
-        }
+function printReport() {
+  window.print();
+}
 
-        dbAdd.onclick = () => { state.data.push({ id: uid('N'), item: '', unit: '', price: 0, shop: '' }); markDirty(); renderDB(); };
-        dbSave.onclick = () => { collectDB(); saveDB(); renderData(); renderCart(); toast('資料庫已儲存'); };
-        dbExport.onclick = () => {
-            const headers = ['id', 'item', 'unit', 'price', 'shop'];
-            const csv = [headers.join(',')].concat(state.data.map(r => headers.map(h => escCSV(r[h] ?? '')).join(','))).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob); a.download = 'items.csv'; a.click();
-        };
-        dbTemplate.onclick = () => {
-            const csv = 'id,item,unit,price,shop\n,吸管,50支/包,284,清順';
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-            a.download = 'template_items.csv'; a.click();
-        };
-        // 匯入 CSV（支援英/中標頭）
-        const parseCSV = (text) => {
-            const rows = []; let cur = []; let val = ''; let inQ = false; text = text.replace(/\r\n?|\n/g, '\n');
-            for (let i = 0; i < text.length; i++) {
-                const c = text[i];
-                if (inQ) { if (c == '"') { if (text[i + 1] == '"') { val += '"'; i++; } else inQ = false; } else val += c; }
-                else {
-                    if (c == '"') inQ = true; else if (c == ',') { cur.push(val); val = ''; }
-                    else if (c == '\n') { cur.push(val); rows.push(cur); cur = []; val = ''; } else val += c;
-                }
-            } if (val.length > 0 || cur.length > 0) { cur.push(val); rows.push(cur); }
-            return rows;
-        };
-        importBtn.onclick = () => { if (!isAdmin()) return alert('請先以管理者登入'); csvFile.click(); };
-        csvFile.onchange = ev => {
-            const f = ev.target.files?.[0]; if (!f) return;
-            const r = new FileReader();
-            r.onload = () => {
-                try {
-                    const lines = parseCSV(String(r.result || ''));
-                    if (!lines.length) throw new Error('空檔案');
-                    const header = lines.shift().map(s => String(s || '').trim().toLowerCase());
-                    const idx = (...cand) => { for (const c of cand) { const k = header.indexOf(c); if (k !== -1) return k; } return -1; };
-                    const ix = { id: idx('id', '編號'), item: idx('item', '品項'), unit: idx('unit', '單位'), price: idx('price', '價錢', '價格'), shop: idx('shop', '廠商', '店家', '商家') };
-                    if (ix.item < 0 || ix.unit < 0 || ix.price < 0 || ix.shop < 0) throw new Error('缺少必要欄位');
-                    const next = [];
-                    for (const row of lines) {
-                        if (row.every(x => String(x).trim() === '')) continue;
-                        const rec = {
-                            id: (row[ix.id] || '').trim() || uid('I'),
-                            item: (row[ix.item] || '').trim(),
-                            unit: (row[ix.unit] || '').trim(),
-                            price: toInt(row[ix.price] || 0),
-                            shop: (row[ix.shop] || '').trim()
-                        };
-                        next.push(rec);
-                    }
-                    state.data = next; const q = {}; for (const d of state.data) { q[d.id] = state.qty[d.id] || 0; } state.qty = q;
-                    saveDB(); renderDB(); renderData(); renderCart(); toast(`匯入成功：${state.data.length} 筆`);
-                } catch (e) { console.error(e); toast('匯入失敗：欄位不完整或格式錯誤', { error: true, duration: 2600 }); }
-                ev.target.value = '';
-            };
-            r.readAsText(f, 'utf-8');
-        };
-        clearBtn.onclick = () => {
-            if (!isAdmin()) return alert('請先以管理者登入');
-            if (confirm('確定要清空本機資料庫與購物車數量？此動作無法復原！')) {
-                localStorage.setItem(LS_DB, JSON.stringify([]));
-                localStorage.setItem(LS_QTY, JSON.stringify({}));
-                state.data = []; state.qty = {}; renderDB(); renderData(); renderCart(); toast('已清空');
-            }
-        };
-        $('#setPinBtn').onclick = () => { $('#newPin1').value = ''; $('#newPin2').value = ''; dlgSetPin.showModal(); setTimeout(() => $('#newPin1').focus(), 50); };
-        $('#cancelSetPin').onclick = () => dlgSetPin.close();
-        $('#confirmSetPin').onclick = () => {
-            const p1 = $('#newPin1').value.trim(), p2 = $('#newPin2').value.trim();
-            if (p1.length < 4 || p1.length > 12) return alert('PIN 長度需 4~12 位');
-            if (p1 !== p2) return alert('兩次輸入不一致');
-            localStorage.setItem(PIN_KEY, p1); dlgSetPin.close(); toast('PIN 已更新');
-        };
+// ════════════════════════════════════════
+// MODAL
+// ════════════════════════════════════════
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
 
-        /* ========= 採購分頁（購物車） =========
-           saveQty()          → 將 state.qty 寫回 localStorage（LS_QTY）。
-           populateShopFilter()→ 從 state.data 抽取廠商清單填入下拉選單，
-                                 保留先前選擇的廠商值。
-           renderCart()       → 依搜尋關鍵字與廠商篩選過濾品項，
-                                動態產生含數量控件（−/輸入框/＋）的表格列；
-                                品項按鈕 click 事件 → 數量 ±1，同步更新小計顯示；
-                                品項輸入框 input 事件 → 直接設定數量，同步更新小計。
-           recalcTotals()     → 重新計算合計金額、各廠商小計、已選品項數，
-                                更新頁面底部彙總區。
-           resetQty           → 確認後將所有品項數量歸零。
-           cartExport         → 彙整數量 > 0 的品項清單（品項 x 數量 = 小計），
-                                顯示於 alert 並自動複製到剪貼簿。
-        */
-        const cartQ = $('#cartQ'), shopFilter = $('#shopFilter'), cartTbody = $('#cartTbl tbody');
-        const grandTotal = $('#grandTotal'), grandCount = $('#grandCount'), sumQS = $('#sum-qingshun'), sumBC = $('#sum-baocheng'), pickedCount = $('#pickedCount');
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
 
-        function saveQty() { localStorage.setItem(LS_QTY, JSON.stringify(state.qty)); }
+// ════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
 
-        // 保留選擇的廠商，不要每次 render 被洗掉
-        function populateShopFilter() {
-            const prev = shopFilter.value;
-            shopFilter.innerHTML = '<option value="">全部廠商</option>';
-            const shops = [...new Set(state.data.map(d => d.shop).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-            for (const s of shops) {
-                const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
-                shopFilter.appendChild(opt);
-            }
-            if ([...shopFilter.options].some(o => o.value === prev)) shopFilter.value = prev;
-        }
+// ════════════════════════════════════════
+// DEMO DATA (first run)
+// ════════════════════════════════════════
+function seedDemo() {
+  // Seed some journal entries for demo
+  const journal = [
+    { id: 'demo1', date: '2026-03-05', code: '2330', dir: 'long', regime: '震盪', confidence: 0.65, entry: '回測5日線量縮', sl: '跌破5日線', tp: '前高附近', hypothesis: '資金在但追價降', result: '目標達成出場', rMultiple: 2.1, hypCorrect: 'correct', status: 'closed', notes:'' },
+    { id: 'demo2', date: '2026-03-05', code: '2454', dir: 'long', regime: '震盪', confidence: 0.55, entry: '突破前高', sl: '回落至前高下', tp: '1ATR', hypothesis: '資金在但追價降', result: '停損出場', rMultiple: -1.0, hypCorrect: 'partial', status: 'closed', notes:'' },
+    { id: 'demo3', date: '2026-03-06', code: '3008', dir: 'watch', regime: '震盪', confidence: 0.5, entry: '等量縮', sl: '昨低', tp: '壓力區', hypothesis: '高檔震盪', result: '未進場', rMultiple: 0, hypCorrect: 'correct', status: 'closed', notes:'' },
+    { id: 'demo4', date: '2026-03-07', code: '2330', dir: 'long', regime: '趨勢', confidence: 0.75, entry: '突破整理區', sl: '10日線', tp: '波段目標', hypothesis: '指數趨勢上漲', result: '部分獲利出場', rMultiple: 1.8, hypCorrect: 'correct', status: 'closed', notes:'' },
+    { id: 'demo5', date: '2026-03-08', code: '6505', dir: 'short', regime: '恐慌', confidence: 0.6, entry: '跌破支撐量增', sl: '收回支撐上', tp: '次支撐', hypothesis: '短線恐慌賣壓', result: '停損出場', rMultiple: -0.8, hypCorrect: 'wrong', status: 'closed', notes:'' },
+  ];
+  DB.set('journal', journal);
 
-        function renderCart() {
-            populateShopFilter();
-            const kw = (cartQ.value || '').trim().toLowerCase();
-            const shop = shopFilter.value;
-            const rows = state.data.filter(d => {
-                const text = `${d.id} ${d.item} ${d.unit} ${d.shop}`.toLowerCase();
-                return (!kw || text.includes(kw)) && (!shop || d.shop === shop);
-            });
-            cartTbody.innerHTML = '';
-            rows.forEach((d) => {
-                const q = Number(state.qty[d.id] || 0), sub = q * d.price;
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-          <td>${d.id}</td>
-          <td>${d.item}</td>
-          <td>${d.unit}</td>
-          <td class="num">$${intFmt.format(d.price)}</td>
-          <td>${d.shop}</td>
-          <td class="num">
-            <div class="qty">
-              <button aria-label="減少" data-act="dec" data-id="${d.id}">−</button>
-              <input inputmode="numeric" pattern="[0-9]*" type="number" min="0" step="1" data-id="${d.id}" value="${q}" />
-              <button aria-label="增加" data-act="inc" data-id="${d.id}">＋</button>
-            </div>
-          </td>
-          <td class="num" data-sub="${d.id}">$${intFmt.format(sub)}</td>`;
-                cartTbody.appendChild(tr);
-            });
-            // 綁定數量控件
-            cartTbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => {
-                const id = b.dataset.id; const cur = Number(state.qty[id] || 0); const next = Math.max(0, cur + (b.dataset.act === 'inc' ? 1 : -1));
-                state.qty[id] = next; saveQty();
-                const inp = cartTbody.querySelector(`input[data-id="${id}"]`); if (inp) inp.value = next;
-                const d = state.data.find(x => x.id === id); const td = cartTbody.querySelector(`[data-sub="${id}"]`);
-                if (d && td) td.textContent = `$${intFmt.format(next * d.price)}`;
-                recalcTotals();
-            }));
-            cartTbody.querySelectorAll('input[data-id]').forEach(inp => inp.addEventListener('input', () => {
-                const id = inp.dataset.id; let v = Number(inp.value || 0); if (isNaN(v) || v < 0) v = 0; inp.value = v; state.qty[id] = v; saveQty();
-                const d = state.data.find(x => x.id === id); const td = cartTbody.querySelector(`[data-sub="${id}"]`);
-                if (d && td) td.textContent = `$${intFmt.format(v * d.price)}`;
-                recalcTotals();
-            }));
-            recalcTotals();
-        }
-        function recalcTotals() {
-            let grand = 0, picked = 0, sumQ = 0, sumB = 0, units = 0;
-            for (const d of state.data) {
-                const q = Number(state.qty[d.id] || 0); if (q > 0) { picked++; units += q; }
-                const sub = q * d.price; grand += sub; if (d.shop === '清順') sumQ += sub; else if (d.shop === '寶成') sumB += sub;
-            }
-            grandTotal.textContent = `$${intFmt.format(grand)}`;
-            grandCount.textContent = `共 ${units} 單位（${picked} 個品項）`;
-            sumQS.textContent = `$${intFmt.format(sumQ)}`;
-            sumBC.textContent = `$${intFmt.format(sumB)}`;
-            pickedCount.textContent = picked;
-        }
-        $('#resetQty').onclick = () => { if (confirm('清空所有品項的數量？')) { for (const k in state.qty) state.qty[k] = 0; saveQty(); renderCart(); } };
-        $('#cartExport').onclick = async () => {
-            let msg = ''; let total = 0;
-            for (const d of state.data) { const q = Number(state.qty[d.id] || 0); if (q > 0) { const sub = q * d.price; msg += `${d.item} x ${q} = $${intFmt.format(sub)}\n`; total += sub; } }
-            if (!msg) return alert('尚未選購任何品項。');
-            msg += `\n合計：$${intFmt.format(total)}`;
-            alert(msg);
-            try { await navigator.clipboard.writeText(msg); toast('已複製到剪貼簿，可直接貼到 LINE'); }
-            catch { toast('無法自動複製，請手動複製', { error: true, duration: 2600 }); }
-        };
-        cartQ.oninput = renderCart; shopFilter.onchange = renderCart;
+  const biasEvents = [
+    { date: '2026-03-05', bias: '過度追強' },
+    { date: '2026-03-06', bias: '太早停損' },
+    { date: '2026-03-07', bias: '過度追強' },
+    { date: '2026-03-08', bias: '情緒性加碼' },
+    { date: '2026-03-08', bias: '忽視失效條件' },
+  ];
+  DB.set('biasEvents', biasEvents);
+}
 
-        /* ========= 登入流程 =========
-           loginBtn  → 開啟登入對話框，PIN 比對正確後設定管理者模式並跳至管理分頁。
-           logoutBtn → 清除管理者狀態，跳回採購分頁。
-           Enter 鍵  → 自動觸發「登入」確認（透過 confirmLogin.onclick 處理）。
-        */
-        loginBtn.onclick = () => { pinInput.value = ''; dlgLogin.showModal(); setTimeout(() => pinInput.focus(), 50); };
-        cancelLogin.onclick = () => dlgLogin.close();
-        confirmLogin.onclick = () => {
-            if (pinInput.value !== (localStorage.getItem(PIN_KEY) || DEFAULT_PIN)) return alert('PIN 不正確');
-            setAdmin(true); dlgLogin.close(); applyModeUI(); showTab('admin');
-        };
-        logoutBtn.onclick = () => { setAdmin(false); applyModeUI(); showTab('cart'); };
+// Seed demo if no journal data
+if (!DB.get('journal', null)) seedDemo();
 
-        /* ========= 初始化 =========
-           initialRender() → 程式進入點：
-             1. applyModeUI()  → 依登入狀態設定所有 UI
-             2. initFromHash() → 依 URL hash 決定顯示分頁
-             3. renderCart()   → 渲染採購分頁表格與合計
-             4. renderData()   → 渲染資料分頁表格
+// ════════════════════════════════════════
+// PWA — MANIFEST (injected as blob URL)
+// ════════════════════════════════════════
+(function injectManifest() {
+  // Generate a simple icon via canvas (no external files needed)
+  function makeIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    // Background
+    ctx.fillStyle = '#090c0f';
+    ctx.fillRect(0, 0, size, size);
+    // Pentagon logo
+    const cx = size / 2, cy = size / 2, r = size * 0.35;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
+      i === 0 ? ctx.moveTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle))
+              : ctx.lineTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#f5a623';
+    ctx.fill();
+    // Text
+    ctx.fillStyle = '#090c0f';
+    ctx.font = `bold ${size * 0.28}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('TD', cx, cy + size * 0.02);
+    return c.toDataURL('image/png');
+  }
 
-           PWA 安裝提示（接在初始化之後）：
-           - beforeinstallprompt → 瀏覽器支援安裝時顯示「安裝 App」按鈕
-           - 點擊「安裝 App」→ 呼叫 deferredPrompt.prompt()，
-             使用者確認後顯示成功 Toast，取消則顯示錯誤 Toast
-        */
-        function initialRender() { applyModeUI(); initFromHash(); renderCart(); renderData(); document.querySelector('[data-tab="cart"]').classList.add('active'); }
-        initialRender();
+  const icon192 = makeIcon(192);
+  const icon512 = makeIcon(512);
 
-        // ======== PWA：安裝提示與 Service Worker ========
-        let deferredPrompt = null;
-        const $installBtn = document.getElementById('installBtn');
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            $installBtn.classList.remove('hidden');
-        });
-        $installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) { toast('此裝置暫不支援安裝', { error: true }); return; }
-            $installBtn.disabled = true;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') toast('已開始安裝 App');
-            else toast('已取消安裝', { error: true });
-            deferredPrompt = null; $installBtn.classList.add('hidden'); $installBtn.disabled = false;
-        });
+  const manifest = {
+    name: '交易紀律系統 v4',
+    short_name: '交易紀律',
+    description: '盤前預判 / 盤後結案 / 統計分析 / 偏誤追蹤',
+    start_url: './',
+    display: 'standalone',
+    orientation: 'any',
+    background_color: '#090c0f',
+    theme_color: '#090c0f',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+    ]
+  };
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(() => {
-                    console.log('SW registered');
-                }).catch(err => console.warn('SW failed', err));
-            });
-        }
-    </script>
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = url;
+  document.head.appendChild(link);
+
+  // Apple touch icon
+  const appleLink = document.createElement('link');
+  appleLink.rel = 'apple-touch-icon';
+  appleLink.href = icon192;
+  document.head.appendChild(appleLink);
+})();
+
+// ════════════════════════════════════════
+// PWA — SERVICE WORKER (inline blob)
+// ════════════════════════════════════════
+(function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+
+  const swCode = `
+const CACHE = 'trading-v4-cache-v1';
+const ASSETS = [self.location.href.replace(/\\/sw-[^/]+$/, '/')];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
+  );
+});
+  `;
+
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+
+  navigator.serviceWorker.register(swUrl, { scope: './' })
+    .then(reg => console.log('[SW] registered, scope:', reg.scope))
+    .catch(err => console.warn('[SW] registration failed:', err));
+})();
+
+// ════════════════════════════════════════
+// PWA — INSTALL BUTTON
+// ════════════════════════════════════════
+let deferredPrompt = null;
+const $installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  $installBtn.classList.remove('hidden');
+});
+
+$installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) {
+    // iOS: show manual tip instead
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      document.getElementById('iosTip').classList.add('show');
+      setTimeout(() => document.getElementById('iosTip').classList.remove('show'), 6000);
+    } else {
+      showToast('此裝置暫不支援自動安裝', 'error');
+    }
+    return;
+  }
+
+  $installBtn.disabled = true;
+  deferredPrompt.prompt();
+
+  const { outcome } = await deferredPrompt.userChoice;
+
+  if (outcome === 'accepted') {
+    showToast('✅ 已開始安裝 App', 'success');
+  } else {
+    showToast('已取消安裝', '');
+  }
+
+  deferredPrompt = null;
+  $installBtn.classList.add('hidden');
+  $installBtn.disabled = false;
+});
+
+window.addEventListener('appinstalled', () => {
+  $installBtn.classList.add('hidden');
+  deferredPrompt = null;
+  showToast('🎉 App 安裝完成！', 'success');
+});
+
+// iOS: show tip if in Safari and not already standalone
+window.addEventListener('load', () => {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const shownBefore = DB.get('ios_tip_shown', false);
+
+  if (isIOS && !isStandalone && !shownBefore) {
+    setTimeout(() => {
+      document.getElementById('iosTip').classList.add('show');
+      DB.set('ios_tip_shown', true);
+      setTimeout(() => document.getElementById('iosTip').classList.remove('show'), 8000);
+    }, 2000);
+  }
+});
+</script>
 </body>
-
 </html>
