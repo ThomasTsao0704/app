@@ -1,1187 +1,1074 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<!--
+  ================================================================
+  採購資料庫 · PWA（採購 / 資料 / 管理三分頁版）
+  ================================================================
+  整體說明：
+    此為升級版採購資料庫，欄位全面改為英文（id/item/unit/price/shop），
+    並新增舊資料自動遷移、Toast 提示、管理頁內嵌表格編輯等功能。
+
+  三個主要分頁：
+  ┌─ 🛒 採購分頁（page-cart）【預設顯示】
+  │     顯示全部品項，每列可直接輸入數量（±按鈕或數字輸入）；
+  │     支援關鍵字搜尋與廠商篩選；
+  │     底部即時顯示合計、清順/寶成分廠商小計、已選品項數；
+  │     「匯出（彙總＋複製）」→ 整理選購清單並複製至剪貼簿。
+  ├─ 📄 資料分頁（page-data）
+  │     瀏覽所有品項（支援搜尋）；
+  │     管理者可新增/更新品項、匯出 CSV 資料庫。
+  └─ 🛠 管理分頁（page-admin，需登入才可見）
+        直接在表格內編輯/新增/刪除/複製品項，按「儲存變更」才寫入；
+        支援 CSV 匯入（英/中標頭自動對應）、清空資料庫、設定 PIN、
+        下載 CSV 範本、顯示目前資料筆數與未儲存狀態。
+
+  資料層說明：
+    - LS_DB      → localStorage（品項資料，英文欄位 id/item/unit/price/shop）
+    - LS_QTY     → localStorage（各品項購物數量，以 id 為 key）
+    - LS_FACTORY → localStorage（預設廠商品項快取）
+    - PIN_KEY    → localStorage（管理者 PIN，預設 0000）
+    - OLD_KEY    → 舊版相容：自動將 procure-db-v1 中文欄位遷移至新格式
+
+  技術特色：
+    - 舊版資料自動遷移（migrate()）
+    - uid() 自動產生唯一 ID，避免空 id 衝突
+    - Toast 通知取代傳統 alert（成功綠色 / 失敗紅色，自動消失）
+    - PWA：Service Worker 離線快取 + 安裝提示
+    - intFmt：使用 Intl.NumberFormat 輸出台灣慣用的整數千分位格式
+  ================================================================
+-->
+<html lang="zh-Hant">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>家庭採購系統</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
-
-:root {
-  --green: #2d8c4e;
-  --green-light: #e8f5ee;
-  --green-mid: #4aad6a;
-  --red: #c0392b;
-  --red-light: #fdecea;
-  --orange: #e07b00;
-  --blue: #1a56db;
-  --blue-light: #e8f0fe;
-  --border: #d0e8da;
-  --bg: #f3faf6;
-  --gray: #666;
-  --shadow: 0 4px 16px rgba(0,0,0,0.10);
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-body {
-  font-family: 'Noto Sans TC', sans-serif;
-  background: var(--bg);
-  color: #1a2e22;
-  min-height: 100vh;
-  overscroll-behavior: none;
-}
-
-/* ── Header ── */
-header {
-  background: var(--green);
-  color: white;
-  padding: 18px 20px 14px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
-}
-
-.header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.header-title { font-size: 24px; font-weight: 900; letter-spacing: 1px; }
-.header-date  { font-size: 15px; opacity: 0.85; }
-
-.budget-bar {
-  background: rgba(255,255,255,0.15);
-  border-radius: 12px;
-  padding: 10px 14px;
-}
-
-.budget-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 7px;
-}
-
-.budget-label { font-size: 15px; opacity: 0.9; }
-
-.budget-amounts { display: flex; gap: 18px; }
-
-.budget-item { text-align: right; }
-.budget-item .val { font-size: 20px; font-weight: 700; }
-.budget-item .lbl { font-size: 11px; opacity: 0.8; display: block; }
-.budget-item.spent .val    { color: #ffcc70; }
-.budget-item.remaining .val { color: #a8ffcc; }
-
-.budget-progress {
-  height: 8px;
-  background: rgba(255,255,255,0.25);
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.budget-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #a8ffcc, #ffcc70);
-  border-radius: 99px;
-  transition: width 0.6s ease;
-}
-
-/* ── Nav Tabs ── */
-.nav-tabs {
-  display: flex;
-  background: white;
-  border-bottom: 2px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 90;
-}
-
-.nav-tab {
-  flex: 1;
-  padding: 13px 8px;
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--gray);
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s;
-  margin-bottom: -2px;
-}
-
-.nav-tab.active {
-  color: var(--green);
-  border-bottom-color: var(--green);
-}
-
-/* ── Page sections ── */
-.page { display: none; padding-bottom: 100px; }
-.page.active { display: block; }
-
-/* ── Filter chips ── */
-.filter-row {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.filter-row::-webkit-scrollbar { display: none; }
-
-.chip {
-  flex-shrink: 0;
-  padding: 8px 14px;
-  border: 2px solid var(--border);
-  border-radius: 99px;
-  background: white;
-  font-size: 14px;
-  font-family: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  color: var(--gray);
-  transition: all 0.2s;
-}
-
-.chip.active {
-  background: var(--green);
-  border-color: var(--green);
-  color: white;
-}
-
-/* ── Shopping cards ── */
-#list {
-  padding: 8px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-#loading, #empty {
-  text-align: center;
-  padding: 60px 20px;
-  font-size: 20px;
-  color: var(--gray);
-}
-
-.spin { display: inline-block; font-size: 36px; animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.item-card {
-  background: white;
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  border: 2px solid transparent;
-}
-
-.item-card.needs-buy  { border-color: var(--green-mid); }
-.item-card.bought     { border-color: #ccc; opacity: 0.7; }
-
-.item-body {
-  padding: 16px 18px 14px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.item-emoji { font-size: 40px; flex-shrink: 0; width: 52px; text-align: center; }
-
-.item-info { flex: 1; min-width: 0; }
-
-.item-name { font-size: 24px; font-weight: 900; margin-bottom: 5px; }
-
-.item-stats { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.stat-badge {
-  padding: 3px 9px;
-  border-radius: 99px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.stat-badge.stock   { background: var(--blue-light);  color: var(--blue); }
-.stat-badge.suggest { background: var(--green-light);  color: var(--green); }
-.stat-badge.price   { background: #fef3c7; color: #92400e; }
-
-.item-action { padding: 0 18px 16px; }
-
-.btn-buy {
-  width: 100%;
-  padding: 15px;
-  border: none;
-  border-radius: 12px;
-  font-size: 20px;
-  font-weight: 900;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.btn-buy.can-buy {
-  background: linear-gradient(135deg, var(--green), var(--green-mid));
-  color: white;
-  box-shadow: 0 4px 12px rgba(45,140,78,0.35);
-}
-
-.btn-buy.can-buy:active { transform: scale(0.97); }
-.btn-buy.done    { background: #e8e8e8; color: #999; cursor: not-allowed; }
-.btn-buy.no-budget { background: #fff4e0; color: var(--orange); cursor: not-allowed; border: 2px solid #ffd280; }
-
-/* ── 管理頁 ── */
-.mgmt-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 16px 8px;
-}
-
-.mgmt-title { font-size: 18px; font-weight: 700; color: var(--gray); }
-
-.btn-add {
-  padding: 10px 18px;
-  background: var(--green);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 3px 10px rgba(45,140,78,0.3);
-}
-
-#mgmt-list {
-  padding: 4px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mgmt-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.mgmt-emoji { font-size: 32px; flex-shrink: 0; }
-
-.mgmt-info { flex: 1; min-width: 0; }
-.mgmt-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-.mgmt-sub  { font-size: 13px; color: var(--gray); }
-
-.mgmt-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-.btn-edit, .btn-del {
-  width: 42px;
-  height: 42px;
-  border: none;
-  border-radius: 10px;
-  font-size: 18px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
-}
-
-.btn-edit { background: var(--blue-light);  color: var(--blue); }
-.btn-del  { background: var(--red-light);   color: var(--red);  }
-.btn-edit:active, .btn-del:active { transform: scale(0.93); }
-
-/* ── 設定頁 ── */
-.settings-section {
-  margin: 14px 16px 0;
-  background: white;
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.settings-title {
-  padding: 14px 16px 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--gray);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
-}
-
-.settings-row {
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.settings-row:last-child { border-bottom: none; }
-
-.settings-row label {
-  display: block;
-  font-size: 14px;
-  color: var(--gray);
-  margin-bottom: 6px;
-  font-weight: 700;
-}
-
-.settings-row input {
-  width: 100%;
-  padding: 11px 14px;
-  font-size: 16px;
-  font-family: inherit;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.settings-row input:focus { border-color: var(--green); }
-
-.btn-save-settings {
-  margin: 16px;
-  width: calc(100% - 32px);
-  padding: 15px;
-  background: var(--green);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(45,140,78,0.35);
-}
-
-.danger-btn {
-  margin: 4px 16px;
-  width: calc(100% - 32px);
-  padding: 15px;
-  background: var(--red-light);
-  color: var(--red);
-  border: 2px solid #f5c6c2;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-}
-
-/* ── Modal / Overlay ── */
-.modal-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 200;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 16px;
-}
-
-.modal-backdrop.show {
-  display: flex;
-  animation: fadeIn 0.2s;
-}
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-.modal-box {
-  background: white;
-  border-radius: 22px;
-  padding: 24px 20px;
-  width: 100%;
-  max-width: 480px;
-  animation: slideUp 0.25s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(40px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-.modal-title {
-  font-size: 20px;
-  font-weight: 900;
-  margin-bottom: 18px;
-  color: var(--green);
-}
-
-.form-group { margin-bottom: 14px; }
-
-.form-group label {
-  display: block;
-  font-size: 14px;
-  color: var(--gray);
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-
-.form-group input, .form-group select {
-  width: 100%;
-  padding: 12px 14px;
-  font-size: 18px;
-  font-family: inherit;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-group input:focus, .form-group select:focus { border-color: var(--green); }
-
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-
-.modal-btns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.modal-cancel {
-  padding: 15px;
-  border: 2px solid #ccc;
-  border-radius: 12px;
-  background: white;
-  font-size: 18px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  color: #666;
-}
-
-.modal-ok {
-  padding: 15px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--green), var(--green-mid));
-  color: white;
-  font-size: 18px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  box-shadow: 0 3px 10px rgba(45,140,78,0.3);
-}
-
-.modal-ok.red {
-  background: linear-gradient(135deg, var(--red), #e74c3c);
-  box-shadow: 0 3px 10px rgba(192,57,43,0.3);
-}
-
-/* ── Toast ── */
-#toast {
-  position: fixed;
-  bottom: 28px;
-  left: 50%;
-  transform: translateX(-50%) translateY(80px);
-  background: #1a2e22;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 99px;
-  font-size: 16px;
-  font-weight: 700;
-  z-index: 400;
-  opacity: 0;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-/* ── Confirm buy overlay ── */
-#buy-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 200;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 16px;
-}
-
-#buy-overlay.show { display: flex; animation: fadeIn 0.2s; }
-
-.confirm-box {
-  background: white;
-  border-radius: 22px;
-  padding: 24px 20px;
-  width: 100%;
-  max-width: 480px;
-  animation: slideUp 0.25s ease;
-}
-
-.confirm-title { font-size: 18px; color: var(--gray); margin-bottom: 4px; }
-.confirm-item  { font-size: 28px; font-weight: 900; margin-bottom: 16px; }
-
-.confirm-detail {
-  background: var(--green-light);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 18px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.confirm-detail .price { color: var(--green); font-size: 22px; }
-
-.confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-.btn-cancel  { padding: 15px; border: 2px solid #ccc; border-radius: 12px; background: white; font-size: 20px; font-weight: 700; font-family: inherit; cursor: pointer; color: #666; }
-.btn-confirm { padding: 15px; border: none; border-radius: 12px; background: linear-gradient(135deg, var(--green), var(--green-mid)); color: white; font-size: 20px; font-weight: 900; font-family: inherit; cursor: pointer; box-shadow: 0 3px 10px rgba(45,140,78,0.3); }
-
-/* ── Delete confirm ── */
-#del-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.55);
-  z-index: 200;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-#del-overlay.show { display: flex; animation: fadeIn 0.2s; }
-
-.del-box {
-  background: white;
-  border-radius: 22px;
-  padding: 26px 22px;
-  width: 100%;
-  max-width: 380px;
-  text-align: center;
-  animation: slideUp 0.25s ease;
-}
-
-.del-icon  { font-size: 48px; margin-bottom: 12px; }
-.del-title { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
-.del-sub   { font-size: 15px; color: var(--gray); margin-bottom: 22px; }
-
-.del-btns  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-.btn-del-cancel  { padding: 15px; border: 2px solid #ccc; border-radius: 12px; background: white; font-size: 18px; font-weight: 700; font-family: inherit; cursor: pointer; color: #666; }
-.btn-del-confirm { padding: 15px; border: none; border-radius: 12px; background: var(--red); color: white; font-size: 18px; font-weight: 900; font-family: inherit; cursor: pointer; }
-</style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>採購資料庫 · 採購 / 資料 / 管理 · PWA</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111111">
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192">
+    <!-- ============================
+         CSS 樣式區塊
+         - :root 定義全域 CSS 變數（圓角、邊框色、灰色、背景色、主色）
+         - .wrap 最大寬度 1000px 水平置中
+         - .tabs / .tab 分頁標籤（active 黑底白字）
+         - .badge 狀態徽章（唯讀/管理者），admin 樣式為淺綠色
+         - .hidden display:none，用來顯示/隱藏各分頁與元件
+         - .card 白色卡片容器（含陰影與圓角）
+         - .qty 數量控制元件（減號按鈕 + 數字輸入 + 加號按鈕）
+         - .summary / .grid-3 採購頁底部彙總區（3 欄格線，小螢幕轉 1 欄）
+         - .toast 右下角浮動提示（slide-in 動畫，.show 顯示，.error 紅色）
+         - dialog / .dlg 彈出對話框（登入、設定 PIN）
+         ============================ -->
+    <style>
+        :root {
+            --radius: 12px;
+            --border: #e5e7eb;
+            --muted: #6b7280;
+            --bg: #fafafa;
+            --primary: #111;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: #111
+        }
+
+        .wrap {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 18px
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin: 8px 0 6px
+        }
+
+        .sub {
+            color: var(--muted);
+            margin: 0 0 12px
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+            align-items: center
+        }
+
+        .tab {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            background: #fff;
+            cursor: pointer
+        }
+
+        .tab.active {
+            background: #111;
+            color: #fff;
+            border-color: #111
+        }
+
+        .right {
+            margin-left: auto
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: .85rem;
+            background: #fff
+        }
+
+        .badge.readonly {
+            background: #fff
+        }
+
+        .badge.admin {
+            background: #eefbf1;
+            border-color: #b7ebc6
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .03)
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        input,
+        button,
+        select {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 10px
+        }
+
+        input,
+        select {
+            flex: 1;
+            min-width: 120px
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--primary);
+            color: #fff
+        }
+
+        button.secondary {
+            background: #fff;
+            color: #111
+        }
+
+        button[disabled] {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: .92rem
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: .85rem;
+            color: #333;
+            background: #fafafa
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top
+        }
+
+        tr:hover {
+            background: #f7f7f7
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums
+        }
+
+        .table-wrap {
+            overflow: auto
+        }
+
+        .actions button {
+            padding: 6px 10px;
+            font-size: .9rem
+        }
+
+        /* Qty control */
+        .qty {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .qty input {
+            width: 78px;
+            text-align: right;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 10px
+        }
+
+        .qty button {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            line-height: 0
+        }
+
+        /* Grid cards */
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 12px
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px
+        }
+
+        /* Dialog */
+        dialog {
+            border: none;
+            border-radius: 16px;
+            padding: 0;
+            width: min(90vw, 420px)
+        }
+
+        .dlg {
+            padding: 18px
+        }
+
+        .dlg h3 {
+            margin: 0 0 10px
+        }
+
+        .dlg .row {
+            margin-top: 8px
+        }
+
+        .dlg footer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 12px
+        }
+
+        .overlay::backdrop {
+            background: rgba(0, 0, 0, .4)
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            background: #16a34a;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .15);
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+            font-size: .95rem
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        .toast.error {
+            background: #dc2626
+        }
+
+        @media (max-width:700px) {
+            .grid-3 {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
 </head>
+
 <body>
+    <div class="wrap">
+        <h1>採購資料庫 · PWA</h1>
+        <p class="sub">分頁：🛒採購（購物車）／📄資料（表格）／🛠管理（登入後可見）。預設 PIN：<span class="tag">0000</span>。</p>
 
-<!-- Header -->
-<header>
-  <div class="header-top">
-    <div class="header-title">🛒 家庭採購系統</div>
-    <div class="header-date" id="today-date"></div>
-  </div>
-  <div class="budget-bar">
-    <div class="budget-row">
-      <span class="budget-label">💰 今日預算</span>
-      <div class="budget-amounts">
-        <div class="budget-item spent">
-          <span class="val" id="spent-val">$0</span>
-          <span class="lbl">已花費</span>
+        <div class="tabs">
+            <button class="tab" data-tab="cart">🛒 採購</button>
+            <button class="tab" data-tab="data">📄 資料</button>
+            <button class="tab hidden" data-tab="admin" id="adminTab">🛠 管理</button>
+            <span class="right"></span>
+            <span id="modeBadge" class="badge readonly">🔒 唯讀模式</span>
+            <button id="loginBtn" class="secondary">管理者登入</button>
+            <button id="installBtn" class="secondary hidden" title="安裝離線 App">📲 安裝 App</button>
+            <button id="logoutBtn" class="secondary hidden">登出</button>
         </div>
-        <div class="budget-item remaining">
-          <span class="val" id="remain-val">$—</span>
-          <span class="lbl">剩餘</span>
+
+        <!-- 🛒 採購 -->
+        <section id="page-cart">
+            <div class="card">
+                <div class="row">
+                    <input id="cartQ" type="search" placeholder="搜尋編號 / 品項 / 單位 / 廠商…" />
+                    <select id="shopFilter">
+                        <option value="">全部廠商</option>
+                    </select>
+                    <button id="resetQty" class="secondary">清空數量</button>
+                    <button id="cartExport" class="secondary">匯出（彙總＋複製）</button>
+                </div>
+                <p class="muted" style="margin-top:8px">僅影響本機購物車數量；不會修改資料庫內容。</p>
+            </div>
+
+            <div class="card table-wrap">
+                <table id="cartTbl">
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>品項</th>
+                            <th>單位</th>
+                            <th class="num">單價</th>
+                            <th>廠商</th>
+                            <th class="num">數量</th>
+                            <th class="num">小計</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <section class="summary">
+                <div class="card">
+                    <div class="row" style="align-items:center;justify-content:space-between">
+                        <div>
+                            <div class="muted">未稅合計（所有品項）</div>
+                            <div id="grandCount" class="muted" style="font-size:.9rem"></div>
+                        </div>
+                        <div id="grandTotal" class="num" style="font-weight:700;font-size:1.25rem">$0</div>
+                    </div>
+                </div>
+                <div class="grid-3">
+                    <div class="card">
+                        <div class="muted">清順 小計</div>
+                        <div id="sum-qingshun" class="num" style="font-weight:700">$0</div>
+                    </div>
+                    <div class="card">
+                        <div class="muted">寶成 小計</div>
+                        <div id="sum-baocheng" class="num" style="font-weight:700">$0</div>
+                    </div>
+                    <div class="card">
+                        <div class="muted">已選擇品項數</div>
+                        <div id="pickedCount" class="num" style="font-weight:700">0</div>
+                    </div>
+                </div>
+            </section>
+        </section>
+
+        <!-- 📄 資料 -->
+        <section id="page-data" class="hidden">
+            <div class="card">
+                <div class="row" style="margin-bottom:8px">
+                    <input id="id" placeholder="編號（= id，如 PR-20250828-001 或 A01）" />
+                    <input id="item" placeholder="品項（型號/規格）" />
+                    <input id="unit" placeholder="單位（個/包/箱…）" />
+                    <input id="price" placeholder="價錢（數字）" inputmode="decimal" />
+                    <input id="vendor" placeholder="廠商（= shop）" />
+                </div>
+                <div class="row">
+                    <button id="addBtn" disabled>新增 / 更新</button>
+                    <span class="muted">提示：相同「編號(id)」會視為更新同一筆（需登入）。</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="row">
+                    <input id="q" type="search" placeholder="搜尋：編號 / 品項 / 廠商…" />
+                    <button id="exportBtn" class="secondary">匯出 CSV（資料庫）</button>
+                </div>
+            </div>
+
+            <div class="card table-wrap">
+                <table id="tbl">
+                    <thead>
+                        <tr>
+                            <th>編號</th>
+                            <th>品項</th>
+                            <th>單位</th>
+                            <th class="num">價錢</th>
+                            <th>廠商</th>
+                            <th>動作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div id="count" class="muted" style="margin-top:8px"></div>
+            </div>
+        </section>
+
+        <!-- 🛠 管理 -->
+        <section id="page-admin" class="hidden">
+            <div class="card">
+                <h3>🛡 管理功能</h3>
+                <div class="row" style="margin-top:8px">
+                    <input id="csvFile" type="file" accept=".csv" />
+                    <button class="secondary" id="importBtn" disabled>從 CSV 匯入</button>
+                    <button class="secondary" id="clearBtn" title="清空本機資料（請謹慎）" disabled>清空資料</button>
+                    <button class="secondary" id="setPinBtn" disabled>設定管理者 PIN</button>
+                    <span class="right"></span>
+                    <span id="dbInfo" class="badge">資料 0 筆</span>
+                </div>
+                <p class="muted" style="margin-top:8px">
+                    資料庫欄位：<code>{id,item,unit,price,shop}</code>。可匯入中文標頭檔案，系統會自動對應並轉換。</p>
+            </div>
+
+            <div class="card table-wrap">
+                <table id="dbTable">
+                    <thead>
+                        <tr>
+                            <th style="width:64px">操作</th>
+                            <th>id</th>
+                            <th>item</th>
+                            <th>unit</th>
+                            <th class="num">price</th>
+                            <th>shop</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="row" style="margin-top:10px">
+                    <button id="dbAdd" class="secondary">新增品項</button>
+                    <button id="dbSave">儲存變更</button>
+                    <button id="dbExport" class="secondary">匯出 CSV</button>
+                    <button id="dbTemplate" class="secondary">下載 CSV 模板</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 登入對話框 -->
+    <dialog id="dlgLogin" class="overlay">
+        <div class="dlg">
+            <h3>管理者登入</h3>
+            <p class="muted">本機輕量保護；請勿使用與其他服務相同密碼。預設 PIN：0000</p>
+            <div class="row"><input id="pinInput" type="password" placeholder="輸入 PIN" autofocus /></div>
+            <footer>
+                <button class="secondary" id="cancelLogin">取消</button>
+                <button id="confirmLogin">登入</button>
+            </footer>
         </div>
-      </div>
-    </div>
-    <div class="budget-progress">
-      <div class="budget-fill" id="budget-fill" style="width:0%"></div>
-    </div>
-  </div>
-</header>
+    </dialog>
 
-<!-- Nav Tabs -->
-<div class="nav-tabs">
-  <button class="nav-tab active" onclick="switchPage('shopping')" id="nav-shopping">🛒 採購</button>
-  <button class="nav-tab"        onclick="switchPage('manage')"   id="nav-manage">📦 管理品項</button>
-  <button class="nav-tab"        onclick="switchPage('settings')" id="nav-settings">⚙️ 設定</button>
-</div>
-
-<!-- ══ 採購頁 ══ -->
-<div class="page active" id="page-shopping">
-  <div class="filter-row">
-    <button class="chip active" onclick="setFilter('need')"  id="chip-need">⚠️ 需補貨</button>
-    <button class="chip"        onclick="setFilter('all')"   id="chip-all">📋 全部</button>
-  </div>
-  <div id="loading"><div class="spin">🔄</div><div style="margin-top:14px">載入中...</div></div>
-  <div id="empty"   style="display:none"><div style="font-size:48px">🎉</div><div style="margin-top:12px; font-size:20px;">今天不需要補貨</div><div style="font-size:14px; margin-top:6px; color:#aaa">庫存都很充足！</div></div>
-  <div id="list"    style="display:none"></div>
-</div>
-
-<!-- ══ 管理品項頁 ══ -->
-<div class="page" id="page-manage">
-  <div class="mgmt-header">
-    <div class="mgmt-title">共 <span id="item-count">0</span> 個品項</div>
-    <button class="btn-add" onclick="openAddModal()">➕ 新增品項</button>
-  </div>
-  <div id="mgmt-list"></div>
-</div>
-
-<!-- ══ 設定頁 ══ -->
-<div class="page" id="page-settings">
-  <div class="settings-section">
-    <div class="settings-title">🔗 API 連接</div>
-    <div class="settings-row">
-      <label>Google Apps Script 網址</label>
-      <input type="url" id="input-api" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbwK77YvqmH2daas39RXP9w-OO21-VJF_VxKg09_pVAqgeVHHfu0C6eFuO07OXkqIAay/exec" />
-    </div>
-  </div>
-
-  <div class="settings-section">
-    <div class="settings-title">💰 預算設定</div>
-    <div class="settings-row">
-      <label>每日採購預算（元）</label>
-      <input type="number" id="input-budget" placeholder="例：500" />
-    </div>
-  </div>
-
-  <button class="btn-save-settings" onclick="saveSettings()">💾 儲存設定</button>
-  <button class="danger-btn" onclick="resetToday()">🔄 重置今日紀錄</button>
-</div>
-
-<!-- ══ 購買確認 Overlay ══ -->
-<div id="buy-overlay" onclick="closeBuyOverlay(event)">
-  <div class="confirm-box" onclick="event.stopPropagation()">
-    <div class="confirm-title">確認購買？</div>
-    <div class="confirm-item" id="confirm-item-name">—</div>
-    <div class="confirm-detail">
-      <span id="confirm-new-stock">—</span>
-      <span class="price" id="confirm-price">$—</span>
-    </div>
-    <div class="confirm-btns">
-      <button class="btn-cancel"  onclick="closeBuyOverlay()">❌ 取消</button>
-      <button class="btn-confirm" onclick="confirmBuy()">✅ 確認</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ 刪除確認 Overlay ══ -->
-<div id="del-overlay" onclick="closeDelOverlay(event)">
-  <div class="del-box" onclick="event.stopPropagation()">
-    <div class="del-icon">🗑️</div>
-    <div class="del-title">刪除 <span id="del-item-name">—</span>？</div>
-    <div class="del-sub">刪除後無法復原，資料也會從 Google Sheets 移除。</div>
-    <div class="del-btns">
-      <button class="btn-del-cancel"  onclick="closeDelOverlay()">取消</button>
-      <button class="btn-del-confirm" onclick="confirmDelete()">確認刪除</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ 新增/編輯 Modal ══ -->
-<div class="modal-backdrop" id="item-modal" onclick="closeItemModal(event)">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <div class="modal-title" id="modal-title">➕ 新增品項</div>
-
-    <div class="form-group">
-      <label>品名 *</label>
-      <input type="text" id="f-name" placeholder="例：牛奶" />
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>目前庫存</label>
-        <input type="number" id="f-stock" placeholder="0" min="0" />
-      </div>
-      <div class="form-group">
-        <label>建議購買量</label>
-        <input type="number" id="f-suggest" placeholder="3" min="1" />
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>單價（元）</label>
-        <input type="number" id="f-price" placeholder="0" min="0" />
-      </div>
-      <div class="form-group">
-        <label>Emoji 圖示</label>
-        <input type="text" id="f-emoji" placeholder="🛍️" maxlength="2" />
-      </div>
-    </div>
-
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeItemModal()">取消</button>
-      <button class="modal-ok"     id="modal-ok-btn" onclick="submitItemForm()">✅ 儲存</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
-<div id="toast"></div>
-
-<script>
-// ══════════════════════════════════════
-// 狀態 & 設定
-// ══════════════════════════════════════
-const DEFAULT_API = document.getElementById('input-api')?.value || '';
-let API_URL      = localStorage.getItem('api_url') || DEFAULT_API;
-let DAILY_BUDGET = parseInt(localStorage.getItem('daily_budget')) || 500;
-
-let allData       = [];
-let currentFilter = 'need';
-let pendingBuyId  = null;
-let pendingDelId  = null;
-let editingId     = null;   // null = 新增，number = 編輯
-
-const TODAY = new Date().toLocaleDateString('zh-TW');
-
-// ── 今日花費 ──
-function getTodaySpent() {
-  const s = JSON.parse(localStorage.getItem('today_spent') || '{}');
-  return s.date === TODAY ? (s.amount || 0) : 0;
-}
-function addTodaySpent(amt) {
-  const cur = getTodaySpent();
-  localStorage.setItem('today_spent', JSON.stringify({ date: TODAY, amount: cur + amt }));
-}
-
-// ── 今日已買 ──
-function getBoughtToday() {
-  const s = JSON.parse(localStorage.getItem('bought_today') || '{}');
-  return s.date === TODAY ? (s.items || {}) : {};
-}
-function markBoughtToday(id) {
-  const items = getBoughtToday();
-  items[id] = true;
-  localStorage.setItem('bought_today', JSON.stringify({ date: TODAY, items }));
-}
-
-// ── 本機 ID 計數器 (離線新增用) ──
-function nextLocalId() {
-  const max = allData.reduce((m, i) => Math.max(m, i.id || 0), 0);
-  return max + 1;
-}
-
-// ══════════════════════════════════════
-// 頁面切換
-// ══════════════════════════════════════
-function switchPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + name).classList.add('active');
-  document.getElementById('nav-' + name).classList.add('active');
-
-  if (name === 'settings') {
-    document.getElementById('input-api').value    = API_URL;
-    document.getElementById('input-budget').value = DAILY_BUDGET;
-  }
-  if (name === 'manage') renderMgmt();
-}
-
-// ══════════════════════════════════════
-// 日期 & 預算 UI
-// ══════════════════════════════════════
-function initDate() {
-  const now = new Date();
-  const wd  = ['日','一','二','三','四','五','六'];
-  document.getElementById('today-date').textContent =
-    `${now.getMonth()+1}/${now.getDate()}（週${wd[now.getDay()]}）`;
-}
-
-function updateBudgetUI() {
-  const spent  = getTodaySpent();
-  const remain = DAILY_BUDGET - spent;
-  document.getElementById('spent-val').textContent  = `$${spent}`;
-  document.getElementById('remain-val').textContent = `$${Math.max(0, remain)}`;
-  const pct = Math.min(100, Math.round(spent / DAILY_BUDGET * 100));
-  document.getElementById('budget-fill').style.width = pct + '%';
-}
-
-// ══════════════════════════════════════
-// Emoji 對照
-// ══════════════════════════════════════
-const EMOJI_MAP = {
-  '牛奶':'🥛','雞蛋':'🥚','蘋果':'🍎','香蕉':'🍌','白米':'🍚','麵條':'🍜','麵包':'🍞',
-  '豬肉':'🥩','雞肉':'🍗','魚':'🐟','蔬菜':'🥦','番茄':'🍅','馬鈴薯':'🥔','紅蘿蔔':'🥕',
-  '洗碗精':'🧴','衛生紙':'🧻','洗髮精':'🧴','牙膏':'🪥','沙拉油':'🫙','醬油':'🫙',
-  '豆腐':'⬜','豆漿':'🥛','優格':'🫙','起司':'🧀','奶油':'🧈','咖啡':'☕','茶':'🍵',
-  '水果':'🍑','橘子':'🍊','葡萄':'🍇','草莓':'🍓','洗衣粉':'🫧','衛生棉':'🩹',
-};
-
-function getEmoji(name, override) {
-  if (override) return override;
-  for (const [k, v] of Object.entries(EMOJI_MAP)) {
-    if (name.includes(k)) return v;
-  }
-  return '🛍️';
-}
-
-// ══════════════════════════════════════
-// 載入資料
-// ══════════════════════════════════════
-async function loadData(silent = false) {
-  if (!API_URL) {
-    loadDemo();
-    return;
-  }
-  if (!silent) {
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('list').style.display    = 'none';
-    document.getElementById('empty').style.display   = 'none';
-  }
-  try {
-    const res = await fetch(API_URL + '?action=getAll', { mode: 'cors' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); }
-    catch { throw new Error('API 回傳非 JSON 格式：' + text.slice(0, 100)); }
-    if (json.error) throw new Error(json.error);
-    allData = Array.isArray(json) ? json : (json.data || []);
-    document.getElementById('loading').style.display = 'none';
-    renderList();
-  } catch(e) {
-    console.error('loadData error:', e);
-    document.getElementById('loading').innerHTML =
-      `<div style="color:var(--red)">❌ 載入失敗<br><small>${e.message}</small><br><small style="color:#aaa">請至設定頁確認 API 網址，並確認 GAS 已部署</small></div>`;
-  }
-}
-
-function loadDemo() {
-  allData = [
-    { id:1, 品項:'牛奶',  庫存數量:1, 建議購買量:3, 今日已買:0, 單價:85,  emoji:'🥛' },
-    { id:2, 品項:'雞蛋',  庫存數量:4, 建議購買量:4, 今日已買:0, 單價:65,  emoji:'🥚' },
-    { id:3, 品項:'蘋果',  庫存數量:0, 建議購買量:5, 今日已買:0, 單價:120, emoji:'🍎' },
-    { id:4, 品項:'白米',  庫存數量:2, 建議購買量:3, 今日已買:0, 單價:250, emoji:'🍚' },
-    { id:5, 品項:'洗碗精',庫存數量:3, 建議購買量:3, 今日已買:0, 單價:89,  emoji:'🧴' },
-  ];
-  document.getElementById('loading').style.display = 'none';
-  renderList();
-  showToast('⚙️ 示範模式，請至設定頁填入 API 網址');
-}
-
-// ══════════════════════════════════════
-// 採購清單渲染
-// ══════════════════════════════════════
-function setFilter(f) {
-  currentFilter = f;
-  document.getElementById('chip-need').classList.toggle('active', f === 'need');
-  document.getElementById('chip-all').classList.toggle('active',  f === 'all');
-  renderList();
-}
-
-function renderList() {
-  const boughtToday = getBoughtToday();
-  const remain      = DAILY_BUDGET - getTodaySpent();
-
-  let items = currentFilter === 'need'
-    ? allData.filter(i => i.庫存數量 < i.建議購買量)
-    : allData;
-
-  const container = document.getElementById('list');
-
-  if (items.length === 0) {
-    document.getElementById('list').style.display  = 'none';
-    document.getElementById('empty').style.display = 'block';
-    updateBudgetUI();
-    return;
-  }
-
-  document.getElementById('empty').style.display = 'none';
-  document.getElementById('list').style.display  = 'flex';
-
-  items = [...items].sort((a, b) => {
-    const an = a.庫存數量 < a.建議購買量;
-    const bn = b.庫存數量 < b.建議購買量;
-    return (an === bn) ? 0 : an ? -1 : 1;
-  });
-
-  container.innerHTML = '';
-
-  items.forEach(item => {
-    const emoji      = getEmoji(item.品項, item.emoji);
-    const needBuy    = item.庫存數量 < item.建議購買量;
-    const boughtAlr  = !!boughtToday[item.id];
-    const noMoney    = item.單價 > remain;
-
-    let btnClass = 'can-buy', btnText = '🛒 加入購物車', btnDisabled = false;
-    if      (boughtAlr) { btnClass = 'done';      btnText = '✅ 今日已購買'; btnDisabled = true; }
-    else if (!needBuy)  { btnClass = 'done';      btnText = '✅ 庫存充足';   btnDisabled = true; }
-    else if (noMoney)   { btnClass = 'no-budget'; btnText = '💰 預算不足';   btnDisabled = true; }
-
-    const div = document.createElement('div');
-    div.className = `item-card ${boughtAlr ? 'bought' : needBuy ? 'needs-buy' : ''}`;
-    div.innerHTML = `
-      <div class="item-body">
-        <div class="item-emoji">${emoji}</div>
-        <div class="item-info">
-          <div class="item-name">${item.品項}</div>
-          <div class="item-stats">
-            <span class="stat-badge stock">📦 庫存 ${item.庫存數量}</span>
-            <span class="stat-badge suggest">🎯 建議 ${item.建議購買量}</span>
-            <span class="stat-badge price">💴 $${item.單價}</span>
-          </div>
+    <!-- 設定 PIN 對話框 -->
+    <dialog id="dlgSetPin" class="overlay">
+        <div class="dlg">
+            <h3>設定管理者 PIN</h3>
+            <p class="muted">僅本機儲存；請記好你的 PIN。</p>
+            <div class="row">
+                <input id="newPin1" type="password" placeholder="新的 PIN（4~12位）" />
+                <input id="newPin2" type="password" placeholder="再輸入一次" />
+            </div>
+            <footer>
+                <button class="secondary" id="cancelSetPin">取消</button>
+                <button id="confirmSetPin">設定</button>
+            </footer>
         </div>
-      </div>
-      <div class="item-action">
-        <button class="btn-buy ${btnClass}"
-          ${btnDisabled ? 'disabled' : `onclick="openBuyConfirm(${item.id})"`}>
-          ${btnText}
-        </button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
+    </dialog>
 
-  updateBudgetUI();
-}
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-// ══════════════════════════════════════
-// 管理清單渲染
-// ══════════════════════════════════════
-function renderMgmt() {
-  document.getElementById('item-count').textContent = allData.length;
-  const container = document.getElementById('mgmt-list');
-  container.innerHTML = '';
+    <script>
+        /* ========= PWA =========
+           頁面載入後向瀏覽器登記 sw.js，啟用 Service Worker 離線快取。
+        */
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));
+        }
 
-  allData.forEach(item => {
-    const emoji = getEmoji(item.品項, item.emoji);
-    const div = document.createElement('div');
-    div.className = 'mgmt-card';
-    div.innerHTML = `
-      <div class="mgmt-emoji">${emoji}</div>
-      <div class="mgmt-info">
-        <div class="mgmt-name">${item.品項}</div>
-        <div class="mgmt-sub">庫存 ${item.庫存數量} / 建議 ${item.建議購買量} 　$${item.單價}</div>
-      </div>
-      <div class="mgmt-actions">
-        <button class="btn-edit" onclick="openEditModal(${item.id})" title="編輯">✏️</button>
-        <button class="btn-del"  onclick="openDelConfirm(${item.id})" title="刪除">🗑️</button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
+        /* ========= 常數與共用工具函式 =========
+           LS_DB / LS_QTY / LS_FACTORY → localStorage 的 key 名稱
+           OLD_KEY → 舊版資料 key，用於自動遷移
+           PIN_KEY → 管理者 PIN 的 localStorage key
+           $ → document.querySelector 簡寫
+           intFmt → Intl.NumberFormat 台灣整數千分位（例：1,234）
+           escCSV → 若字串含逗號/引號/換行則加上 CSV 引號包覆
+           uid()  → 以時間戳 + 遞增序號產生短唯一 ID（例：N3x1b2k1）
+           toInt  → 去除 $、逗號、空白後轉為整數（非數字回傳 0）
+           toast  → 顯示右下角提示訊息（預設 1.8 秒後淡出，error=true 顯示紅色）
+        */
+        const LS_DB = 'cart-db-v1';
+        const LS_QTY = 'cart-qty-v1';
+        const LS_FACTORY = 'cart-db-factory-v1';
+        const OLD_KEY = 'procure-db-v1';
+        const PIN_KEY = 'procure-admin-pin';
+        const DEFAULT_PIN = '0000';
 
-// ══════════════════════════════════════
-// 購買流程
-// ══════════════════════════════════════
-function openBuyConfirm(id) {
-  const item = allData.find(i => i.id === id);
-  if (!item) return;
-  pendingBuyId = id;
-  document.getElementById('confirm-item-name').textContent = getEmoji(item.品項, item.emoji) + ' ' + item.品項;
-  document.getElementById('confirm-new-stock').textContent = `庫存 ${item.庫存數量} → ${item.庫存數量 + 1}`;
-  document.getElementById('confirm-price').textContent = `$${item.單價}`;
-  document.getElementById('buy-overlay').classList.add('show');
-}
+        const $ = sel => document.querySelector(sel);
+        const intFmt = new Intl.NumberFormat('zh-Hant-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        const escCSV = s => /[",\n]/.test(s) ? '"' + String(s).replaceAll('"', '""') + '"' : String(s);
+        const uid = (() => { let n = 1; return (p = 'I') => `${p}${(Date.now() % 1e7).toString(36)}${n++}`; })();
+        const toInt = v => Number(String(v ?? '').replace(/[$,\s]/g, '').trim()) || 0;
+        const toast = (text, { error = false, duration = 1800 } = {}) => {
+            const t = $('#toast'); t.textContent = text; t.classList.toggle('error', !!error);
+            t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), duration);
+        };
 
-function closeBuyOverlay(e) {
-  if (e && e.target !== document.getElementById('buy-overlay')) return;
-  document.getElementById('buy-overlay').classList.remove('show');
-  pendingBuyId = null;
-}
+        /* ========= 全域狀態 =========
+           state.data  → 目前載入的所有品項陣列（id/item/unit/price/shop）
+           state.qty   → 各品項的購物數量（{ [id]: number }）
+           state.dirty → 管理頁有未儲存的編輯時為 true
+        */
+        const state = { data: [], qty: {}, dirty: false };
 
-async function confirmBuy() {
-  const item = allData.find(i => i.id === pendingBuyId);
-  if (!item) return;
-  document.getElementById('buy-overlay').classList.remove('show');
+        /* ========= 舊版資料自動遷移 =========
+           若 localStorage 中存有舊版（procure-db-v1）中文欄位資料，
+           自動轉換為新版英文欄位格式並存回 LS_DB，
+           同時移除舊版 key，確保向下相容。
+        */
+        (function migrate() {
+            try {
+                const old = JSON.parse(localStorage.getItem(OLD_KEY) || 'null');
+                if (Array.isArray(old) && old.length) {
+                    const mapped = old.map(r => ({
+                        id: String(r['編號'] || '').trim() || uid('M'),
+                        item: String(r['品項'] || '').trim(),
+                        unit: String(r['單位'] || '').trim(),
+                        price: Number(r['價錢']) || 0,
+                        shop: String(r['廠商'] || '').trim()
+                    }));
+                    localStorage.setItem(LS_DB, JSON.stringify(mapped));
+                    localStorage.removeItem(OLD_KEY);
+                }
+            } catch { }
+        })();
 
-  const newStock = item.庫存數量 + 1;
-  item.庫存數量 = newStock;
-  markBoughtToday(item.id);
-  addTodaySpent(item.單價);
-  renderList();
-  showToast(`✅ ${item.品項} 已記錄購買！`);
+        /* ========= 內建預設品項 =========
+           BUILTIN_DEFAULT → 預設的 8 筆品項（清順/寶成兩家廠商）；
+           loadFactory()   → 優先讀取 LS_FACTORY（使用者曾自訂過的預設），
+                             若無則回傳 BUILTIN_DEFAULT 副本。
+        */
+        const BUILTIN_DEFAULT = [
+            { id: 'A01', item: '吸管', unit: '50支/包', price: 284, shop: '清順' },
+            { id: 'A02', item: '冰砂吸管', unit: '50支/包', price: 1351, shop: '清順' },
+            { id: 'A03', item: '9x9 紙巾', unit: '20包/箱', price: 1637, shop: '清順' },
+            { id: 'A04', item: '抽取式 衛生紙', unit: '20包/箱', price: 1720, shop: '清順' },
+            { id: 'A05', item: '廚房紙巾', unit: '50支/包', price: 1896, shop: '清順' },
+            { id: 'B01', item: '牛皮紙 外帶盒(S)', unit: '50個/條', price: 1944, shop: '寶成' },
+            { id: 'B02', item: '牛皮紙 外帶盒(L)', unit: '50個/條', price: 1973, shop: '寶成' },
+            { id: 'B03', item: '外帶比薩盒', unit: '50個/條', price: 1994, shop: '寶成' }
+        ];
+        const loadFactory = () => {
+            try { const x = JSON.parse(localStorage.getItem(LS_FACTORY) || 'null'); if (Array.isArray(x) && x.length) return x; }
+            catch { }
+            return BUILTIN_DEFAULT.slice();
+        };
 
-  if (API_URL) {
-    try {
-      await apiFetch('update', { id: item.id, 庫存數量: newStock, 今日已買: 1 });
-    } catch { showToast('⚠️ 同步失敗，資料暫存本地'); }
-  }
-  pendingBuyId = null;
-}
+        /* ========= 初始化資料庫與購物數量 =========
+           initDB()   → 從 LS_DB 讀取品項資料；若無則載入預設品項。
+           qty 載入   → 從 LS_QTY 讀取各品項數量，新品項預設數量為 0。
+        */
+        (function initDB() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(LS_DB) || 'null');
+                if (Array.isArray(saved) && saved.length) { state.data = saved; }
+                else { state.data = loadFactory(); }
+            } catch { state.data = loadFactory(); }
+        })();
+        try { const q = JSON.parse(localStorage.getItem(LS_QTY) || '{}'); state.qty = (q && typeof q === 'object') ? q : {}; } catch { state.qty = {}; }
+        for (const d of state.data) { if (!(d.id in state.qty)) state.qty[d.id] = 0; }
 
-// ══════════════════════════════════════
-// 新增 / 編輯 Modal
-// ══════════════════════════════════════
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modal-title').textContent = '➕ 新增品項';
-  document.getElementById('modal-ok-btn').textContent = '✅ 新增';
-  clearForm();
-  document.getElementById('item-modal').classList.add('show');
-  setTimeout(() => document.getElementById('f-name').focus(), 100);
-}
+        /* ========= 管理者登入與 PIN 管理 =========
+           getPin()  → 取得目前 PIN（無設定則回傳預設值 0000）
+           isAdmin() → 檢查 sessionStorage 是否有 admin=1（當次登入）
+           setAdmin()→ 設定或清除 sessionStorage 的登入旗標
+           applyModeUI() → 依登入狀態同步所有 UI：
+             - 管理者：啟用所有寫入按鈕、顯示管理分頁標籤
+             - 唯讀：所有寫入按鈕 disabled、隱藏管理分頁標籤
+        */
+        const modeBadge = $('#modeBadge'), loginBtn = $('#loginBtn'), logoutBtn = $('#logoutBtn'), adminTabBtn = $('#adminTab');
+        const dlgLogin = $('#dlgLogin'), pinInput = $('#pinInput'), cancelLogin = $('#cancelLogin'), confirmLogin = $('#confirmLogin');
+        const dlgSetPin = $('#dlgSetPin'), newPin1 = $('#newPin1'), newPin2 = $('#newPin2');
 
-function openEditModal(id) {
-  const item = allData.find(i => i.id === id);
-  if (!item) return;
-  editingId = id;
-  document.getElementById('modal-title').textContent = '✏️ 編輯品項';
-  document.getElementById('modal-ok-btn').textContent = '💾 儲存';
-  document.getElementById('f-name').value    = item.品項;
-  document.getElementById('f-stock').value   = item.庫存數量;
-  document.getElementById('f-suggest').value = item.建議購買量;
-  document.getElementById('f-price').value   = item.單價;
-  document.getElementById('f-emoji').value   = item.emoji || '';
-  document.getElementById('item-modal').classList.add('show');
-}
+        const getPin = () => localStorage.getItem(PIN_KEY) || DEFAULT_PIN;
+        const isAdmin = () => sessionStorage.getItem('admin') === '1';
+        const setAdmin = on => on ? sessionStorage.setItem('admin', '1') : sessionStorage.removeItem('admin');
 
-function closeItemModal(e) {
-  if (e && e.target !== document.getElementById('item-modal')) return;
-  document.getElementById('item-modal').classList.remove('show');
-}
+        function applyModeUI() {
+            const admin = isAdmin();
+            modeBadge.textContent = admin ? '✅ 管理者模式' : '🔒 唯讀模式';
+            modeBadge.classList.toggle('admin', admin);
+            modeBadge.classList.toggle('readonly', !admin);
+            loginBtn.classList.toggle('hidden', admin);
+            logoutBtn.classList.toggle('hidden', !admin);
+            adminTabBtn.classList.toggle('hidden', !admin);
+            // 控制可寫按鈕
+            $('#addBtn').disabled = !admin;
+            $('#importBtn').disabled = !admin;
+            $('#clearBtn').disabled = !admin;
+            $('#setPinBtn').disabled = !admin;
+            renderData(); renderDB();
+        }
 
-function clearForm() {
-  ['f-name','f-stock','f-suggest','f-price','f-emoji'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-}
+        /* ========= 分頁切換與 URL Hash =========
+           showTab(name)    → 顯示指定分頁，隱藏其餘分頁，並更新 URL hash；
+                              非管理者嘗試進入 admin 時自動跳回 cart。
+           initFromHash()   → 依 URL hash 決定初始顯示哪個分頁（預設 cart）。
+           hashchange 事件  → 支援瀏覽器上下頁切換。
+        */
+        const tabs = document.querySelectorAll('.tab');
+        const pageCart = $('#page-cart'), pageData = $('#page-data'), pageAdmin = $('#page-admin');
 
-async function submitItemForm() {
-  const name    = document.getElementById('f-name').value.trim();
-  const stock   = parseInt(document.getElementById('f-stock').value)   || 0;
-  const suggest = parseInt(document.getElementById('f-suggest').value) || 1;
-  const price   = parseInt(document.getElementById('f-price').value)   || 0;
-  const emoji   = document.getElementById('f-emoji').value.trim()      || '';
+        function showTab(name) {
+            tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+            pageCart.classList.toggle('hidden', name !== 'cart');
+            pageData.classList.toggle('hidden', name !== 'data');
+            pageAdmin.classList.toggle('hidden', name !== 'admin');
+            if (name === 'admin' && !isAdmin()) { location.hash = '#data'; return showTab('data'); }
+            location.hash = '#' + name;
+        }
+        function initFromHash() {
+            const h = (location.hash || '#cart').slice(1);
+            showTab(h === 'admin' && isAdmin() ? 'admin' : (h === 'data' ? 'data' : 'cart'));
+        }
+        tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+        window.addEventListener('hashchange', initFromHash);
 
-  if (!name) { showToast('⚠️ 請填寫品名！'); return; }
+        /* ========= 資料分頁 =========
+           renderData()   → 依搜尋關鍵字過濾 state.data，動態產生表格；
+                            管理者顯示「編輯/刪除」按鈕，唯讀顯示「唯讀」文字。
+           click 委派     → data-act="edit"：填入表單供修改
+                            data-act="del"：確認後刪除品項（連同購物車數量）
+           addBtn.onclick → 新增或覆寫品項（空 id 自動產生 uid，重複 id 需確認）
+           exportBtn      → 將 state.data 匯出為英文標頭 CSV 檔案（items.csv）
+        */
+        const qInp = $('#q'), id = $('#id'), item = $('#item'), unit = $('#unit'), price = $('#price'), vendor = $('#vendor');
+        const tbody = $('#tbl tbody'), count = $('#count');
+        const exportBtn = $('#exportBtn'), addBtn = $('#addBtn');
 
-  document.getElementById('item-modal').classList.remove('show');
+        function renderData() {
+            const kw = (qInp.value || '').trim().toLowerCase();
+            const rows = state.data.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
+            const filtered = rows.filter(r => (`${r.id} ${r.item} ${r.shop}`.toLowerCase().includes(kw)));
+            const admin = isAdmin();
+            tbody.innerHTML = filtered.map(r => `
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.item}</td>
+          <td>${r.unit}</td>
+          <td class="num">${intFmt.format(r.price)}</td>
+          <td>${r.shop}</td>
+          <td class="actions">
+            ${admin ? `
+              <button class="secondary" data-act="edit" data-row='${encodeURIComponent(JSON.stringify(r))}'>編輯</button>
+              <button data-act="del" data-id="${r.id.replace(/"/g, '&quot;')}">刪除</button>
+            ` : `<span class="muted">唯讀</span>`}
+          </td>
+        </tr>`).join('');
+            count.textContent = `共 ${filtered.length} / ${rows.length} 筆`;
+        }
+        document.addEventListener('click', (ev) => {
+            const t = ev.target;
+            if (t.dataset.act === 'edit') {
+                if (!isAdmin()) return alert('請先以管理者登入');
+                const r = JSON.parse(decodeURIComponent(t.dataset.row));
+                id.value = r.id; item.value = r.item; unit.value = r.unit; price.value = r.price; vendor.value = r.shop;
+                id.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (t.dataset.act === 'del') {
+                if (!isAdmin()) return alert('請先以管理者登入');
+                const rid = t.dataset.id; const i = state.data.findIndex(x => x.id === rid);
+                if (i >= 0 && confirm(`刪除「${rid}」？`)) {
+                    state.data.splice(i, 1); delete state.qty[rid]; saveDB(); renderData(); renderCart();
+                    toast('已刪除一筆（含購物車數量）');
+                }
+            }
+        });
+        qInp.oninput = renderData;
 
-  if (editingId !== null) {
-    // ── 編輯 ──
-    const item = allData.find(i => i.id === editingId);
-    if (item) {
-      item.品項 = name; item.庫存數量 = stock; item.建議購買量 = suggest;
-      item.單價 = price; item.emoji = emoji;
-    }
-    showToast(`✅ ${name} 已更新`);
-    if (API_URL) {
-      try { await apiFetch('update', { id: editingId, 品項: name, 庫存數量: stock, 建議購買量: suggest, 單價: price, emoji }); }
-      catch { showToast('⚠️ 同步失敗'); }
-    }
-  } else {
-    // ── 新增 ──
-    const newItem = {
-      id: nextLocalId(),
-      品項: name, 庫存數量: stock, 建議購買量: suggest,
-      今日已買: 0, 單價: price, emoji,
-    };
-    allData.push(newItem);
-    showToast(`✅ ${name} 已新增`);
-    if (API_URL) {
-      try {
-        const res = await apiFetch('add', newItem);
-        const json = await res.json();
-        if (json.newId) newItem.id = json.newId;  // update with server id
-      } catch { showToast('⚠️ 同步失敗'); }
-    }
-  }
+        // 新增/更新（含覆寫確認、清空欄位）
+        addBtn.onclick = () => {
+            if (!isAdmin()) return alert('請先以管理者登入');
+            const rec = {
+                id: (id.value || '').trim(),
+                item: (item.value || '').trim(),
+                unit: (unit.value || '').trim(),
+                price: toInt(price.value || 0),
+                shop: (vendor.value || '').trim()
+            };
+            if (!rec.item || !rec.unit || !rec.shop) {
+                return alert('請完整填寫：品項、單位、廠商');
+            }
+            let i = -1;
+            if (!rec.id) {
+                rec.id = uid('N');
+            } else {
+                i = state.data.findIndex(x => x.id === rec.id);
+                if (i >= 0) {
+                    const ok = confirm(`編號「${rec.id}」已存在，要覆寫這筆資料嗎？`);
+                    if (!ok) return;
+                }
+            }
+            if (i >= 0) state.data[i] = rec; else state.data.push(rec);
+            if (!(rec.id in state.qty)) state.qty[rec.id] = 0;
+            saveDB(); renderData(); renderCart();
+            toast(i >= 0 ? '已更新一筆資料' : '已新增一筆資料');
+            id.value = item.value = unit.value = price.value = vendor.value = '';
+        };
 
-  renderList();
-  renderMgmt();
-}
+        exportBtn.onclick = () => {
+            const headers = ['id', 'item', 'unit', 'price', 'shop'];
+            const csv = [headers.join(',')].concat(
+                state.data.map(r => headers.map(h => escCSV(r[h] ?? '')).join(','))
+            ).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = 'items.csv'; a.click();
+        };
 
-// ══════════════════════════════════════
-// 刪除流程
-// ══════════════════════════════════════
-function openDelConfirm(id) {
-  const item = allData.find(i => i.id === id);
-  if (!item) return;
-  pendingDelId = id;
-  document.getElementById('del-item-name').textContent = item.品項;
-  document.getElementById('del-overlay').classList.add('show');
-}
+        /* ========= 管理分頁 =========
+           renderDB()    → 將 state.data 渲染為可直接編輯的表格（每欄均為 input）；
+                           同時綁定「刪除」（立即移除）與「複製」（複製一行）按鈕。
+           collectDB()   → 從 DOM 表格讀回所有欄位值，寫回 state.data（儲存前呼叫）；
+                           偵測重複 id 時自動以 uid() 取代，確保唯一性。
+           saveDB()      → 清除孤兒 qty（品項已刪除但 qty 仍殘留），
+                           將 state.data 與 state.qty 一起寫回 localStorage。
+           markDirty()   → 更新 dbInfo 徽章顯示「未儲存 / 已儲存」狀態。
+           dbAdd         → 新增一筆空白品項列（uid 自動補 id）。
+           dbSave        → collectDB() + saveDB() + 重新渲染所有分頁。
+           dbExport      → 匯出管理頁目前資料為 items.csv。
+           dbTemplate    → 下載 CSV 匯入範本（template_items.csv）。
+           parseCSV()    → 支援引號跳脫的完整 CSV 解析（支援換行與逗號包在引號中）。
+           importBtn     → 觸發 csvFile 選擇器；
+           csvFile.onchange → 讀取 CSV 檔案，自動對應英/中標頭，
+                              匯入成功後取代 state.data（Toast 顯示筆數）。
+           clearBtn      → 確認後清空 localStorage 資料庫與購物車數量。
+           setPinBtn     → 開啟設定 PIN 對話框（4~12 位，二次確認）。
+        */
+        const dbTbody = $('#dbTable tbody');
+        const dbInfo = $('#dbInfo');
+        const dbAdd = $('#dbAdd'), dbSave = $('#dbSave'), dbExport = $('#dbExport'), dbTemplate = $('#dbTemplate');
+        const csvFile = $('#csvFile'), importBtn = $('#importBtn'), clearBtn = $('#clearBtn'), setPinBtn = $('#setPinBtn');
 
-function closeDelOverlay(e) {
-  if (e && e.target !== document.getElementById('del-overlay')) return;
-  document.getElementById('del-overlay').classList.remove('show');
-  pendingDelId = null;
-}
+        function markDirty(flag = true) { state.dirty = flag; dbInfo.textContent = `資料 ${state.data.length} 筆 · ${flag ? '未儲存' : '已儲存'}`; }
+        function renderDB() {
+            if ($('#page-admin').classList.contains('hidden')) return;
+            dbTbody.innerHTML = '';
+            for (const d of state.data) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td><button data-act="del" data-id="${d.id}">刪除</button> <button class="secondary" data-act="dup" data-id="${d.id}">複製</button></td>
+          <td><input data-f="id" value="${d.id}"></td>
+          <td><input data-f="item" value="${d.item}"></td>
+          <td><input data-f="unit" value="${d.unit}"></td>
+          <td><input data-f="price" class="num" value="${d.price}"></td>
+          <td><input data-f="shop" value="${d.shop}"></td>`;
+                dbTbody.appendChild(tr);
+            }
+            dbTbody.querySelectorAll('button[data-act="del"]').forEach(b => b.addEventListener('click', () => {
+                const id = b.dataset.id; const i = state.data.findIndex(x => x.id === id);
+                if (i >= 0) { state.data.splice(i, 1); delete state.qty[id]; markDirty(); renderDB(); renderData(); renderCart(); toast('已刪除（含購物車數量）'); }
+            }));
+            dbTbody.querySelectorAll('button[data-act="dup"]').forEach(b => b.addEventListener('click', () => {
+                const id = b.dataset.id; const d = state.data.find(x => x.id === id); if (!d) return;
+                const c = { ...d, id: uid('D') }; state.data.push(c); state.qty[c.id] = 0; markDirty(); renderDB(); renderData(); renderCart(); toast('已複製');
+            }));
+            dbTbody.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => markDirty(true)));
+            markDirty(false);
+        }
+        function collectDB() {
+            const rows = [...dbTbody.querySelectorAll('tr')].map(tr => {
+                const m = Object.fromEntries([...tr.querySelectorAll('input')].map(i => [i.dataset.f, i.value]));
+                return { id: (m.id || '').trim() || uid('I'), item: (m.item || '').trim(), unit: (m.unit || '').trim(), price: toInt(m.price || 0), shop: (m.shop || '').trim() };
+            });
+            // 去重 id
+            const seen = new Set(); for (const r of rows) { if (seen.has(r.id)) r.id = uid('I'); seen.add(r.id); }
+            state.data = rows; for (const d of state.data) { if (!(d.id in state.qty)) state.qty[d.id] = 0; }
+        }
 
-async function confirmDelete() {
-  const item = allData.find(i => i.id === pendingDelId);
-  if (!item) return;
-  document.getElementById('del-overlay').classList.remove('show');
+        // saveDB：清理 qty 孤兒
+        function saveDB() {
+            const valid = new Set(state.data.map(d => d.id));
+            for (const k of Object.keys(state.qty)) { if (!valid.has(k)) delete state.qty[k]; }
+            localStorage.setItem(LS_DB, JSON.stringify(state.data));
+            localStorage.setItem(LS_QTY, JSON.stringify(state.qty));
+            markDirty(false);
+        }
 
-  allData = allData.filter(i => i.id !== pendingDelId);
-  showToast(`🗑️ ${item.品項} 已刪除`);
+        dbAdd.onclick = () => { state.data.push({ id: uid('N'), item: '', unit: '', price: 0, shop: '' }); markDirty(); renderDB(); };
+        dbSave.onclick = () => { collectDB(); saveDB(); renderData(); renderCart(); toast('資料庫已儲存'); };
+        dbExport.onclick = () => {
+            const headers = ['id', 'item', 'unit', 'price', 'shop'];
+            const csv = [headers.join(',')].concat(state.data.map(r => headers.map(h => escCSV(r[h] ?? '')).join(','))).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = 'items.csv'; a.click();
+        };
+        dbTemplate.onclick = () => {
+            const csv = 'id,item,unit,price,shop\n,吸管,50支/包,284,清順';
+            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+            a.download = 'template_items.csv'; a.click();
+        };
+        // 匯入 CSV（支援英/中標頭）
+        const parseCSV = (text) => {
+            const rows = []; let cur = []; let val = ''; let inQ = false; text = text.replace(/\r\n?|\n/g, '\n');
+            for (let i = 0; i < text.length; i++) {
+                const c = text[i];
+                if (inQ) { if (c == '"') { if (text[i + 1] == '"') { val += '"'; i++; } else inQ = false; } else val += c; }
+                else {
+                    if (c == '"') inQ = true; else if (c == ',') { cur.push(val); val = ''; }
+                    else if (c == '\n') { cur.push(val); rows.push(cur); cur = []; val = ''; } else val += c;
+                }
+            } if (val.length > 0 || cur.length > 0) { cur.push(val); rows.push(cur); }
+            return rows;
+        };
+        importBtn.onclick = () => { if (!isAdmin()) return alert('請先以管理者登入'); csvFile.click(); };
+        csvFile.onchange = ev => {
+            const f = ev.target.files?.[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = () => {
+                try {
+                    const lines = parseCSV(String(r.result || ''));
+                    if (!lines.length) throw new Error('空檔案');
+                    const header = lines.shift().map(s => String(s || '').trim().toLowerCase());
+                    const idx = (...cand) => { for (const c of cand) { const k = header.indexOf(c); if (k !== -1) return k; } return -1; };
+                    const ix = { id: idx('id', '編號'), item: idx('item', '品項'), unit: idx('unit', '單位'), price: idx('price', '價錢', '價格'), shop: idx('shop', '廠商', '店家', '商家') };
+                    if (ix.item < 0 || ix.unit < 0 || ix.price < 0 || ix.shop < 0) throw new Error('缺少必要欄位');
+                    const next = [];
+                    for (const row of lines) {
+                        if (row.every(x => String(x).trim() === '')) continue;
+                        const rec = {
+                            id: (row[ix.id] || '').trim() || uid('I'),
+                            item: (row[ix.item] || '').trim(),
+                            unit: (row[ix.unit] || '').trim(),
+                            price: toInt(row[ix.price] || 0),
+                            shop: (row[ix.shop] || '').trim()
+                        };
+                        next.push(rec);
+                    }
+                    state.data = next; const q = {}; for (const d of state.data) { q[d.id] = state.qty[d.id] || 0; } state.qty = q;
+                    saveDB(); renderDB(); renderData(); renderCart(); toast(`匯入成功：${state.data.length} 筆`);
+                } catch (e) { console.error(e); toast('匯入失敗：欄位不完整或格式錯誤', { error: true, duration: 2600 }); }
+                ev.target.value = '';
+            };
+            r.readAsText(f, 'utf-8');
+        };
+        clearBtn.onclick = () => {
+            if (!isAdmin()) return alert('請先以管理者登入');
+            if (confirm('確定要清空本機資料庫與購物車數量？此動作無法復原！')) {
+                localStorage.setItem(LS_DB, JSON.stringify([]));
+                localStorage.setItem(LS_QTY, JSON.stringify({}));
+                state.data = []; state.qty = {}; renderDB(); renderData(); renderCart(); toast('已清空');
+            }
+        };
+        $('#setPinBtn').onclick = () => { $('#newPin1').value = ''; $('#newPin2').value = ''; dlgSetPin.showModal(); setTimeout(() => $('#newPin1').focus(), 50); };
+        $('#cancelSetPin').onclick = () => dlgSetPin.close();
+        $('#confirmSetPin').onclick = () => {
+            const p1 = $('#newPin1').value.trim(), p2 = $('#newPin2').value.trim();
+            if (p1.length < 4 || p1.length > 12) return alert('PIN 長度需 4~12 位');
+            if (p1 !== p2) return alert('兩次輸入不一致');
+            localStorage.setItem(PIN_KEY, p1); dlgSetPin.close(); toast('PIN 已更新');
+        };
 
-  if (API_URL) {
-    try { await apiFetch('delete', { id: pendingDelId }); }
-    catch { showToast('⚠️ 同步失敗'); }
-  }
+        /* ========= 採購分頁（購物車） =========
+           saveQty()          → 將 state.qty 寫回 localStorage（LS_QTY）。
+           populateShopFilter()→ 從 state.data 抽取廠商清單填入下拉選單，
+                                 保留先前選擇的廠商值。
+           renderCart()       → 依搜尋關鍵字與廠商篩選過濾品項，
+                                動態產生含數量控件（−/輸入框/＋）的表格列；
+                                品項按鈕 click 事件 → 數量 ±1，同步更新小計顯示；
+                                品項輸入框 input 事件 → 直接設定數量，同步更新小計。
+           recalcTotals()     → 重新計算合計金額、各廠商小計、已選品項數，
+                                更新頁面底部彙總區。
+           resetQty           → 確認後將所有品項數量歸零。
+           cartExport         → 彙整數量 > 0 的品項清單（品項 x 數量 = 小計），
+                                顯示於 alert 並自動複製到剪貼簿。
+        */
+        const cartQ = $('#cartQ'), shopFilter = $('#shopFilter'), cartTbody = $('#cartTbl tbody');
+        const grandTotal = $('#grandTotal'), grandCount = $('#grandCount'), sumQS = $('#sum-qingshun'), sumBC = $('#sum-baocheng'), pickedCount = $('#pickedCount');
 
-  renderList();
-  renderMgmt();
-  pendingDelId = null;
-}
+        function saveQty() { localStorage.setItem(LS_QTY, JSON.stringify(state.qty)); }
 
-// ══════════════════════════════════════
-// API 輔助函數
-// ══════════════════════════════════════
-function apiFetch(action, body) {
-  return fetch(API_URL, {
-    method: 'POST',
-    mode: 'cors',
-    headers: { 'Content-Type': 'text/plain' },  // GAS 需用 text/plain 才不會 preflight 失敗
-    body: JSON.stringify({ action, ...body })
-  });
-}
+        // 保留選擇的廠商，不要每次 render 被洗掉
+        function populateShopFilter() {
+            const prev = shopFilter.value;
+            shopFilter.innerHTML = '<option value="">全部廠商</option>';
+            const shops = [...new Set(state.data.map(d => d.shop).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+            for (const s of shops) {
+                const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
+                shopFilter.appendChild(opt);
+            }
+            if ([...shopFilter.options].some(o => o.value === prev)) shopFilter.value = prev;
+        }
 
-// ══════════════════════════════════════
-// 設定頁
-// ══════════════════════════════════════
-function saveSettings() {
-  API_URL      = document.getElementById('input-api').value.trim();
-  DAILY_BUDGET = parseInt(document.getElementById('input-budget').value) || 500;
-  localStorage.setItem('api_url', API_URL);
-  localStorage.setItem('daily_budget', DAILY_BUDGET);
-  showToast('💾 設定已儲存');
-  updateBudgetUI();
-  loadData();
-}
+        function renderCart() {
+            populateShopFilter();
+            const kw = (cartQ.value || '').trim().toLowerCase();
+            const shop = shopFilter.value;
+            const rows = state.data.filter(d => {
+                const text = `${d.id} ${d.item} ${d.unit} ${d.shop}`.toLowerCase();
+                return (!kw || text.includes(kw)) && (!shop || d.shop === shop);
+            });
+            cartTbody.innerHTML = '';
+            rows.forEach((d) => {
+                const q = Number(state.qty[d.id] || 0), sub = q * d.price;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+          <td>${d.id}</td>
+          <td>${d.item}</td>
+          <td>${d.unit}</td>
+          <td class="num">$${intFmt.format(d.price)}</td>
+          <td>${d.shop}</td>
+          <td class="num">
+            <div class="qty">
+              <button aria-label="減少" data-act="dec" data-id="${d.id}">−</button>
+              <input inputmode="numeric" pattern="[0-9]*" type="number" min="0" step="1" data-id="${d.id}" value="${q}" />
+              <button aria-label="增加" data-act="inc" data-id="${d.id}">＋</button>
+            </div>
+          </td>
+          <td class="num" data-sub="${d.id}">$${intFmt.format(sub)}</td>`;
+                cartTbody.appendChild(tr);
+            });
+            // 綁定數量控件
+            cartTbody.querySelectorAll('button[data-id]').forEach(b => b.addEventListener('click', () => {
+                const id = b.dataset.id; const cur = Number(state.qty[id] || 0); const next = Math.max(0, cur + (b.dataset.act === 'inc' ? 1 : -1));
+                state.qty[id] = next; saveQty();
+                const inp = cartTbody.querySelector(`input[data-id="${id}"]`); if (inp) inp.value = next;
+                const d = state.data.find(x => x.id === id); const td = cartTbody.querySelector(`[data-sub="${id}"]`);
+                if (d && td) td.textContent = `$${intFmt.format(next * d.price)}`;
+                recalcTotals();
+            }));
+            cartTbody.querySelectorAll('input[data-id]').forEach(inp => inp.addEventListener('input', () => {
+                const id = inp.dataset.id; let v = Number(inp.value || 0); if (isNaN(v) || v < 0) v = 0; inp.value = v; state.qty[id] = v; saveQty();
+                const d = state.data.find(x => x.id === id); const td = cartTbody.querySelector(`[data-sub="${id}"]`);
+                if (d && td) td.textContent = `$${intFmt.format(v * d.price)}`;
+                recalcTotals();
+            }));
+            recalcTotals();
+        }
+        function recalcTotals() {
+            let grand = 0, picked = 0, sumQ = 0, sumB = 0, units = 0;
+            for (const d of state.data) {
+                const q = Number(state.qty[d.id] || 0); if (q > 0) { picked++; units += q; }
+                const sub = q * d.price; grand += sub; if (d.shop === '清順') sumQ += sub; else if (d.shop === '寶成') sumB += sub;
+            }
+            grandTotal.textContent = `$${intFmt.format(grand)}`;
+            grandCount.textContent = `共 ${units} 單位（${picked} 個品項）`;
+            sumQS.textContent = `$${intFmt.format(sumQ)}`;
+            sumBC.textContent = `$${intFmt.format(sumB)}`;
+            pickedCount.textContent = picked;
+        }
+        $('#resetQty').onclick = () => { if (confirm('清空所有品項的數量？')) { for (const k in state.qty) state.qty[k] = 0; saveQty(); renderCart(); } };
+        $('#cartExport').onclick = async () => {
+            let msg = ''; let total = 0;
+            for (const d of state.data) { const q = Number(state.qty[d.id] || 0); if (q > 0) { const sub = q * d.price; msg += `${d.item} x ${q} = $${intFmt.format(sub)}\n`; total += sub; } }
+            if (!msg) return alert('尚未選購任何品項。');
+            msg += `\n合計：$${intFmt.format(total)}`;
+            alert(msg);
+            try { await navigator.clipboard.writeText(msg); toast('已複製到剪貼簿，可直接貼到 LINE'); }
+            catch { toast('無法自動複製，請手動複製', { error: true, duration: 2600 }); }
+        };
+        cartQ.oninput = renderCart; shopFilter.onchange = renderCart;
 
-function resetToday() {
-  localStorage.removeItem('today_spent');
-  localStorage.removeItem('bought_today');
-  updateBudgetUI();
-  renderList();
-  showToast('🔄 今日紀錄已重置');
-}
+        /* ========= 登入流程 =========
+           loginBtn  → 開啟登入對話框，PIN 比對正確後設定管理者模式並跳至管理分頁。
+           logoutBtn → 清除管理者狀態，跳回採購分頁。
+           Enter 鍵  → 自動觸發「登入」確認（透過 confirmLogin.onclick 處理）。
+        */
+        loginBtn.onclick = () => { pinInput.value = ''; dlgLogin.showModal(); setTimeout(() => pinInput.focus(), 50); };
+        cancelLogin.onclick = () => dlgLogin.close();
+        confirmLogin.onclick = () => {
+            if (pinInput.value !== (localStorage.getItem(PIN_KEY) || DEFAULT_PIN)) return alert('PIN 不正確');
+            setAdmin(true); dlgLogin.close(); applyModeUI(); showTab('admin');
+        };
+        logoutBtn.onclick = () => { setAdmin(false); applyModeUI(); showTab('cart'); };
 
-// ══════════════════════════════════════
-// Toast
-// ══════════════════════════════════════
-let toastTimer = null;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
-}
+        /* ========= 初始化 =========
+           initialRender() → 程式進入點：
+             1. applyModeUI()  → 依登入狀態設定所有 UI
+             2. initFromHash() → 依 URL hash 決定顯示分頁
+             3. renderCart()   → 渲染採購分頁表格與合計
+             4. renderData()   → 渲染資料分頁表格
 
-// ══════════════════════════════════════
-// Init
-// ══════════════════════════════════════
-initDate();
-updateBudgetUI();
-loadData();
-setInterval(() => loadData(true), 3 * 60 * 1000);
-</script>
+           PWA 安裝提示（接在初始化之後）：
+           - beforeinstallprompt → 瀏覽器支援安裝時顯示「安裝 App」按鈕
+           - 點擊「安裝 App」→ 呼叫 deferredPrompt.prompt()，
+             使用者確認後顯示成功 Toast，取消則顯示錯誤 Toast
+        */
+        function initialRender() { applyModeUI(); initFromHash(); renderCart(); renderData(); document.querySelector('[data-tab="cart"]').classList.add('active'); }
+        initialRender();
+
+        // ======== PWA：安裝提示與 Service Worker ========
+        let deferredPrompt = null;
+        const $installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            $installBtn.classList.remove('hidden');
+        });
+        $installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) { toast('此裝置暫不支援安裝', { error: true }); return; }
+            $installBtn.disabled = true;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') toast('已開始安裝 App');
+            else toast('已取消安裝', { error: true });
+            deferredPrompt = null; $installBtn.classList.add('hidden'); $installBtn.disabled = false;
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(() => {
+                    console.log('SW registered');
+                }).catch(err => console.warn('SW failed', err));
+            });
+        }
+    </script>
 </body>
+
 </html>
