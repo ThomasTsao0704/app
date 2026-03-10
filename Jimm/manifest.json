@@ -1,0 +1,119 @@
+{
+  "name": "Trading Journal Pro",
+  "short_name": "TJ Pro",
+  "description": "專業交易日誌：R倍數分析、心理追蹤、策略評分、觀察機會管理",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080b0f",
+  "theme_color": "#080b0f",
+  "lang": "zh-TW",
+  "dir": "ltr",
+  "categories": ["finance", "productivity", "utilities"],
+
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "screenshots": [
+    {
+      "src": "screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard — 策略分析與心理統計"
+    },
+    {
+      "src": "screenshots/mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "行動版介面"
+    }
+  ],
+
+  "shortcuts": [
+    {
+      "name": "新增交易",
+      "short_name": "新增",
+      "description": "快速新增一筆交易記錄",
+      "url": "./index.html?page=add",
+      "icons": [{ "src": "icons/shortcut-add.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "觀察機會",
+      "short_name": "觀察",
+      "description": "記錄今日觀察到但未執行的機會",
+      "url": "./index.html?page=missed",
+      "icons": [{ "src": "icons/shortcut-watch.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "統計",
+      "description": "查看績效統計與策略分析",
+      "url": "./index.html?page=dash",
+      "icons": [{ "src": "icons/shortcut-dash.png", "sizes": "96x96" }]
+    }
+  ],
+
+  "related_applications": [],
+  "prefer_related_applications": false,
+
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "note",
+      "url": "url"
+    }
+  }
+}
