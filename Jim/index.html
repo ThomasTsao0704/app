@@ -175,6 +175,20 @@
   #feed.card-view .news-item:hover a { color: #fff; }
   #feed.card-view .news-meta { margin-top: 6px; font-size: 0.7rem; color: #3a3d50; }
 
+  /* ── Category header (list & card) ── */
+  .group-header {
+    grid-column: 1 / -1;
+    padding: 16px 24px 6px;
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: #303248;
+  }
+  .group-header:first-child { padding-top: 10px; }
+  #feed.list-view .group-header { border-top: 1px solid #1a1c26; }
+  #feed.list-view .group-header:first-child { border-top: none; }
+  #feed.card-view .group-header { padding-left: 0; padding-bottom: 4px; }
+  #feed.card-view .group-header:first-child { padding-top: 4px; }
+
   /* ── Shared ── */
   .loading-text {
     padding: 60px 32px; color: #444; font-size: 0.85rem;
@@ -473,17 +487,29 @@
 
 <script>
 const SOURCES = [
-  { url: "https://feeds.bbci.co.uk/news/rss.xml",                         name: "BBC News",    color: "#e04040" },
-  { url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",   name: "NYT Tech",    color: "#4090e0" },
-  { url: "https://hnrss.org/frontpage",                                    name: "Hacker News", color: "#e08040" },
-  { url: "https://money.udn.com/rss/",                                    name: "地球圖輯隊", color: "#e08040" },
-  { url: "https://www.wealth.com.tw/rss.xml",                                    name: "科技新報 (TechNews)", color: "#e08040" },
-  { url: "https://theinitium.com/rss/?itm=t0036",                                    name: "端傳媒 Initium Media", color: "#e08040" },
-  { url: "https://pansci.asia/feed",                                    name: "泛科學 (Pansci)", color: "#e08040" },
-  { url: "https://plainlaw.me/feed/",                                    name: "法律白話文運動", color: "#e08040" },
-  { url: "https://www.twreporter.org/a/rss.xml",                                    name: "公視新聞網 (PNN)", color: "#e08040" }
+  // ── A. 深度調查與社會議題 ──────────────────────────────
+  { url: "https://www.twreporter.org/a/rss.xml",         name: "報導者",         color: "#e05050", group: "深度調查" },
+  { url: "https://theinitium.com/misc/rss/",             name: "端傳媒",         color: "#5090d0", group: "深度調查" },
+  { url: "https://www.eventsinfocus.org/rss.xml",        name: "焦點事件",       color: "#9070c0", group: "深度調查" },
+  // ── B. 國際視野與地緣政治 ──────────────────────────────
+  { url: "https://global.udn.com/rss/news/1020/7178",   name: "轉角國際",       color: "#3ab0a0", group: "國際視野" },
+  { url: "https://dq.yam.com/rss.php",                   name: "地球圖輯隊",     color: "#50b870", group: "國際視野" },
+  { url: "https://www.wainao.me/rss.xml",                name: "歪腦 WhyNot",   color: "#e08040", group: "國際視野" },
+  // ── C. 財經 / 科技 / 產業 ─────────────────────────────
+  { url: "https://technews.tw/feed/",                    name: "科技新報",       color: "#30b8c8", group: "財經科技" },
+  { url: "https://www.bnext.com.tw/feed/",               name: "數位時代",       color: "#4878d0", group: "財經科技" },
+  { url: "https://daodu.tech/feed",                      name: "科技島讀",       color: "#8060c0", group: "財經科技" },
+  { url: "https://ctee.com.tw/feed/",                    name: "工商時報",       color: "#d05050", group: "財經科技" },
+  { url: "https://money.udn.com/rss/news/1001/5588/",   name: "經濟日報",       color: "#50a060", group: "財經科技" },
+  { url: "https://www.wealth.com.tw/rss.xml",            name: "財訊",           color: "#c0a030", group: "財經科技" },
+  // ── D. 科普與公共知識 ──────────────────────────────────
+  { url: "https://pansci.asia/feed",                     name: "泛科學",         color: "#30a0b8", group: "科普知識" },
+  { url: "https://plainlaw.me/feed/",                    name: "法律白話文",     color: "#5080c0", group: "科普知識" },
+  { url: "https://pnn.pts.org.tw/rss",                   name: "公視新聞",       color: "#40a860", group: "科普知識" },
+  { url: "https://opinion.cw.com.tw/rss/opinion",        name: "獨立評論@天下",  color: "#e07030", group: "科普知識" },
 ];
-const PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+/* allorigins: 純轉發代理，返回 {contents: "raw xml"} */
+const PROXY = "https://api.allorigins.win/get?url=";
 const COUNT  = 6;
 
 let currentView   = "list";
@@ -690,7 +716,19 @@ function renderAll() {
   itemCounter = 0;
   const container = document.getElementById("feed");
   container.innerHTML = "";
-  cachedData.forEach(({ source, items }) => renderSource(source, items, container));
+
+  /* 按 group 分組，保持 SOURCES 原始順序 */
+  let lastGroup = null;
+  cachedData.forEach(({ source, items }) => {
+    if (source.group && source.group !== lastGroup) {
+      const hdr = document.createElement("div");
+      hdr.className = "group-header";
+      hdr.textContent = source.group;
+      container.appendChild(hdr);
+      lastGroup = source.group;
+    }
+    renderSource(source, items, container);
+  });
 }
 
 /* ═══════════════════════════════
@@ -762,7 +800,7 @@ async function toggleTranslate() {
   progressWrap.style.display = "none";
   isTranslating = false;
   updateTranslateBtn();
-  setStatus("共 " + SOURCES.length + " 個來源　·　已顯示繁體中文譯文");
+  setStatus("共 " + SOURCES.length + " 個來源 · 4 分類　·　已顯示繁體中文譯文");
 }
 
 function updateTranslateBtn() {
@@ -782,11 +820,81 @@ function setStatus(msg) {
 /* ═══════════════════════════════
    Fetch & Reload
 ═══════════════════════════════ */
+function stripHtml(html) {
+  if (!html) return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || tmp.innerText || "").trim();
+}
+
+/* ─── 自訂 XML 解析（支援 RSS2.0 / Atom / media: / dc: 命名空間）─── */
+function parseItems(xml) {
+  const isAtom = xml.querySelector("feed") !== null;
+  const nodes  = [...xml.querySelectorAll(isAtom ? "entry" : "item")].slice(0, COUNT);
+
+  return nodes.map(el => {
+    /* 依序嘗試多個 tag name，取第一個有內容的 */
+    const txt = (...tags) => {
+      for (const t of tags) {
+        const v = el.getElementsByTagName(t)[0]?.textContent?.trim();
+        if (v) return v;
+      }
+      return "";
+    };
+    const atr = (tag, attr) => el.getElementsByTagName(tag)[0]?.getAttribute(attr) || "";
+
+    const title = stripHtml(txt("title"));
+
+    /* Atom: <link href="...">  |  RSS: <link>url</link> */
+    const linkEl = el.querySelector("link[href]");
+    const link   = linkEl?.getAttribute("href") || txt("link");
+
+    const pubDate = txt("pubDate", "published", "updated", "dc:date");
+
+    /* Atom author 有巢狀 <name>，RSS 用 dc:creator */
+    const authorEl   = el.getElementsByTagName("author")[0];
+    const authorName = authorEl?.getElementsByTagName("name")[0]?.textContent?.trim()
+                     || authorEl?.textContent?.trim()
+                     || txt("dc:creator", "creator");
+
+    /* 優先取完整內容 */
+    const content = txt("content:encoded", "content", "description", "summary");
+
+    /* 封面圖：media:thumbnail → media:content（圖片）→ enclosure（圖片）*/
+    let thumbnail = atr("media:thumbnail", "url") || atr("media:content", "url");
+    if (!thumbnail) {
+      const enc  = el.getElementsByTagName("enclosure")[0];
+      const mime = enc?.getAttribute("type") || "";
+      if (mime.startsWith("image/")) thumbnail = enc?.getAttribute("url") || "";
+    }
+
+    return { title, link, pubDate, author: authorName,
+             content, description: content,
+             thumbnail, enclosure: { link: thumbnail } };
+  });
+}
+
 async function fetchSource(source) {
-  const res  = await fetch(PROXY + encodeURIComponent(source.url));
-  const data = await res.json();
-  if (data.status !== "ok") throw new Error(data.message || "API error");
-  return (data.items || []).slice(0, COUNT);
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 14000);
+  try {
+    const res  = await fetch(PROXY + encodeURIComponent(source.url), { signal: ctrl.signal });
+    const json = await res.json();
+    clearTimeout(timer);
+
+    const raw = json.contents || "";
+    if (!raw) throw new Error("空回應");
+
+    const xml = new DOMParser().parseFromString(raw, "text/xml");
+    if (xml.querySelector("parsererror")) throw new Error("XML 格式錯誤");
+
+    const items = parseItems(xml);
+    if (!items.length) throw new Error("無法解析文章列表");
+    return items;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
 }
 
 async function reload() {
@@ -822,7 +930,7 @@ async function reload() {
 
   const now = new Date();
   timeEl.textContent = "更新於 " + now.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
-  setStatus("共 " + SOURCES.length + " 個來源");
+  setStatus("共 " + SOURCES.length + " 個來源 · 4 分類");
 }
 
 reload();
