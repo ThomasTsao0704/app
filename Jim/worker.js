@@ -23,22 +23,31 @@
 const CACHE_TTL_SECONDS = 15 * 60; // 15 分鐘
 
 const SOURCES = [
-  // ── 深度調查
+  // ── A. 深度調查與社會議題
   { url: "https://www.twreporter.org/a/rss.xml",        name: "報導者",        color: "#e05050", group: "深度調查" },
   { url: "https://theinitium.com/misc/rss/",            name: "端傳媒",        color: "#5090d0", group: "深度調查" },
   { url: "https://www.eventsinfocus.org/rss.xml",       name: "焦點事件",      color: "#9070c0", group: "深度調查" },
-  // ── 國際視野
-  { url: "https://global.udn.com/rss/news/1020/7178",  name: "轉角國際",      color: "#3ab0a0", group: "國際視野" },
-  { url: "https://dq.yam.com/rss.php",                  name: "地球圖輯隊",    color: "#50b870", group: "國際視野" },
-  { url: "https://www.wainao.me/rss.xml",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
-  // ── 財經科技
+  { url: "https://feeds.bbci.co.uk/news/rss.xml",                         name: "BBC News",    color: "#e04040", group: "深度調查"  },
+  { url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",   name: "NYT Tech",    color: "#4090e0", group: "深度調查"  },
+  { url: "https://hnrss.org/frontpage",                                    name: "Hacker News", color: "#e08040", group: "深度調查"  },
+  // ── B. 國際視野與地緣政治
+  //{ url: "https://global.udn.com/rss/news/1020/7178",  name: "轉角國際",      color: "#3ab0a0", group: "國際視野" },
+  //{ url: "https://dq.yam.com/rss.php",                  name: "地球圖輯隊",    color: "#50b870", group: "國際視野" },
+  //{ url: "https://www.wainao.me/rss.xml",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
+  { url: "https://www.twse.com.tw/rss/announcement.xml",  name: "臺灣證券交易所1",      color: "#3ab0a0", group: "國際視野" },
+  { url: "https://www.twse.com.tw/zh/terms/rss.html",                  name: "臺灣證券交易所2",    color: "#50b870", group: "國際視野" },
+  { url: "https://www.tpex.org.tw/rss/news.xml",               name: "Taipei Exchange",  color: "#e08040", group: "國際視野" },
+  { url: "http://mops.twse.com.tw/nas/rss/mopsrss201001.xml",  name: "inancial Supervisory Commission",      color: "#3ab0a0", group: "國際視野" },
+  { url: "https://www.sfb.gov.tw/rss.xml",                  name: "Financial Supervisory Commission",    color: "#50b870", group: "國際視野" },
+  { url: "https://www.sfb.gov.tw/ch/main.jsp?mtitle=RSS",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
+  // ── C. 財經 / 科技 / 產業
   { url: "https://technews.tw/feed/",                   name: "科技新報",      color: "#30b8c8", group: "財經科技" },
   { url: "https://www.bnext.com.tw/feed/",              name: "數位時代",      color: "#4878d0", group: "財經科技" },
   { url: "https://daodu.tech/feed",                     name: "科技島讀",      color: "#8060c0", group: "財經科技" },
   { url: "https://ctee.com.tw/feed/",                   name: "工商時報",      color: "#d05050", group: "財經科技" },
   { url: "https://money.udn.com/rss/news/1001/5588/",  name: "經濟日報",      color: "#50a060", group: "財經科技" },
   { url: "https://www.wealth.com.tw/rss.xml",           name: "財訊",          color: "#c0a030", group: "財經科技" },
-  // ── 科普知識
+  // ── D. 科普與公共知識
   { url: "https://pansci.asia/feed",                    name: "泛科學",        color: "#30a0b8", group: "科普知識" },
   { url: "https://plainlaw.me/feed/",                   name: "法律白話文",    color: "#5080c0", group: "科普知識" },
   { url: "https://pnn.pts.org.tw/rss",                  name: "公視新聞",      color: "#40a860", group: "科普知識" },
