@@ -84,6 +84,21 @@
     width: 0%; transition: width 0.3s ease;
   }
 
+  /* ── Proxy 狀態指示 ── */
+  #proxy-status {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.7rem; color: #333;
+  }
+  .proxy-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #333; flex-shrink: 0;
+    transition: background 0.4s;
+  }
+  .proxy-dot.ok   { background: #3a7a50; }
+  .proxy-dot.fail { background: #7a3a3a; }
+  .proxy-dot.try  { background: #7a6a30; animation: pulse 0.8s infinite; }
+
   /* ══════════════════════════════════
      MODE A — List view
   ══════════════════════════════════ */
@@ -120,6 +135,18 @@
   #feed.list-view .news-item:hover a { color: #fff; }
   #feed.list-view .news-meta {
     flex-shrink: 0; font-size: 0.68rem; color: #3a3d50; white-space: nowrap;
+  }
+
+  /* ── 錯誤來源樣式 ── */
+  #feed.list-view .news-item.error a,
+  #feed.card-view .news-item.error a {
+    color: #6a3a3a; font-style: italic;
+  }
+  #feed.list-view .news-item.error .proxy-tag,
+  #feed.card-view .news-item.error .proxy-tag {
+    font-size: 0.65rem; color: #5a3a3a;
+    background: #1e1416; border: 1px solid #3a2020;
+    padding: 1px 6px; border-radius: 3px; white-space: nowrap;
   }
 
   /* ── 翻譯中 skeleton ── */
@@ -202,8 +229,6 @@
   /* ══════════════════════════════════
      Side Panel
   ══════════════════════════════════ */
-
-  /* 半透明遮罩 */
   #panel-overlay {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
@@ -214,7 +239,6 @@
   }
   #panel-overlay.open { opacity: 1; pointer-events: auto; }
 
-  /* 側邊面板 */
   #side-panel {
     position: fixed; top: 0; right: 0;
     width: min(860px, 100vw);
@@ -229,7 +253,6 @@
   }
   #side-panel.open { transform: translateX(0); }
 
-  /* Panel header */
   #panel-header {
     display: flex; align-items: center; gap: 10px;
     padding: 11px 16px;
@@ -244,13 +267,11 @@
     flex-shrink: 0;
   }
   #panel-source-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
   #panel-title-bar {
     flex: 1; overflow: hidden;
     font-size: 0.82rem; font-weight: 500; color: #8090aa;
     white-space: nowrap; text-overflow: ellipsis;
   }
-
   .panel-icon-btn {
     background: none; border: none; color: #444;
     cursor: pointer; padding: 5px;
@@ -260,18 +281,14 @@
   .panel-icon-btn:hover { color: #aaa; background: #1e2030; }
   .panel-icon-btn svg { width: 15px; height: 15px; }
 
-  /* iframe 區域 */
   #panel-iframe-wrap {
     flex: 1; position: relative; overflow: hidden;
   }
-
   #panel-iframe {
     width: 100%; height: 100%;
     border: none; display: block;
     background: #fff;
   }
-
-  /* 載入中 spinner */
   #panel-loading {
     position: absolute; inset: 0;
     background: #12141d;
@@ -281,7 +298,6 @@
     transition: opacity 0.3s;
   }
   #panel-loading.hidden { opacity: 0; pointer-events: none; }
-
   .spinner {
     width: 28px; height: 28px;
     border: 2.5px solid #1e2030;
@@ -290,10 +306,8 @@
     animation: spin 0.7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-
   #panel-loading p { font-size: 0.78rem; color: #444; }
 
-  /* RSS 摘要 fallback（iframe 封鎖時顯示） */
   #panel-rss {
     position: absolute; inset: 0;
     background: #12141d;
@@ -302,20 +316,17 @@
     z-index: 3; overflow: hidden;
   }
   #panel-rss.show { display: flex; }
-
   #panel-rss-hero {
     width: 100%; height: 200px; object-fit: cover;
     display: block; flex-shrink: 0; background: #1a1c26;
   }
   #panel-rss-hero.hidden { display: none; }
-
   #panel-rss-body {
     flex: 1; overflow-y: auto; padding: 22px 28px 24px;
     scrollbar-width: thin; scrollbar-color: #2a2d40 transparent;
   }
   #panel-rss-body::-webkit-scrollbar { width: 5px; }
   #panel-rss-body::-webkit-scrollbar-thumb { background: #2a2d40; border-radius: 3px; }
-
   #panel-rss-notice {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 0.7rem; color: #444;
@@ -324,17 +335,14 @@
     margin-bottom: 16px;
   }
   #panel-rss-notice svg { width: 11px; height: 11px; }
-
   #panel-rss-title {
     font-size: 1.2rem; font-weight: 700;
     line-height: 1.55; color: #e8eaf2; margin-bottom: 12px;
   }
-
   #panel-rss-meta {
     font-size: 0.75rem; color: #444; margin-bottom: 20px;
     display: flex; gap: 12px; flex-wrap: wrap;
   }
-
   #panel-rss-content {
     font-size: 0.9rem; line-height: 1.8; color: #8a93aa;
     border-top: 1px solid #1a1c2a; padding-top: 18px;
@@ -345,7 +353,6 @@
   #panel-rss-content p { margin-bottom: 12px; }
   #panel-rss-content p:last-child { margin-bottom: 0; }
   #panel-rss-content figure, #panel-rss-content figcaption { margin: 0; font-size: 0.78rem; color: #555; }
-
   #panel-rss-footer {
     padding: 12px 28px;
     border-top: 1px solid #1a1c2a;
@@ -405,15 +412,18 @@
 <div id="status">
   <span id="status-text"></span>
   <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+  <div id="worker-badge" style="margin-left:auto;font-family:monospace;font-size:0.68rem;color:#2a3a2a;display:flex;align-items:center;gap:5px;">
+    <span id="worker-dot" style="width:6px;height:6px;border-radius:50%;background:#2a3a2a;transition:background 0.4s;flex-shrink:0"></span>
+    worker
+  </div>
 </div>
+
 <div id="feed" class="list-view"></div>
 
 <!-- ══ Side Panel ══ -->
 <div id="panel-overlay" onclick="closePanel()"></div>
 
 <div id="side-panel">
-
-  <!-- 頂部工具列 -->
   <div id="panel-header">
     <div id="panel-source-badge">
       <span id="panel-source-dot"></span>
@@ -421,7 +431,6 @@
     </div>
     <div id="panel-title-bar"></div>
 
-    <!-- 在新分頁開啟 -->
     <a class="panel-icon-btn" id="panel-ext-btn" href="#" target="_blank" rel="noopener" title="在新分頁開啟">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
         <path d="M6 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1v-3"/>
@@ -429,7 +438,6 @@
       </svg>
     </a>
 
-    <!-- 關閉 -->
     <button class="panel-icon-btn" onclick="closePanel()" title="關閉 (Esc)">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="3" x2="13" y2="13"/>
@@ -438,16 +446,12 @@
     </button>
   </div>
 
-  <!-- iframe 區域 -->
   <div id="panel-iframe-wrap">
-
-    <!-- 載入中 -->
     <div id="panel-loading">
       <div class="spinner"></div>
       <p>載入中…</p>
     </div>
 
-    <!-- RSS 摘要 fallback -->
     <div id="panel-rss">
       <img id="panel-rss-hero" src="" alt="">
       <div id="panel-rss-body">
@@ -481,62 +485,70 @@
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
       referrerpolicy="no-referrer">
     </iframe>
-
   </div>
 </div>
 
 <script>
+/* ═══════════════════════════════════════════════════
+   SOURCES
+═══════════════════════════════════════════════════ */
 const SOURCES = [
-  // ── A. 深度調查與社會議題 ──────────────────────────────
-  { url: "https://www.twreporter.org/a/rss.xml",         name: "報導者",         color: "#e05050", group: "深度調查" },
-  { url: "https://theinitium.com/misc/rss/",             name: "端傳媒",         color: "#5090d0", group: "深度調查" },
-  { url: "https://www.eventsinfocus.org/rss.xml",        name: "焦點事件",       color: "#9070c0", group: "深度調查" },
-  // ── B. 國際視野與地緣政治 ──────────────────────────────
-  { url: "https://global.udn.com/rss/news/1020/7178",   name: "轉角國際",       color: "#3ab0a0", group: "國際視野" },
-  { url: "https://dq.yam.com/rss.php",                   name: "地球圖輯隊",     color: "#50b870", group: "國際視野" },
-  { url: "https://www.wainao.me/rss.xml",                name: "歪腦 WhyNot",   color: "#e08040", group: "國際視野" },
-  // ── C. 財經 / 科技 / 產業 ─────────────────────────────
-  { url: "https://technews.tw/feed/",                    name: "科技新報",       color: "#30b8c8", group: "財經科技" },
-  { url: "https://www.bnext.com.tw/feed/",               name: "數位時代",       color: "#4878d0", group: "財經科技" },
-  { url: "https://daodu.tech/feed",                      name: "科技島讀",       color: "#8060c0", group: "財經科技" },
-  { url: "https://ctee.com.tw/feed/",                    name: "工商時報",       color: "#d05050", group: "財經科技" },
-  { url: "https://money.udn.com/rss/news/1001/5588/",   name: "經濟日報",       color: "#50a060", group: "財經科技" },
-  { url: "https://www.wealth.com.tw/rss.xml",            name: "財訊",           color: "#c0a030", group: "財經科技" },
-  // ── D. 科普與公共知識 ──────────────────────────────────
-  { url: "https://pansci.asia/feed",                     name: "泛科學",         color: "#30a0b8", group: "科普知識" },
-  { url: "https://plainlaw.me/feed/",                    name: "法律白話文",     color: "#5080c0", group: "科普知識" },
-  { url: "https://pnn.pts.org.tw/rss",                   name: "公視新聞",       color: "#40a860", group: "科普知識" },
-  { url: "https://opinion.cw.com.tw/rss/opinion",        name: "獨立評論@天下",  color: "#e07030", group: "科普知識" },
+  // ── A. 深度調查與社會議題
+  { url: "https://www.twreporter.org/a/rss.xml",        name: "報導者",        color: "#e05050", group: "深度調查" },
+  { url: "https://theinitium.com/misc/rss/",            name: "端傳媒",        color: "#5090d0", group: "深度調查" },
+  { url: "https://www.eventsinfocus.org/rss.xml",       name: "焦點事件",      color: "#9070c0", group: "深度調查" },
+  // ── B. 國際視野與地緣政治
+  //{ url: "https://global.udn.com/rss/news/1020/7178",  name: "轉角國際",      color: "#3ab0a0", group: "國際視野" },
+  //{ url: "https://dq.yam.com/rss.php",                  name: "地球圖輯隊",    color: "#50b870", group: "國際視野" },
+  //{ url: "https://www.wainao.me/rss.xml",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
+  { url: "https://www.twse.com.tw/rss/announcement.xml",  name: "臺灣證券交易所1",      color: "#3ab0a0", group: "國際視野" },
+  { url: "https://www.twse.com.tw/zh/terms/rss.html",                  name: "臺灣證券交易所2",    color: "#50b870", group: "國際視野" },
+  { url: "https://www.tpex.org.tw/rss/news.xml",               name: "Taipei Exchange",  color: "#e08040", group: "國際視野" },
+  { url: "http://mops.twse.com.tw/nas/rss/mopsrss201001.xml",  name: "inancial Supervisory Commission",      color: "#3ab0a0", group: "國際視野" },
+  { url: "https://www.sfb.gov.tw/rss.xml",                  name: "Financial Supervisory Commission",    color: "#50b870", group: "國際視野" },
+  { url: "https://www.sfb.gov.tw/ch/main.jsp?mtitle=RSS",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
+  // ── C. 財經 / 科技 / 產業
+  { url: "https://technews.tw/feed/",                   name: "科技新報",      color: "#30b8c8", group: "財經科技" },
+  { url: "https://www.bnext.com.tw/feed/",              name: "數位時代",      color: "#4878d0", group: "財經科技" },
+  { url: "https://daodu.tech/feed",                     name: "科技島讀",      color: "#8060c0", group: "財經科技" },
+  { url: "https://ctee.com.tw/feed/",                   name: "工商時報",      color: "#d05050", group: "財經科技" },
+  { url: "https://money.udn.com/rss/news/1001/5588/",  name: "經濟日報",      color: "#50a060", group: "財經科技" },
+  { url: "https://www.wealth.com.tw/rss.xml",           name: "財訊",          color: "#c0a030", group: "財經科技" },
+  // ── D. 科普與公共知識
+  { url: "https://pansci.asia/feed",                    name: "泛科學",        color: "#30a0b8", group: "科普知識" },
+  { url: "https://plainlaw.me/feed/",                   name: "法律白話文",    color: "#5080c0", group: "科普知識" },
+  { url: "https://pnn.pts.org.tw/rss",                  name: "公視新聞",      color: "#40a860", group: "科普知識" },
+  { url: "https://opinion.cw.com.tw/rss/opinion",       name: "獨立評論@天下", color: "#e07030", group: "科普知識" },
 ];
-/* allorigins: 純轉發代理，返回 {contents: "raw xml"} */
-const PROXY = "https://api.allorigins.win/get?url=";
-const COUNT  = 6;
 
+/* ═══════════════════════════════════════════════════
+   Cloudflare Worker URL
+   ↓ 把這裡換成你的 Worker 網址
+═══════════════════════════════════════════════════ */
+const WORKER_URL = "https://rss-aggregator.s01yg3642.workers.dev/api";
+
+/* ═══════════════════════════════════════════════════
+   State
+═══════════════════════════════════════════════════ */
 let currentView   = "list";
 let translateMode = false;
 let isTranslating = false;
 let cachedData    = [];
-let itemsMap      = {};   // id → { item, source }
+let itemsMap      = {};
 
-/* ═══════════════════════════════
+/* ═══════════════════════════════════════════════════
    Side Panel
-═══════════════════════════════ */
+═══════════════════════════════════════════════════ */
 function openPanel(id) {
   const { item, source } = itemsMap[id];
   const url   = item.link;
   const title = (translateMode && item.titleZh) ? item.titleZh : item.title;
 
-  /* Source badge */
   document.getElementById("panel-source-dot").style.background = source.color;
   document.getElementById("panel-source-name").textContent     = source.name;
+  document.getElementById("panel-title-bar").textContent       = title;
+  document.getElementById("panel-ext-btn").href                = url;
 
-  /* Title bar */
-  document.getElementById("panel-title-bar").textContent = title;
-
-  /* External link button */
-  document.getElementById("panel-ext-btn").href = url;
-
-  /* Reset states */
   const loading = document.getElementById("panel-loading");
   const rssPane = document.getElementById("panel-rss");
   const iframe  = document.getElementById("panel-iframe");
@@ -545,23 +557,15 @@ function openPanel(id) {
   rssPane.classList.remove("show");
   iframe.src = "about:blank";
 
-  /* iframe load handler */
   let timer;
 
   function onLoad() {
     clearTimeout(timer);
     loading.classList.add("hidden");
-    /* 嘗試偵測是否被 X-Frame-Options 封鎖：
-       跨域正常載入 → 存取 contentDocument 會拋 SecurityError，代表成功。
-       被封鎖時瀏覽器載入空白頁，body 內容為空。 */
     try {
       const doc = iframe.contentDocument || iframe.contentWindow.document;
-      if (!doc || !doc.body || doc.body.innerHTML.trim() === "") {
-        showRssFallback();
-      }
-    } catch {
-      /* SecurityError → 正常跨域頁面，載入成功，不做任何事 */
-    }
+      if (!doc || !doc.body || doc.body.innerHTML.trim() === "") showRssFallback();
+    } catch { /* 跨域正常 */ }
   }
 
   function onError() {
@@ -571,7 +575,6 @@ function openPanel(id) {
   }
 
   function showRssFallback() {
-    /* 填入 RSS 內容 */
     const imgSrc = item.thumbnail || item.enclosure?.link || "";
     const hero   = document.getElementById("panel-rss-hero");
     if (imgSrc) {
@@ -581,9 +584,8 @@ function openPanel(id) {
     } else {
       hero.classList.add("hidden");
     }
-
-    document.getElementById("panel-rss-title").textContent   = title;
-    document.getElementById("panel-rss-date").textContent    = formatDate(item.pubDate) || "";
+    document.getElementById("panel-rss-title").textContent = title;
+    document.getElementById("panel-rss-date").textContent  = formatDate(item.pubDate) || "";
     const auth = document.getElementById("panel-rss-author");
     auth.textContent = item.author ? "by " + item.author : "";
 
@@ -599,19 +601,11 @@ function openPanel(id) {
     rssPane.classList.add("show");
   }
 
-  iframe.addEventListener("load", onLoad, { once: true });
+  iframe.addEventListener("load",  onLoad,  { once: true });
   iframe.addEventListener("error", onError, { once: true });
-
-  /* 逾時 12 秒仍未載入，切換到 RSS 摘要 */
-  timer = setTimeout(() => {
-    loading.classList.add("hidden");
-    showRssFallback();
-  }, 12000);
-
-  /* 實際載入 iframe */
+  timer = setTimeout(() => { loading.classList.add("hidden"); showRssFallback(); }, 12000);
   iframe.src = url;
 
-  /* Open panel */
   document.getElementById("panel-overlay").classList.add("open");
   document.getElementById("side-panel").classList.add("open");
   document.body.style.overflow = "hidden";
@@ -623,12 +617,11 @@ function closePanel() {
   document.body.style.overflow = "";
 }
 
-/* ESC to close */
 document.addEventListener("keydown", e => { if (e.key === "Escape") closePanel(); });
 
-/* ═══════════════════════════════
+/* ═══════════════════════════════════════════════════
    Helpers
-═══════════════════════════════ */
+═══════════════════════════════════════════════════ */
 function formatDate(str) {
   if (!str) return "";
   const d = new Date(str);
@@ -658,9 +651,58 @@ function displayTitle(item) {
   return (translateMode && item.titleZh) ? item.titleZh : item.title;
 }
 
-/* ═══════════════════════════════
+function stripHtml(html) {
+  if (!html) return "";
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  return (tmp.textContent || tmp.innerText || "").trim();
+}
+
+/* ═══════════════════════════════════════════════════
+   XML Parser（RSS 2.0 / Atom / media: / dc:）
+═══════════════════════════════════════════════════ */
+function parseItems(xml) {
+  const isAtom = xml.querySelector("feed") !== null;
+  const nodes  = [...xml.querySelectorAll(isAtom ? "entry" : "item")].slice(0, COUNT);
+
+  return nodes.map(el => {
+    const txt = (...tags) => {
+      for (const t of tags) {
+        const v = el.getElementsByTagName(t)[0]?.textContent?.trim();
+        if (v) return v;
+      }
+      return "";
+    };
+    const atr = (tag, attr) => el.getElementsByTagName(tag)[0]?.getAttribute(attr) || "";
+
+    const title    = stripHtml(txt("title"));
+    const linkEl   = el.querySelector("link[href]");
+    const link     = linkEl?.getAttribute("href") || txt("link");
+    const pubDate  = txt("pubDate", "published", "updated", "dc:date");
+
+    const authorEl   = el.getElementsByTagName("author")[0];
+    const authorName = authorEl?.getElementsByTagName("name")[0]?.textContent?.trim()
+                    || authorEl?.textContent?.trim()
+                    || txt("dc:creator", "creator");
+
+    const content = txt("content:encoded", "content", "description", "summary");
+
+    let thumbnail = atr("media:thumbnail", "url") || atr("media:content", "url");
+    if (!thumbnail) {
+      const enc  = el.getElementsByTagName("enclosure")[0];
+      const mime = enc?.getAttribute("type") || "";
+      if (mime.startsWith("image/")) thumbnail = enc?.getAttribute("url") || "";
+    }
+
+    return { title, link, pubDate, author: authorName,
+             content, description: content,
+             thumbnail, enclosure: { link: thumbnail } };
+  });
+}
+
+/* ═══════════════════════════════════════════════════
    Render
-═══════════════════════════════ */
+═══════════════════════════════════════════════════ */
 let itemCounter = 0;
 
 function renderSource(source, items, container) {
@@ -677,17 +719,18 @@ function renderSource(source, items, container) {
   const itemsEl = block.querySelector(".items");
 
   items.forEach(item => {
-    const id = "item-" + (itemCounter++);
+    const id   = "item-" + (itemCounter++);
+    const isErr = item.link === "#";
     itemsMap[id] = { item, source };
 
     const div = document.createElement("div");
-    div.className = "news-item";
+    div.className = "news-item" + (isErr ? " error" : "");
     div.dataset.id = id;
 
     if (currentView === "list") {
       div.innerHTML = `
         <a href="${item.link}" data-id="${id}">${displayTitle(item)}</a>
-        <span class="news-meta">${formatDate(item.pubDate)}</span>`;
+        ${isErr ? "" : `<span class="news-meta">${formatDate(item.pubDate)}</span>`}`;
     } else {
       div.innerHTML = `
         ${thumbHTML(item)}
@@ -697,13 +740,14 @@ function renderSource(source, items, container) {
         </div>`;
     }
 
-    /* 攔截點擊，改為開啟側邊面板 */
-    div.addEventListener("click", e => {
-      const anchor = e.target.closest("a[data-id]") || e.currentTarget.querySelector("a[data-id]");
-      if (!anchor) return;
-      e.preventDefault();
-      openPanel(anchor.dataset.id);
-    });
+    if (!isErr) {
+      div.addEventListener("click", e => {
+        const anchor = e.target.closest("a[data-id]") || e.currentTarget.querySelector("a[data-id]");
+        if (!anchor) return;
+        e.preventDefault();
+        openPanel(anchor.dataset.id);
+      });
+    }
 
     itemsEl.appendChild(div);
   });
@@ -717,7 +761,6 @@ function renderAll() {
   const container = document.getElementById("feed");
   container.innerHTML = "";
 
-  /* 按 group 分組，保持 SOURCES 原始順序 */
   let lastGroup = null;
   cachedData.forEach(({ source, items }) => {
     if (source.group && source.group !== lastGroup) {
@@ -731,21 +774,20 @@ function renderAll() {
   });
 }
 
-/* ═══════════════════════════════
+/* ═══════════════════════════════════════════════════
    View switch
-═══════════════════════════════ */
+═══════════════════════════════════════════════════ */
 function setView(mode) {
   currentView = mode;
-  const feed = document.getElementById("feed");
-  feed.className = mode === "list" ? "list-view" : "card-view";
+  document.getElementById("feed").className = mode === "list" ? "list-view" : "card-view";
   document.getElementById("btn-list").classList.toggle("active", mode === "list");
   document.getElementById("btn-card").classList.toggle("active", mode === "card");
   if (cachedData.length) renderAll();
 }
 
-/* ═══════════════════════════════
+/* ═══════════════════════════════════════════════════
    Translation
-═══════════════════════════════ */
+═══════════════════════════════════════════════════ */
 async function translateText(text) {
   const url = "https://translate.googleapis.com/translate_a/single"
     + "?client=gtx&sl=auto&tl=zh-TW&dt=t&q=" + encodeURIComponent(text);
@@ -769,13 +811,13 @@ async function toggleTranslate() {
   setTranslateBtnDisabled(true, "翻譯中…");
 
   const allItems = cachedData.flatMap(d => d.items.filter(it => !it.titleZh));
-  const total = allItems.length;
-  let done = 0;
+  const total    = allItems.length;
+  let done       = 0;
 
   const progressWrap = document.getElementById("progress-bar-wrap");
   const progressBar  = document.getElementById("progress-bar");
   progressWrap.style.display = "block";
-  progressBar.style.width = "0%";
+  progressBar.style.width    = "0%";
   setStatus("正在翻譯標題… 0 / " + total);
 
   document.querySelectorAll(".news-item a").forEach(a => a.classList.add("translating"));
@@ -789,7 +831,8 @@ async function toggleTranslate() {
     setStatus("正在翻譯標題… " + done + " / " + total);
 
     document.querySelectorAll(".news-item a").forEach(a => {
-      if ((a.href === item.link || a.getAttribute("href") === item.link) && a.classList.contains("translating")) {
+      if ((a.href === item.link || a.getAttribute("href") === item.link)
+          && a.classList.contains("translating")) {
         a.textContent = item.titleZh;
         a.classList.remove("translating");
       }
@@ -807,96 +850,17 @@ function updateTranslateBtn() {
   document.getElementById("translate-btn").classList.toggle("active", translateMode);
   document.getElementById("translate-label").textContent = translateMode ? "原文" : "翻譯";
 }
-
 function setTranslateBtnDisabled(disabled, label) {
   document.getElementById("translate-btn").disabled = disabled;
   document.getElementById("translate-label").textContent = label;
 }
-
 function setStatus(msg) {
   document.getElementById("status-text").textContent = msg;
 }
 
-/* ═══════════════════════════════
-   Fetch & Reload
-═══════════════════════════════ */
-function stripHtml(html) {
-  if (!html) return "";
-  const tmp = document.createElement("div");
-  tmp.innerHTML = html;
-  return (tmp.textContent || tmp.innerText || "").trim();
-}
-
-/* ─── 自訂 XML 解析（支援 RSS2.0 / Atom / media: / dc: 命名空間）─── */
-function parseItems(xml) {
-  const isAtom = xml.querySelector("feed") !== null;
-  const nodes  = [...xml.querySelectorAll(isAtom ? "entry" : "item")].slice(0, COUNT);
-
-  return nodes.map(el => {
-    /* 依序嘗試多個 tag name，取第一個有內容的 */
-    const txt = (...tags) => {
-      for (const t of tags) {
-        const v = el.getElementsByTagName(t)[0]?.textContent?.trim();
-        if (v) return v;
-      }
-      return "";
-    };
-    const atr = (tag, attr) => el.getElementsByTagName(tag)[0]?.getAttribute(attr) || "";
-
-    const title = stripHtml(txt("title"));
-
-    /* Atom: <link href="...">  |  RSS: <link>url</link> */
-    const linkEl = el.querySelector("link[href]");
-    const link   = linkEl?.getAttribute("href") || txt("link");
-
-    const pubDate = txt("pubDate", "published", "updated", "dc:date");
-
-    /* Atom author 有巢狀 <name>，RSS 用 dc:creator */
-    const authorEl   = el.getElementsByTagName("author")[0];
-    const authorName = authorEl?.getElementsByTagName("name")[0]?.textContent?.trim()
-                     || authorEl?.textContent?.trim()
-                     || txt("dc:creator", "creator");
-
-    /* 優先取完整內容 */
-    const content = txt("content:encoded", "content", "description", "summary");
-
-    /* 封面圖：media:thumbnail → media:content（圖片）→ enclosure（圖片）*/
-    let thumbnail = atr("media:thumbnail", "url") || atr("media:content", "url");
-    if (!thumbnail) {
-      const enc  = el.getElementsByTagName("enclosure")[0];
-      const mime = enc?.getAttribute("type") || "";
-      if (mime.startsWith("image/")) thumbnail = enc?.getAttribute("url") || "";
-    }
-
-    return { title, link, pubDate, author: authorName,
-             content, description: content,
-             thumbnail, enclosure: { link: thumbnail } };
-  });
-}
-
-async function fetchSource(source) {
-  const ctrl  = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 14000);
-  try {
-    const res  = await fetch(PROXY + encodeURIComponent(source.url), { signal: ctrl.signal });
-    const json = await res.json();
-    clearTimeout(timer);
-
-    const raw = json.contents || "";
-    if (!raw) throw new Error("空回應");
-
-    const xml = new DOMParser().parseFromString(raw, "text/xml");
-    if (xml.querySelector("parsererror")) throw new Error("XML 格式錯誤");
-
-    const items = parseItems(xml);
-    if (!items.length) throw new Error("無法解析文章列表");
-    return items;
-  } catch (e) {
-    clearTimeout(timer);
-    throw e;
-  }
-}
-
+/* ═══════════════════════════════════════════════════
+   Reload（透過 Cloudflare Worker 一次抓全部）
+═══════════════════════════════════════════════════ */
 async function reload() {
   closePanel();
   const container = document.getElementById("feed");
@@ -911,30 +875,72 @@ async function reload() {
   document.getElementById("progress-bar-wrap").style.display = "none";
 
   container.innerHTML = '<div class="loading-text"><span class="loading-dot">載入中…</span></div>';
-  setStatus("正在連線…");
+  setStatus("正在連線 Worker…");
+  const wDot = document.getElementById("worker-dot");
+  if (wDot) wDot.style.background = "#7a6a30";  // 嘗試中：黃
 
-  await Promise.all(SOURCES.map(async source => {
-    try {
-      const items = await fetchSource(source);
-      cachedData.push({ source, items });
-    } catch (e) {
-      cachedData.push({
-        source,
-        items: [{ title: "無法載入：" + e.message, link: "#", pubDate: "" }]
-      });
-    }
-  }));
+  try {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
 
-  cachedData.sort((a, b) => SOURCES.indexOf(a.source) - SOURCES.indexOf(b.source));
-  renderAll();
+    const res  = await fetch(WORKER_URL, { signal: ctrl.signal });
+    clearTimeout(timer);
 
-  const now = new Date();
-  timeEl.textContent = "更新於 " + now.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
-  setStatus("共 " + SOURCES.length + " 個來源 · 4 分類");
+    if (!res.ok) throw new Error(`Worker 回應 HTTP ${res.status}`);
+
+    const data = await res.json();
+    if (!data.ok) throw new Error("Worker 回傳錯誤");
+
+    /* Worker 回傳的 source 格式與前端完全一致，直接使用 */
+    cachedData = data.sources.map(s => ({
+      source: {
+        name:  s.name,
+        color: s.color,
+        group: s.group,
+        url:   s.url,
+      },
+      /* 把 Worker item 格式補齊前端所需欄位 */
+      items: s.ok && s.items.length
+        ? s.items.map(it => ({
+            title:       it.title,
+            link:        it.link,
+            pubDate:     it.pubDate,
+            author:      it.author || "",
+            content:     it.description || "",
+            description: it.description || "",
+            thumbnail:   it.thumbnail || "",
+            enclosure:   { link: it.thumbnail || "" },
+          }))
+        : [{ title: s.ok ? "此來源目前無文章" : "無法載入：" + (s.error || "未知錯誤"),
+             link: "#", pubDate: "" }],
+    }));
+
+    /* 依照 SOURCES 原始順序排列 */
+    cachedData.sort((a, b) => {
+      const ai = SOURCES.findIndex(s => s.name === a.source.name);
+      const bi = SOURCES.findIndex(s => s.name === b.source.name);
+      return ai - bi;
+    });
+
+    renderAll();
+    if (wDot) wDot.style.background = "#3a7a50";  // 成功：綠
+
+    const now    = new Date();
+    const failed = data.sources.filter(s => !s.ok).length;
+    const cache  = res.headers.get("X-Cache") === "HIT" ? "　·　快取命中" : "";
+    const failNote = failed > 0 ? `　·　${failed} 個來源失敗` : "";
+
+    timeEl.textContent = "更新於 " + now.toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+    setStatus(`共 ${data.sources.length} 個來源 · 4 分類${cache}${failNote}`);
+
+  } catch (e) {
+    container.innerHTML = `<div class="loading-text error-text">Worker 連線失敗：${e.message}<br><small>請確認 Worker 已部署，或檢查網路連線</small></div>`;
+    if (wDot) wDot.style.background = "#7a3a3a";  // 失敗：紅
+    setStatus("載入失敗");
+  }
 }
 
 reload();
 </script>
-
 </body>
 </html>
