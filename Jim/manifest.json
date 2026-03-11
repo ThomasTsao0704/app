@@ -1,6 +1,6 @@
 {
-"name":"盤前分析",
-"short_name":"股票",
+"name":"RSS",
+"short_name":"RSS",
 "start_url":"./index.html",
 "display":"standalone",
 "background_color":"#fafafa",
@@ -20,3 +20,4 @@
 ]
 
 }
+
