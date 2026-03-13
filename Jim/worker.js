@@ -23,40 +23,61 @@
 const CACHE_TTL_SECONDS = 15 * 60; // 15 分鐘
 
 const SOURCES = [
-  // ── A. 深度調查與社會議題
-  { url: "https://www.twreporter.org/a/rss.xml",        name: "報導者",        color: "#e05050", group: "深度調查" },
-  { url: "https://theinitium.com/misc/rss/",            name: "端傳媒",        color: "#5090d0", group: "深度調查" },
-  { url: "https://www.eventsinfocus.org/rss.xml",       name: "焦點事件",      color: "#9070c0", group: "深度調查" },
-  { url: "https://feeds.bbci.co.uk/news/rss.xml",                         name: "BBC News",    color: "#e04040", group: "深度調查"  },
-  { url: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",   name: "NYT Tech",    color: "#4090e0", group: "深度調查"  },
-  { url: "https://hnrss.org/frontpage",                                    name: "Hacker News", color: "#e08040", group: "深度調查"  },
-  // ── B. 國際視野與地緣政治
-  //{ url: "https://global.udn.com/rss/news/1020/7178",  name: "轉角國際",      color: "#3ab0a0", group: "國際視野" },
-  //{ url: "https://dq.yam.com/rss.php",                  name: "地球圖輯隊",    color: "#50b870", group: "國際視野" },
-  //{ url: "https://www.wainao.me/rss.xml",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
-  { url: "https://www.twse.com.tw/rss/announcement.xml",  name: "臺灣證券交易所1",      color: "#3ab0a0", group: "國際視野" },
-  { url: "https://www.twse.com.tw/zh/terms/rss.html",                  name: "臺灣證券交易所2",    color: "#50b870", group: "國際視野" },
-  { url: "https://www.tpex.org.tw/rss/news.xml",               name: "Taipei Exchange",  color: "#e08040", group: "國際視野" },
-  { url: "http://mops.twse.com.tw/nas/rss/mopsrss201001.xml",  name: "inancial Supervisory Commission",      color: "#3ab0a0", group: "國際視野" },
-  { url: "https://www.sfb.gov.tw/rss.xml",                  name: "Financial Supervisory Commission",    color: "#50b870", group: "國際視野" },
-  { url: "https://www.sfb.gov.tw/ch/main.jsp?mtitle=RSS",               name: "歪腦 WhyNot",  color: "#e08040", group: "國際視野" },
-  // ── C. 財經 / 科技 / 產業
-  { url: "https://technews.tw/feed/",                   name: "科技新報",      color: "#30b8c8", group: "財經科技" },
-  { url: "https://www.bnext.com.tw/feed/",              name: "數位時代",      color: "#4878d0", group: "財經科技" },
-  { url: "https://daodu.tech/feed",                     name: "科技島讀",      color: "#8060c0", group: "財經科技" },
-  { url: "https://ctee.com.tw/feed/",                   name: "工商時報",      color: "#d05050", group: "財經科技" },
-  { url: "https://money.udn.com/rss/news/1001/5588/",  name: "經濟日報",      color: "#50a060", group: "財經科技" },
-  { url: "https://www.wealth.com.tw/rss.xml",           name: "財訊",          color: "#c0a030", group: "財經科技" },
-  // ── D. 科普與公共知識
-  { url: "https://pansci.asia/feed",                    name: "泛科學",        color: "#30a0b8", group: "科普知識" },
-  { url: "https://plainlaw.me/feed/",                   name: "法律白話文",    color: "#5080c0", group: "科普知識" },
-  { url: "https://pnn.pts.org.tw/rss",                  name: "公視新聞",      color: "#40a860", group: "科普知識" },
-  { url: "https://opinion.cw.com.tw/rss/opinion",       name: "獨立評論@天下", color: "#e07030", group: "科普知識" },
+  // ── 深度調查與社會議題
+  { url: "https://feeds.bbci.co.uk/news/rss.xml",                                   name: "BBC News",            color: "#e04040", group: "深度調查" },
+  { url: "https://hnrss.org/frontpage",                                              name: "Hacker News",         color: "#e08040", group: "深度調查" },
+
+  // ── 國際財經
+  { url: "https://feeds.bloomberg.com/markets/news.rss",                            name: "Bloomberg Markets",   color: "#2060b0", group: "國際財經" },
+  { url: "https://www.bis.org/doclist/all_statistics.rss",                          name: "BIS Statistics",      color: "#3050a0", group: "國際財經" },
+  { url: "https://www.bis.org/doclist/all_pressrels.rss",                           name: "BIS Press Releases",  color: "#4070c0", group: "國際財經" },
+
+  // ── 財經科技產業
+  { url: "https://pansci.asia/feed",                                                 name: "泛科學",              color: "#30a0b8", group: "科普知識" },
+  { url: "https://technews.tw/feed/",                                                name: "科技新報",            color: "#30b8c8", group: "財經科技" },
+  { url: "https://www.twse.com.tw/rwd/zh/news/feed?type=rss",                        name: "臺灣證券交易所",       color: "#e8a020", group: "財經科技" },
+
+  // ── 電子時報·科技產業
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_0.xml",               name: "DT 科技/產業",        color: "#c04040", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_10.xml",              name: "DT IT系統供應鏈",     color: "#c04848", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_30.xml",              name: "DT 光電顯示光學",     color: "#c05050", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_40.xml",              name: "DT 半導體零組件",     color: "#c85050", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_50.xml",              name: "DT 物聯科技智慧製造", color: "#c85858", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_60.xml",              name: "DT AI智慧應用電商",   color: "#d05858", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_70.xml",              name: "DT 行動通訊XR",       color: "#d06060", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_90.xml",              name: "DT CarTech綠能",      color: "#d06868", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_100.xml",             name: "DT 航太衛星軍工",     color: "#d07070", group: "電子時報·產業" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_110.xml",             name: "DT 科技政策",         color: "#d07878", group: "電子時報·產業" },
+
+  // ── 電子時報·研究報告
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_0.xml",               name: "DT Research",         color: "#3878c0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_1.xml",               name: "DT 電腦運算",         color: "#3880c8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_3.xml",               name: "DT 智慧家庭",         color: "#3888c8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_5.xml",               name: "DT 智慧穿戴",         color: "#4088c8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_6.xml",               name: "DT 行動裝置應用",     color: "#4090d0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_7.xml",               name: "DT 寬頻無線",         color: "#4898d0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_9.xml",               name: "DT 顯示科技應用",     color: "#4898d8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_16.xml",              name: "DT IC設計",           color: "#50a0d8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_17.xml",              name: "DT IC製造",           color: "#50a0e0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_22.xml",              name: "DT 物聯網",           color: "#58a8e0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_23.xml",              name: "DT CarTech",          color: "#58a8e8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_24.xml",              name: "DT Cloud",            color: "#60b0e8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_25.xml",              name: "DT AI Focus",         color: "#60b0f0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_26.xml",              name: "DT 伺服器",           color: "#68b8f0", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_27.xml",              name: "DT 次世代行動通訊",   color: "#68b8f8", group: "電子時報·研究" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_29.xml",              name: "DT 智慧製造",         color: "#70c0f8", group: "電子時報·研究" },
+
+  // ── 電子時報·區域
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_0.xml",               name: "DT 科技/區域",        color: "#40a878", group: "電子時報·區域" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_300.xml",             name: "DT 東南亞",           color: "#40b080", group: "電子時報·區域" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_305.xml",             name: "DT 印度",             color: "#48b088", group: "電子時報·區域" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_310.xml",             name: "DT 東亞/中國",        color: "#48b890", group: "電子時報·區域" },
+  { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_315.xml",             name: "DT 國際",             color: "#50b890", group: "電子時報·區域" },
 ];
 
 const COUNT_PER_SOURCE = 6;
 
-// ============================================================
+
 //  Worker Entry Point
 // ============================================================
 export default {
@@ -140,8 +161,10 @@ async function fetchAndParse(source) {
     const res = await fetch(source.url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; RSSBot/1.0)",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        "Accept-Language": "zh-TW,zh;q=0.9,en;q=0.8",
+        "Cache-Control": "no-cache",
       },
     });
     clearTimeout(timer);
