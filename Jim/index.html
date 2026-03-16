@@ -3,9 +3,46 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>情報中心</title>
+
+    <!-- ── PWA Meta ── -->
+    <meta name="theme-color" content="#f7f4ef">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="情報中心">
+    <meta name="application-name" content="情報中心">
+    <meta name="description" content="個人化 RSS 資訊聚合中心">
+
+    <!-- ── PWA Icons ── -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="icon" href="./icons/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png">
+
+    <!-- ── Google Fonts ── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500&display=swap"
+        rel="stylesheet">
+
     <style>
+        :root {
+            --ink: #1a1410;
+            --ink-mid: #4a3f35;
+            --ink-light: #8a7a6a;
+            --ink-faint: #c8bfb5;
+            --paper: #f7f4ef;
+            --paper-warm: #f0ebe3;
+            --paper-dark: #e8e2d8;
+            --red-seal: #8b1a1a;
+            --red-light: #c44444;
+            --accent: #2a4a6a;
+            --rule: #d4ccc4;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -13,32 +50,48 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            background: #0f1117;
-            color: #e0e0e0;
+            font-family: 'Noto Sans TC', 'Hiragino Kaku Gothic ProN', sans-serif;
+            background: var(--paper);
+            color: var(--ink);
             min-height: 100vh;
             overflow-x: hidden;
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
         /* ── Header ── */
         header {
-            padding: 20px 32px;
-            border-bottom: 1px solid #1e2030;
+            padding: max(20px, env(safe-area-inset-top)) 40px 20px;
+            border-bottom: 2px solid var(--ink);
             display: flex;
-            align-items: center;
-            gap: 12px;
+            align-items: baseline;
+            gap: 16px;
             flex-wrap: wrap;
+            background: var(--paper);
         }
 
         header h1 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #fff;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: 0.12em;
+        }
+
+        header h1::after {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background: var(--red-seal);
+            border-radius: 50%;
+            margin-left: 8px;
+            vertical-align: middle;
         }
 
         #update-time {
-            font-size: 0.78rem;
-            color: #555;
+            font-size: 0.72rem;
+            color: var(--ink-light);
+            font-family: 'Noto Sans TC', sans-serif;
         }
 
         .header-right {
@@ -52,51 +105,52 @@
         /* ── View Toggle ── */
         .view-toggle {
             display: flex;
-            background: #1a1c26;
-            border: 1px solid #2a2d40;
-            border-radius: 7px;
+            border: 1px solid var(--rule);
             overflow: hidden;
+            background: var(--paper-warm);
         }
 
         .view-btn {
-            padding: 6px 13px;
+            padding: 6px 14px;
             border: none;
             background: transparent;
-            color: #555;
+            color: var(--ink-light);
             cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.75rem;
             display: flex;
             align-items: center;
             gap: 5px;
-            transition: all 0.18s;
+            transition: all 0.2s;
             white-space: nowrap;
         }
 
         .view-btn svg {
-            width: 14px;
-            height: 14px;
+            width: 13px;
+            height: 13px;
             flex-shrink: 0;
         }
 
         .view-btn:hover {
-            color: #aaa;
+            color: var(--ink);
+            background: var(--paper-dark);
         }
 
         .view-btn.active {
-            background: #2a2d44;
-            color: #fff;
+            background: var(--ink);
+            color: var(--paper);
         }
 
-        /* ── Translate btn ── */
-        #translate-btn {
-            background: #1e2030;
-            border: 1px solid #2a2d40;
-            color: #aaa;
-            padding: 6px 13px;
-            border-radius: 6px;
+        /* ── Translate & Refresh buttons ── */
+        #translate-btn,
+        #refresh-btn {
+            background: var(--paper-warm);
+            border: 1px solid var(--rule);
+            color: var(--ink-light);
+            padding: 6px 14px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.75rem;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -105,20 +159,21 @@
         }
 
         #translate-btn svg {
-            width: 14px;
-            height: 14px;
+            width: 13px;
+            height: 13px;
             flex-shrink: 0;
         }
 
-        #translate-btn:hover:not(:disabled) {
-            background: #252840;
-            color: #fff;
+        #translate-btn:hover:not(:disabled),
+        #refresh-btn:hover {
+            background: var(--paper-dark);
+            color: var(--ink);
         }
 
         #translate-btn.active {
-            background: #1a2e20;
-            border-color: #2a5035;
-            color: #5dba75;
+            background: #e8f0e8;
+            border-color: #a0c0a0;
+            color: #2a5a2a;
         }
 
         #translate-btn:disabled {
@@ -126,97 +181,74 @@
             cursor: not-allowed;
         }
 
-        /* ── Refresh ── */
-        #refresh-btn {
-            background: #1e2030;
-            border: 1px solid #2a2d40;
-            color: #aaa;
-            padding: 6px 13px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.2s;
-        }
-
-        #refresh-btn:hover {
-            background: #252840;
-            color: #fff;
-        }
-
         /* ── Status bar ── */
         #status {
-            padding: 10px 32px;
-            font-size: 0.75rem;
-            color: #444;
-            min-height: 32px;
+            padding: 8px 40px;
+            font-size: 0.7rem;
+            color: var(--ink-light);
+            min-height: 30px;
             display: flex;
             align-items: center;
             gap: 8px;
+            border-bottom: 1px solid var(--rule);
+            font-family: 'Noto Sans TC', sans-serif;
         }
 
         #progress-bar-wrap {
             display: none;
             flex: 1;
-            max-width: 200px;
-            height: 3px;
-            background: #1a1c26;
-            border-radius: 2px;
-            overflow: hidden;
+            max-width: 180px;
+            height: 2px;
+            background: var(--paper-dark);
         }
 
         #progress-bar {
             height: 100%;
-            background: #3a7a50;
-            border-radius: 2px;
+            background: var(--red-seal);
             width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        /* ── Proxy 狀態指示 ── */
-        #proxy-status {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.7rem;
-            color: #333;
+            transition: width 0.3s;
         }
 
         .proxy-dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             border-radius: 50%;
-            background: #333;
+            background: var(--ink-faint);
             flex-shrink: 0;
             transition: background 0.4s;
         }
 
         .proxy-dot.ok {
-            background: #3a7a50;
+            background: #5a9a5a;
         }
 
         .proxy-dot.fail {
-            background: #7a3a3a;
+            background: var(--red-seal);
         }
 
         .proxy-dot.try {
-            background: #7a6a30;
+            background: #c0a000;
             animation: pulse 0.8s infinite;
         }
 
         /* ══════════════════════════════════
-     MODE A — List view
-  ══════════════════════════════════ */
+       MODE A — List view
+    ══════════════════════════════════ */
         #feed.list-view {
+            background: var(--paper-warm);
+        }
+
+        #feed.list-view .group-body {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 1px;
-            background: #1a1c26;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 0;
         }
 
         #feed.list-view .source-block {
-            background: #0f1117;
+            background: var(--paper);
             padding: 20px 24px;
+            border-right: 1px solid var(--rule);
+            border-bottom: 1px solid var(--rule);
         }
 
         #feed.list-view .source-header {
@@ -225,7 +257,7 @@
             gap: 8px;
             margin-bottom: 12px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #1e2030;
+            border-bottom: 1px solid var(--rule);
         }
 
         #feed.list-view .source-dot {
@@ -236,17 +268,17 @@
         }
 
         #feed.list-view .source-name {
-            font-size: 0.75rem;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.7rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #777;
+            letter-spacing: 0.1em;
+            color: var(--ink-mid);
         }
 
         #feed.list-view .source-count {
             margin-left: auto;
-            font-size: 0.7rem;
-            color: #444;
+            font-size: 0.65rem;
+            color: var(--ink-faint);
         }
 
         #feed.list-view .news-item {
@@ -254,7 +286,7 @@
             align-items: baseline;
             gap: 8px;
             padding: 9px 0;
-            border-bottom: 1px solid #141620;
+            border-bottom: 1px solid #ede8e0;
             cursor: pointer;
         }
 
@@ -267,78 +299,45 @@
             width: 3px;
             height: 3px;
             border-radius: 50%;
-            background: #333;
+            background: var(--ink-faint);
             flex-shrink: 0;
-            margin-top: 7px;
+            margin-top: 8px;
         }
 
         #feed.list-view .news-item a {
             flex: 1;
-            color: #b8c0d4;
+            color: var(--ink-mid);
             text-decoration: none;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            transition: color 0.15s;
+            font-size: 0.83rem;
+            line-height: 1.7;
+            transition: color 0.2s;
         }
 
         #feed.list-view .news-item:hover a {
-            color: #fff;
+            color: var(--ink);
+        }
+
+        #feed.list-view .news-item:hover::before {
+            background: var(--red-seal);
         }
 
         #feed.list-view .news-meta {
             flex-shrink: 0;
-            font-size: 0.68rem;
-            color: #3a3d50;
-            white-space: nowrap;
-        }
-
-        /* ── 錯誤來源樣式 ── */
-        #feed.list-view .news-item.error a,
-        #feed.card-view .news-item.error a {
-            color: #6a3a3a;
-            font-style: italic;
-        }
-
-        #feed.list-view .news-item.error .proxy-tag,
-        #feed.card-view .news-item.error .proxy-tag {
             font-size: 0.65rem;
-            color: #5a3a3a;
-            background: #1e1416;
-            border: 1px solid #3a2020;
-            padding: 1px 6px;
-            border-radius: 3px;
+            color: var(--ink-faint);
             white-space: nowrap;
-        }
-
-        /* ── 翻譯中 skeleton ── */
-        #feed.list-view .news-item a.translating,
-        #feed.card-view .news-item a.translating {
-            color: transparent;
-            background: linear-gradient(90deg, #1e2030 25%, #252840 50%, #1e2030 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.2s infinite;
-            border-radius: 3px;
-            pointer-events: none;
-        }
-
-        @keyframes shimmer {
-            0% {
-                background-position: 200% 0
-            }
-
-            100% {
-                background-position: -200% 0
-            }
         }
 
         /* ══════════════════════════════════
-     MODE B — Card view
-  ══════════════════════════════════ */
-        #feed.card-view {
+       MODE B — Card view
+    ══════════════════════════════════ */
+        #feed.card-view { }
+
+        #feed.card-view .group-body {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 16px;
-            padding: 20px 32px 32px;
+            grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+            gap: 20px;
+            padding: 16px 40px 24px;
         }
 
         #feed.card-view .source-block {
@@ -360,60 +359,59 @@
         }
 
         #feed.card-view .source-name {
-            font-size: 0.72rem;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.68rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #666;
+            letter-spacing: 0.1em;
+            color: var(--ink-mid);
         }
 
         #feed.card-view .source-count {
             margin-left: auto;
-            font-size: 0.68rem;
-            color: #444;
+            font-size: 0.63rem;
+            color: var(--ink-faint);
         }
 
         #feed.card-view .items {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
 
         #feed.card-view .news-item {
-            background: #14161f;
-            border: 1px solid #1c1e2c;
-            border-radius: 10px;
+            background: var(--paper-warm);
+            border: 1px solid var(--rule);
             overflow: hidden;
-            transition: border-color 0.2s, transform 0.2s;
+            transition: box-shadow 0.2s, border-color 0.2s;
             cursor: pointer;
         }
 
         #feed.card-view .news-item:hover {
-            border-color: #2e3250;
-            transform: translateY(-2px);
+            border-color: var(--ink-light);
+            box-shadow: 0 2px 8px rgba(26, 20, 16, 0.08);
         }
 
         #feed.card-view .card-thumb {
             width: 100%;
-            height: 150px;
+            height: 140px;
             object-fit: cover;
             display: block;
-            background: #1a1c26;
         }
 
         #feed.card-view .card-thumb-placeholder {
             width: 100%;
-            height: 150px;
-            background: linear-gradient(135deg, #16182a 0%, #1c1e30 100%);
+            height: 140px;
+            background: var(--paper-dark);
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         #feed.card-view .card-thumb-placeholder svg {
-            width: 32px;
-            height: 32px;
-            opacity: 0.15;
+            width: 28px;
+            height: 28px;
+            opacity: 0.2;
+            color: var(--ink-mid);
         }
 
         #feed.card-view .card-body {
@@ -422,76 +420,94 @@
 
         #feed.card-view .news-item a {
             display: block;
-            color: #c0c8dc;
+            color: var(--ink-mid);
             text-decoration: none;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            font-weight: 500;
-            transition: color 0.15s;
+            font-size: 0.83rem;
+            line-height: 1.65;
+            font-weight: 400;
+            transition: color 0.2s;
         }
 
         #feed.card-view .news-item:hover a {
-            color: #fff;
+            color: var(--ink);
         }
 
         #feed.card-view .news-meta {
             margin-top: 6px;
-            font-size: 0.7rem;
-            color: #3a3d50;
+            font-size: 0.65rem;
+            color: var(--ink-faint);
         }
 
         /* ── Category header (list & card) ── */
         .group-header {
-            grid-column: 1 / -1;
-            padding: 16px 24px 6px;
-            font-size: 0.68rem;
+            padding: 18px 24px 6px;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.65rem;
             font-weight: 700;
+            letter-spacing: 0.2em;
             text-transform: uppercase;
-            letter-spacing: 0.14em;
-            color: #303248;
+            color: var(--red-seal);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .group-header:first-child {
-            padding-top: 10px;
+        .group-header:hover {
+            background: var(--paper-dark);
+        }
+
+        .group-arrow {
+            font-size: 0.5rem;
+            color: var(--ink-faint);
+            transition: transform 0.2s ease;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+
+        .group-section:not(.collapsed) .group-arrow {
+            transform: rotate(90deg);
+        }
+
+        #feed .group-section.collapsed .group-body {
+            display: none;
         }
 
         #feed.list-view .group-header {
-            border-top: 1px solid #1a1c26;
+            background: var(--paper-warm);
+            border-top: 2px solid var(--rule);
+            border-bottom: none;
+            padding: 12px 24px 8px;
         }
 
-        #feed.list-view .group-header:first-child {
+        #feed.list-view .group-section:first-child .group-header {
             border-top: none;
         }
 
         #feed.card-view .group-header {
-            padding-left: 0;
-            padding-bottom: 4px;
-        }
-
-        #feed.card-view .group-header:first-child {
-            padding-top: 4px;
+            padding: 14px 40px 8px;
         }
 
         /* ── Shared ── */
         .loading-text {
-            padding: 60px 32px;
-            color: #444;
+            padding: 60px;
+            color: var(--ink-light);
             font-size: 0.85rem;
             text-align: center;
             grid-column: 1 / -1;
+            font-family: 'Noto Serif TC', serif;
         }
 
         .error-text {
-            color: #c05050;
-            font-size: 0.8rem;
-            padding: 8px 4px;
+            color: var(--red-seal);
         }
 
         @keyframes pulse {
 
             0%,
             100% {
-                opacity: 0.3
+                opacity: 0.2
             }
 
             50% {
@@ -500,22 +516,48 @@
         }
 
         .loading-dot {
-            animation: pulse 1.2s ease-in-out infinite;
+            animation: pulse 1.5s ease-in-out infinite;
             display: inline-block;
         }
 
+        #feed.list-view .news-item.error a,
+        #feed.card-view .news-item.error a {
+            color: #9a6060;
+            font-style: italic;
+        }
+
+        #feed.list-view .news-item a.translating,
+        #feed.card-view .news-item a.translating {
+            color: transparent;
+            background: linear-gradient(90deg, #ede8e0 25%, #f7f4ef 50%, #ede8e0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+            pointer-events: none;
+            border-radius: 2px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0
+            }
+
+            100% {
+                background-position: -200% 0
+            }
+        }
+
         /* ══════════════════════════════════
-     Side Panel
-  ══════════════════════════════════ */
+       Side Panel
+    ══════════════════════════════════ */
         #panel-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(2px);
+            background: rgba(26, 20, 16, 0.4);
+            backdrop-filter: blur(3px);
             z-index: 100;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.28s ease;
+            transition: opacity 0.28s;
         }
 
         #panel-overlay.open {
@@ -529,8 +571,8 @@
             right: 0;
             width: min(860px, 100vw);
             height: 100vh;
-            background: #12141d;
-            border-left: 1px solid #1e2030;
+            background: var(--paper);
+            border-left: 2px solid var(--ink);
             z-index: 101;
             display: flex;
             flex-direction: column;
@@ -547,21 +589,19 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 11px 16px;
-            border-bottom: 1px solid #1a1c2a;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--rule);
             flex-shrink: 0;
-            min-height: 0;
         }
 
         #panel-source-badge {
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 700;
-            text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: #555;
+            color: var(--ink-light);
             flex-shrink: 0;
         }
 
@@ -575,9 +615,8 @@
         #panel-title-bar {
             flex: 1;
             overflow: hidden;
-            font-size: 0.82rem;
-            font-weight: 500;
-            color: #8090aa;
+            font-size: 0.8rem;
+            color: var(--ink-mid);
             white-space: nowrap;
             text-overflow: ellipsis;
         }
@@ -585,24 +624,22 @@
         .panel-icon-btn {
             background: none;
             border: none;
-            color: #444;
+            color: var(--ink-faint);
             cursor: pointer;
             padding: 5px;
-            border-radius: 5px;
             display: flex;
             align-items: center;
-            transition: color 0.15s, background 0.15s;
+            transition: color 0.15s;
             flex-shrink: 0;
         }
 
         .panel-icon-btn:hover {
-            color: #aaa;
-            background: #1e2030;
+            color: var(--ink);
         }
 
         .panel-icon-btn svg {
-            width: 15px;
-            height: 15px;
+            width: 14px;
+            height: 14px;
         }
 
         #panel-iframe-wrap {
@@ -622,7 +659,7 @@
         #panel-loading {
             position: absolute;
             inset: 0;
-            background: #12141d;
+            background: var(--paper);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -638,12 +675,12 @@
         }
 
         .spinner {
-            width: 28px;
-            height: 28px;
-            border: 2.5px solid #1e2030;
-            border-top-color: #4a6090;
+            width: 26px;
+            height: 26px;
+            border: 2px solid var(--rule);
+            border-top-color: var(--ink-mid);
             border-radius: 50%;
-            animation: spin 0.7s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
@@ -653,14 +690,14 @@
         }
 
         #panel-loading p {
-            font-size: 0.78rem;
-            color: #444;
+            font-size: 0.75rem;
+            color: var(--ink-light);
         }
 
         #panel-rss {
             position: absolute;
             inset: 0;
-            background: #12141d;
+            background: var(--paper);
             display: none;
             flex-direction: column;
             z-index: 3;
@@ -677,7 +714,6 @@
             object-fit: cover;
             display: block;
             flex-shrink: 0;
-            background: #1a1c26;
         }
 
         #panel-rss-hero.hidden {
@@ -687,30 +723,30 @@
         #panel-rss-body {
             flex: 1;
             overflow-y: auto;
-            padding: 22px 28px 24px;
+            padding: 22px 30px 24px;
             scrollbar-width: thin;
-            scrollbar-color: #2a2d40 transparent;
+            scrollbar-color: var(--rule) transparent;
         }
 
         #panel-rss-body::-webkit-scrollbar {
-            width: 5px;
+            width: 4px;
         }
 
         #panel-rss-body::-webkit-scrollbar-thumb {
-            background: #2a2d40;
-            border-radius: 3px;
+            background: var(--rule);
+            border-radius: 2px;
         }
 
         #panel-rss-notice {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-size: 0.7rem;
-            color: #444;
-            background: #1a1c26;
-            border: 1px solid #222436;
-            padding: 4px 10px;
-            border-radius: 20px;
+            font-size: 0.68rem;
+            color: var(--ink-light);
+            background: var(--paper-warm);
+            border: 1px solid var(--rule);
+            padding: 4px 12px;
+            border-radius: 2px;
             margin-bottom: 16px;
         }
 
@@ -720,16 +756,17 @@
         }
 
         #panel-rss-title {
+            font-family: 'Noto Serif TC', serif;
             font-size: 1.2rem;
             font-weight: 700;
-            line-height: 1.55;
-            color: #e8eaf2;
+            line-height: 1.6;
+            color: var(--ink);
             margin-bottom: 12px;
         }
 
         #panel-rss-meta {
-            font-size: 0.75rem;
-            color: #444;
+            font-size: 0.7rem;
+            color: var(--ink-light);
             margin-bottom: 20px;
             display: flex;
             gap: 12px;
@@ -737,31 +774,33 @@
         }
 
         #panel-rss-content {
-            font-size: 0.9rem;
-            line-height: 1.8;
-            color: #8a93aa;
-            border-top: 1px solid #1a1c2a;
+            font-size: 0.88rem;
+            line-height: 1.9;
+            color: var(--ink-mid);
+            border-top: 1px solid var(--rule);
             padding-top: 18px;
         }
 
         #panel-rss-content img {
             max-width: 100%;
-            border-radius: 6px;
+            border-radius: 2px;
             margin: 10px 0;
             display: block;
         }
 
         #panel-rss-content a {
-            color: #5a7dba;
+            color: var(--accent);
             text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.15s;
         }
 
         #panel-rss-content a:hover {
-            text-decoration: underline;
+            border-color: var(--accent);
         }
 
         #panel-rss-content p {
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
         #panel-rss-content p:last-child {
@@ -772,12 +811,12 @@
         #panel-rss-content figcaption {
             margin: 0;
             font-size: 0.78rem;
-            color: #555;
+            color: var(--ink-light);
         }
 
         #panel-rss-footer {
-            padding: 12px 28px;
-            border-top: 1px solid #1a1c2a;
+            padding: 12px 30px;
+            border-top: 1px solid var(--rule);
             flex-shrink: 0;
         }
 
@@ -785,20 +824,19 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #1e2540;
-            border: 1px solid #2a3560;
-            color: #8ab0e0;
-            padding: 8px 18px;
-            border-radius: 8px;
-            font-size: 0.83rem;
+            background: var(--ink);
+            color: var(--paper);
+            border: none;
+            padding: 8px 20px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.8rem;
             font-weight: 500;
             text-decoration: none;
             transition: all 0.2s;
         }
 
         #panel-rss-open:hover {
-            background: #253060;
-            color: #b0c8f0;
+            background: var(--ink-mid);
         }
 
         #panel-rss-open svg {
@@ -806,73 +844,355 @@
             height: 12px;
         }
 
-        /* ══════════════════════════════════
-     RWD — Responsive breakpoints
-  ══════════════════════════════════ */
-
-        /* Tablet (≤ 900px) */
-        @media (max-width: 900px) {
-            header { padding: 14px 20px; }
-            #status { padding: 8px 20px; }
-            #feed.card-view { padding: 16px 20px 24px; }
-            #feed.list-view .source-block { padding: 16px 20px; }
-            .group-header { padding: 12px 20px 4px; }
-            #feed.list-view { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+        /* ── PWA Install Banner ── */
+        #pwa-banner {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--paper-warm);
+            border: 1px solid var(--ink-faint);
+            padding: 12px 18px;
+            z-index: 200;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.82rem;
+            color: var(--ink-mid);
+            box-shadow: 0 4px 20px rgba(26, 20, 16, 0.15);
+            max-width: 340px;
+            width: calc(100vw - 40px);
+            animation: slideUp 0.3s ease;
         }
 
-        /* Mobile (≤ 600px) */
+        #pwa-banner.visible {
+            display: flex;
+        }
+
+        #pwa-banner-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        #pwa-banner-text {
+            flex: 1;
+        }
+
+        #pwa-banner-text strong {
+            display: block;
+            color: var(--ink);
+            margin-bottom: 2px;
+            font-size: 0.85rem;
+        }
+
+        #pwa-install-btn {
+            background: var(--ink);
+            border: none;
+            color: var(--paper);
+            padding: 7px 14px;
+            cursor: pointer;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.78rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        #pwa-install-btn:hover {
+            background: var(--ink-mid);
+        }
+
+        #pwa-dismiss-btn {
+            background: none;
+            border: none;
+            color: var(--ink-faint);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ── Category nav bar ── */
+        #cat-bar {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--paper);
+            border-bottom: 1px solid var(--rule);
+            display: flex;
+            gap: 2px;
+            padding: 6px 40px;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        #cat-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--red-seal);
+            padding: 3px 12px;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        .cat-btn:hover {
+            background: var(--paper-warm);
+            border-color: var(--rule);
+        }
+
+        .cat-btn.active {
+            background: var(--red-seal);
+            color: var(--paper);
+        }
+
+        /* ── Offline indicator ── */
+        #offline-bar {
+            display: none;
+            background: #f5ead8;
+            border-bottom: 1px solid #d4c8b0;
+            padding: 6px 40px;
+            font-size: 0.74rem;
+            color: var(--ink-mid);
+            text-align: center;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        #offline-bar.visible {
+            display: block;
+        }
+
+        /* ── Update toast ── */
+        #update-toast {
+            display: none;
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: var(--paper-warm);
+            border: 1px solid var(--rule);
+            color: var(--ink-mid);
+            padding: 10px 16px;
+            font-size: 0.8rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            z-index: 300;
+            cursor: pointer;
+            animation: fadeIn 0.3s ease;
+            box-shadow: 0 2px 12px rgba(26, 20, 16, 0.12);
+        }
+
+        #update-toast.visible {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ══════════════════════════════════
+       RWD — Responsive breakpoints
+    ══════════════════════════════════ */
+        @media (max-width: 900px) {
+            header {
+                padding: 16px 24px;
+            }
+
+            #cat-bar {
+                padding: 6px 24px;
+            }
+
+            #status {
+                padding: 7px 24px;
+            }
+
+            #feed.card-view .group-body {
+                padding: 12px 24px 20px;
+            }
+
+            #feed.list-view .source-block {
+                padding: 16px 18px;
+            }
+
+            .group-header {
+                padding: 10px 18px 8px;
+            }
+
+            #feed.card-view .group-header {
+                padding: 10px 24px 6px;
+            }
+
+            #feed.list-view .group-body {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            }
+        }
+
         @media (max-width: 600px) {
             header {
                 padding: 10px 14px;
                 gap: 8px;
             }
-            header h1 { font-size: 1.05rem; }
-            .header-right { gap: 5px; }
 
-            /* 按鈕縮成圖示 */
-            .view-btn { padding: 6px 9px; font-size: 0; gap: 0; }
-            .view-btn svg { width: 16px; height: 16px; }
-            #translate-btn { padding: 6px 10px; gap: 0; }
-            #translate-label { display: none; }
-            #translate-btn svg { width: 16px; height: 16px; }
-            #refresh-btn { font-size: 0; padding: 6px 10px; }
-            #refresh-btn::after { content: "↺"; font-size: 1rem; display: block; }
-
-            #status { padding: 8px 14px; font-size: 0.7rem; }
-            #worker-badge { display: none; }
-
-            /* 單欄 grid */
-            #feed.list-view { grid-template-columns: 1fr; }
-            #feed.list-view .source-block { padding: 14px 14px; }
-            #feed.card-view {
-                grid-template-columns: 1fr;
-                padding: 12px 14px 20px;
-                gap: 12px;
+            header h1 {
+                font-size: 1.1rem;
             }
-            .group-header { padding: 10px 14px 4px; font-size: 0.65rem; }
 
-            /* 文章字體稍大方便閱讀 */
-            #feed.list-view .news-item a { font-size: 0.9rem; line-height: 1.55; }
-            #feed.card-view .news-item a { font-size: 0.9rem; }
+            .header-right {
+                gap: 5px;
+            }
 
-            /* Side panel 全螢幕 */
-            #panel-header { padding: 10px 12px; gap: 8px; }
-            #panel-source-badge { display: none; }
-            #panel-rss-body { padding: 16px 16px 20px; }
-            #panel-rss-footer { padding: 10px 16px; }
-            #panel-rss-title { font-size: 1rem; }
-            #panel-rss-hero { height: 160px; }
+            .view-btn {
+                padding: 6px 10px;
+                font-size: 0;
+                gap: 0;
+            }
+
+            .view-btn svg {
+                width: 14px;
+                height: 14px;
+            }
+
+            #translate-btn {
+                padding: 6px 10px;
+                gap: 0;
+            }
+
+            #translate-label {
+                display: none;
+            }
+
+            #refresh-btn {
+                font-size: 0;
+                padding: 6px 10px;
+            }
+
+            #refresh-btn::after {
+                content: "↺";
+                font-size: 1rem;
+                display: block;
+            }
+
+            #status {
+                padding: 8px 14px;
+                font-size: 0.7rem;
+            }
+
+            #worker-badge {
+                display: none;
+            }
+
+            #cat-bar {
+                padding: 5px 14px;
+            }
+
+            #feed.list-view .group-body {
+                grid-template-columns: 1fr;
+            }
+
+            #feed.list-view .source-block {
+                padding: 14px;
+            }
+
+            #feed.card-view .group-body {
+                grid-template-columns: 1fr;
+                padding: 8px 14px 16px;
+                gap: 14px;
+            }
+
+            .group-header {
+                padding: 10px 14px 8px;
+            }
+
+            #feed.card-view .group-header {
+                padding: 10px 14px 6px;
+            }
+
+            #feed.list-view .news-item a {
+                font-size: 0.9rem;
+                line-height: 1.55;
+            }
+
+            #feed.card-view .news-item a {
+                font-size: 0.9rem;
+            }
+
+            #panel-header {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+
+            #panel-source-badge {
+                display: none;
+            }
+
+            #panel-rss-body {
+                padding: 16px;
+            }
+
+            #panel-rss-footer {
+                padding: 10px 16px;
+            }
+
+            #panel-rss-title {
+                font-size: 1rem;
+            }
+
+            #panel-rss-hero {
+                height: 160px;
+            }
+
+            #offline-bar {
+                padding: 6px 14px;
+            }
         }
 
-        /* 超小螢幕 (≤ 380px) */
         @media (max-width: 380px) {
-            header h1 { font-size: 0.95rem; }
-            #feed.list-view .news-item a { font-size: 0.85rem; }
+            header h1 {
+                font-size: 0.95rem;
+            }
+
+            #feed.list-view .news-item a {
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
 
 <body>
+
+    <!-- Offline bar -->
+    <div id="offline-bar">⚡ 離線模式 — 顯示快取資料</div>
+
+    <!-- Update toast -->
+    <div id="update-toast" onclick="applyUpdate()">🔄 有新版本，點此更新</div>
 
     <header>
         <h1>情報中心</h1>
@@ -912,15 +1232,17 @@
         </div>
     </header>
 
+    <div id="cat-bar"></div>
+
     <div id="status">
         <span id="status-text"></span>
         <div id="progress-bar-wrap">
             <div id="progress-bar"></div>
         </div>
         <div id="worker-badge"
-            style="margin-left:auto;font-family:monospace;font-size:0.68rem;color:#2a3a2a;display:flex;align-items:center;gap:5px;">
+            style="margin-left:auto;font-family:monospace;font-size:0.68rem;color:#c8bfb5;display:flex;align-items:center;gap:5px;">
             <span id="worker-dot"
-                style="width:6px;height:6px;border-radius:50%;background:#2a3a2a;transition:background 0.4s;flex-shrink:0"></span>
+                style="width:6px;height:6px;border-radius:50%;background:#c8bfb5;transition:background 0.4s;flex-shrink:0"></span>
             worker
         </div>
     </div>
@@ -995,56 +1317,67 @@
         </div>
     </div>
 
+    <!-- PWA Install Banner -->
+    <div id="pwa-banner">
+        <img id="pwa-banner-icon" src="./icons/icon-192.png" alt="">
+        <div id="pwa-banner-text">
+            <strong>安裝情報中心</strong>
+            加入主畫面，離線也能使用
+        </div>
+        <button id="pwa-install-btn" onclick="triggerInstall()">安裝</button>
+        <button id="pwa-dismiss-btn" onclick="dismissBanner()" title="關閉">✕</button>
+    </div>
+
     <script>
         /* ═══════════════════════════════════════════════════
         SOURCES
         ═══════════════════════════════════════════════════ */
         const SOURCES = [
             // ── 深度調查
-            { url: "https://feeds.bbci.co.uk/news/rss.xml",                          name: "BBC News",            color: "#e04040", group: "國際財經" },
-            { url: "https://hnrss.org/frontpage",                                     name: "Hacker News",         color: "#e08040", group: "國際財經" },
+            { url: "https://feeds.bbci.co.uk/news/rss.xml", name: "BBC News", color: "#e04040", group: "深度調查" },
+            { url: "https://hnrss.org/frontpage", name: "Hacker News", color: "#e08040", group: "深度調查" },
             // ── 國際財經
-            { url: "https://feeds.bloomberg.com/markets/news.rss",                   name: "Bloomberg Markets",   color: "#2060b0", group: "國際財經" },
-            { url: "https://www.bis.org/doclist/all_statistics.rss",                 name: "BIS Statistics",      color: "#3050a0", group: "國際財經" },
-            { url: "https://www.bis.org/doclist/all_pressrels.rss",                  name: "BIS Press Releases",  color: "#4070c0", group: "國際財經" },
+            { url: "https://feeds.bloomberg.com/markets/news.rss", name: "Bloomberg Markets", color: "#2060b0", group: "國際財經" },
+            { url: "https://www.bis.org/doclist/all_statistics.rss", name: "BIS Statistics", color: "#3050a0", group: "國際財經" },
+            { url: "https://www.bis.org/doclist/all_pressrels.rss", name: "BIS Press Releases", color: "#4070c0", group: "國際財經" },
             // ── 財經科技
-            { url: "https://pansci.asia/feed",                                        name: "泛科學",              color: "#30b8c8", group: "財經科技" },
-            { url: "https://technews.tw/feed/",                                       name: "科技新報",            color: "#30b8c8", group: "財經科技" },
-            { url: "https://www.twse.com.tw/rwd/zh/news/feed?type=rss",               name: "臺灣證券交易所",       color: "#30b8c8", group: "財經科技" },
+            { url: "https://pansci.asia/feed", name: "泛科學", color: "#30a0b8", group: "科普知識" },
+            { url: "https://technews.tw/feed/", name: "科技新報", color: "#30b8c8", group: "財經科技" },
+            { url: "https://www.twse.com.tw/rwd/zh/news/feed?type=rss", name: "臺灣證券交易所", color: "#e8a020", group: "財經科技" },
             // ── 電子時報·產業
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_0.xml",      name: "DT 科技/產業",        color: "#c04040", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_10.xml",     name: "DT IT系統供應鏈",     color: "#c04848", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_30.xml",     name: "DT 光電顯示光學",     color: "#c05050", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_40.xml",     name: "DT 半導體零組件",     color: "#c85050", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_50.xml",     name: "DT 物聯科技智慧製造", color: "#c85858", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_60.xml",     name: "DT AI智慧應用電商",   color: "#d05858", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_70.xml",     name: "DT 行動通訊XR",       color: "#d06060", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_90.xml",     name: "DT CarTech綠能",      color: "#d06868", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_100.xml",    name: "DT 航太衛星軍工",     color: "#d07070", group: "電子時報·產業" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_110.xml",    name: "DT 科技政策",         color: "#d07878", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_0.xml", name: "DT 科技/產業", color: "#c04040", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_10.xml", name: "DT IT系統供應鏈", color: "#c04848", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_30.xml", name: "DT 光電顯示光學", color: "#c05050", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_40.xml", name: "DT 半導體零組件", color: "#c85050", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_50.xml", name: "DT 物聯科技智慧製造", color: "#c85858", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_60.xml", name: "DT AI智慧應用電商", color: "#d05858", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_70.xml", name: "DT 行動通訊XR", color: "#d06060", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_90.xml", name: "DT CarTech綠能", color: "#d06868", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_100.xml", name: "DT 航太衛星軍工", color: "#d07070", group: "電子時報·產業" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_10_110.xml", name: "DT 科技政策", color: "#d07878", group: "電子時報·產業" },
             // ── 電子時報·研究
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_0.xml",      name: "DT Research",         color: "#3878c0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_1.xml",      name: "DT 電腦運算",         color: "#3880c8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_3.xml",      name: "DT 智慧家庭",         color: "#3888c8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_5.xml",      name: "DT 智慧穿戴",         color: "#4088c8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_6.xml",      name: "DT 行動裝置應用",     color: "#4090d0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_7.xml",      name: "DT 寬頻無線",         color: "#4898d0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_9.xml",      name: "DT 顯示科技應用",     color: "#4898d8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_16.xml",     name: "DT IC設計",           color: "#50a0d8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_17.xml",     name: "DT IC製造",           color: "#50a0e0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_22.xml",     name: "DT 物聯網",           color: "#58a8e0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_23.xml",     name: "DT CarTech",          color: "#58a8e8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_24.xml",     name: "DT Cloud",            color: "#60b0e8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_25.xml",     name: "DT AI Focus",         color: "#60b0f0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_26.xml",     name: "DT 伺服器",           color: "#68b8f0", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_27.xml",     name: "DT 次世代行動通訊",   color: "#68b8f8", group: "電子時報·研究" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_29.xml",     name: "DT 智慧製造",         color: "#70c0f8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_0.xml", name: "DT Research", color: "#3878c0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_1.xml", name: "DT 電腦運算", color: "#3880c8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_3.xml", name: "DT 智慧家庭", color: "#3888c8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_5.xml", name: "DT 智慧穿戴", color: "#4088c8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_6.xml", name: "DT 行動裝置應用", color: "#4090d0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_7.xml", name: "DT 寬頻無線", color: "#4898d0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_9.xml", name: "DT 顯示科技應用", color: "#4898d8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_16.xml", name: "DT IC設計", color: "#50a0d8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_17.xml", name: "DT IC製造", color: "#50a0e0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_22.xml", name: "DT 物聯網", color: "#58a8e0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_23.xml", name: "DT CarTech", color: "#58a8e8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_24.xml", name: "DT Cloud", color: "#60b0e8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_25.xml", name: "DT AI Focus", color: "#60b0f0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_26.xml", name: "DT 伺服器", color: "#68b8f0", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_27.xml", name: "DT 次世代行動通訊", color: "#68b8f8", group: "電子時報·研究" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_30_29.xml", name: "DT 智慧製造", color: "#70c0f8", group: "電子時報·研究" },
             // ── 電子時報·區域
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_0.xml",      name: "DT 科技/區域",        color: "#40a878", group: "電子時報·區域" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_300.xml",    name: "DT 東南亞",           color: "#40b080", group: "電子時報·區域" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_305.xml",    name: "DT 印度",             color: "#48b088", group: "電子時報·區域" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_310.xml",    name: "DT 東亞/中國",        color: "#48b890", group: "電子時報·區域" },
-            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_315.xml",    name: "DT 國際",             color: "#50b890", group: "電子時報·區域" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_0.xml", name: "DT 科技/區域", color: "#40a878", group: "電子時報·區域" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_300.xml", name: "DT 東南亞", color: "#40b080", group: "電子時報·區域" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_305.xml", name: "DT 印度", color: "#48b088", group: "電子時報·區域" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_310.xml", name: "DT 東亞/中國", color: "#48b890", group: "電子時報·區域" },
+            { url: "https://www.digitimes.com.tw/tech/rss/xml/xmlrss_90_315.xml", name: "DT 國際", color: "#50b890", group: "電子時報·區域" },
         ];
 
         /* ═══════════════════════════════════════════════════
@@ -1061,6 +1394,7 @@
         let isTranslating = false;
         let cachedData = [];
         let itemsMap = {};
+        const expandedGroups = new Set();
 
         /* ═══════════════════════════════════════════════════
         Side Panel
@@ -1286,19 +1620,86 @@
         function renderAll() {
             itemsMap = {};
             itemCounter = 0;
-            const container = document.getElementById("feed");
-            container.innerHTML = "";
+            const feed = document.getElementById("feed");
+            feed.innerHTML = "";
 
-            let lastGroup = null;
+            // Collect groups in order
+            const groups = [];
+            const groupSources = {};
             cachedData.forEach(({ source, items }) => {
-                if (source.group && source.group !== lastGroup) {
-                    const hdr = document.createElement("div");
-                    hdr.className = "group-header";
-                    hdr.textContent = source.group;
-                    container.appendChild(hdr);
-                    lastGroup = source.group;
-                }
-                renderSource(source, items, container);
+                const g = source.group || '其他';
+                if (!groupSources[g]) { groupSources[g] = []; groups.push(g); }
+                groupSources[g].push({ source, items });
+            });
+
+            // Populate cat-bar
+            const catBar = document.getElementById("cat-bar");
+            catBar.innerHTML = "";
+            groups.forEach(g => {
+                const btn = document.createElement("button");
+                btn.className = "cat-btn";
+                btn.textContent = g;
+                btn.dataset.group = g;
+                btn.addEventListener("click", () => scrollToGroup(g));
+                catBar.appendChild(btn);
+            });
+
+            // Render each group as collapsible section
+            groups.forEach(g => {
+                const section = document.createElement("div");
+                section.className = "group-section" + (expandedGroups.has(g) ? "" : " collapsed");
+                section.dataset.group = g;
+
+                const hdr = document.createElement("div");
+                hdr.className = "group-header";
+                hdr.innerHTML = `<span>${g}</span><span class="group-arrow">&#9654;</span>`;
+                hdr.addEventListener("click", () => toggleGroup(g));
+                section.appendChild(hdr);
+
+                const body = document.createElement("div");
+                body.className = "group-body";
+                groupSources[g].forEach(({ source, items }) => renderSource(source, items, body));
+                section.appendChild(body);
+
+                feed.appendChild(section);
+            });
+        }
+
+        function toggleGroup(g) {
+            if (expandedGroups.has(g)) expandedGroups.delete(g);
+            else expandedGroups.add(g);
+            const section = [...document.querySelectorAll(".group-section")]
+                .find(s => s.dataset.group === g);
+            if (section) section.classList.toggle("collapsed", !expandedGroups.has(g));
+            updateCatBtnActive();
+        }
+
+        function scrollToGroup(g) {
+            const section = [...document.querySelectorAll(".group-section")]
+                .find(s => s.dataset.group === g);
+            if (!section) return;
+
+            if (expandedGroups.has(g)) {
+                // 已展開 → 收合
+                expandedGroups.delete(g);
+                section.classList.add("collapsed");
+                updateCatBtnActive();
+            } else {
+                // 已收合 → 展開並捲動
+                expandedGroups.add(g);
+                section.classList.remove("collapsed");
+                updateCatBtnActive();
+                const headerH = document.querySelector("header").offsetHeight || 0;
+                const catH = document.getElementById("cat-bar").offsetHeight || 0;
+                const statusH = document.getElementById("status").offsetHeight || 0;
+                const top = section.getBoundingClientRect().top + window.scrollY - headerH - catH - statusH - 4;
+                window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+            }
+        }
+
+        function updateCatBtnActive() {
+            document.querySelectorAll(".cat-btn").forEach(btn => {
+                btn.classList.toggle("active", expandedGroups.has(btn.dataset.group));
             });
         }
 
@@ -1473,6 +1874,5 @@
         reload();
     </script>
 </body>
-
 
 </html>

@@ -1,23 +1,75 @@
 {
-"name":"RSS",
-"short_name":"RSS",
-"start_url":"./index.html",
-"display":"standalone",
-"background_color":"#fafafa",
-"theme_color":"#111111",
-
-"icons":[
-{
-"src":"icons/icon-192.png",
-"sizes":"192x192",
-"type":"image/png"
-},
-{
-"src":"icons/icon-512.png",
-"sizes":"512x512",
-"type":"image/png"
+  "name": "情報中心",
+  "short_name": "情報中心",
+  "description": "個人化 RSS 資訊聚合中心 — 深度調查・國際財經・財經科技・電子時報",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0f1117",
+  "background_color": "#0f1117",
+  "lang": "zh-TW",
+  "dir": "ltr",
+  "categories": ["news", "productivity"],
+  "icons": [
+    {
+      "src": "./icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "重新載入新聞",
+      "short_name": "刷新",
+      "description": "立即抓取最新 RSS 資料",
+      "url": "./index.html?action=reload",
+      "icons": [{ "src": "./icons/icon-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
-]
-
-}
-
