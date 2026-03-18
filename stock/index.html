@@ -1,3406 +1,2049 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Josefin+Sans" rel="stylesheet">
-    <link rel="stylesheet" href="./style.css">
-    <script src="https://momentjs.com/downloads/moment-with-locales.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <style>
-        /* Main Content Area */
-        .main-content {
-            margin-left: 300px;
-            padding: 20px;
-            min-height: 100vh;
-            background: #f1f5f9;
-        }
-
-        .page-section {
-            display: none;
-        }
-
-        .page-section.active {
-            display: block;
-        }
-
-        /* Stock Cards Dashboard Styles */
-        .upload-zone {
-            border: 3px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            background: white;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .upload-zone:hover,
-        .upload-zone.dragover {
-            border-color: #3b82f6;
-            background: #eff6ff;
-        }
-
-        .upload-zone h3 {
-            margin: 0 0 10px 0;
-            color: #0f172a;
-        }
-
-        .upload-zone p {
-            margin: 5px 0;
-            color: #6b7280;
-            font-size: 14px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .btn {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
-        .btn:hover {
-            background: #2563eb;
-        }
-
-        .loaded-files {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .loaded-files h4 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .file-list {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .file-tag {
-            background: #e0f2fe;
-            color: #0369a1;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .file-tag button {
-            background: none;
-            border: none;
-            color: #0369a1;
-            cursor: pointer;
-            padding: 0;
-            font-size: 16px;
-            line-height: 1;
-        }
-
-        #stockApp {
-            display: none;
-        }
-
-        #stockApp.active {
-            display: block;
-        }
-
-        .stock-page {
-            padding: 16px 20px 32px;
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .toolbar-left h2 {
-            margin: 0;
-            font-size: 20px;
-            color: #0f172a;
-        }
-
-        .toolbar-sub {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .toolbar-right {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .search-input {
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-            min-width: 220px;
-        }
-
-        .select {
-            padding: 6px 10px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-            background: white;
-            cursor: pointer;
-        }
-
-        .stock-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-            gap: 12px;
-        }
-
-        .stock-card {
-            background: transparent;
-            border: none;
-            border-radius: 10px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            height: 160px;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
-        }
-
-        .stock-card.flipped {
-            transform: rotateY(180deg);
-        }
-
-        .card-front,
-        .card-back {
-            backface-visibility: hidden;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            padding: 10px 12px;
-            border-radius: 10px;
-            background: white;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        }
-
-        .card-front {
-            transform: rotateY(0deg);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card-back {
-            transform: rotateY(180deg);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            overflow-y: auto;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 6px;
-        }
-
-        .stock-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #0f172a;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .stock-title:hover {
-            color: #3b82f6;
-            text-decoration: underline;
-        }
-
-        .stock-date {
-            font-size: 11px;
-            color: #9ca3af;
-        }
-
-        .main-row {
-            display: flex;
-            gap: 8px;
-        }
-
-        .main-left {
-            flex: 1.1;
-        }
-
-        .main-right {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .price-row {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            margin-top: 2px;
-        }
-
-        .price-value {
-            font-size: 18px;
-            font-weight: 600;
-            color: #0f172a;
-        }
-
-        .price-change {
-            font-size: 14px;
-        }
-
-        .sub {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .candlestick-wrap {
-            position: relative;
-            width: 120px;
-            height: 60px;
-        }
-
-        .candlestick {
-            width: 120px;
-            height: 60px;
-            display: block;
-        }
-
-        .candle-tooltip {
-            position: absolute;
-            pointer-events: none;
-            background: #0f172a;
-            color: #f8fafc;
-            font-size: 10px;
-            line-height: 1.2;
-            padding: 4px 6px;
-            border-radius: 6px;
-            white-space: nowrap;
-            transform: translate(-50%, -115%);
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
-            z-index: 10;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            color: #6b7280;
-            font-weight: 500;
-        }
-
-        .info-value {
-            color: #0f172a;
-            font-weight: 600;
-        }
-
-        .back-header {
-            font-size: 14px;
-            font-weight: 600;
-            color: #0f172a;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .flip-hint {
-            font-size: 10px;
-            color: #9ca3af;
-            text-align: center;
-            margin-top: auto;
-            padding-top: 6px;
-        }
-
-        /* Sidebar menu clickable */
-        .sidenav .main-buttons > li > ul.hidden li {
-            cursor: pointer;
-        }
-
-        .sidenav .main-buttons > li > ul.hidden li:hover {
-            background-color: #3b82f6;
-        }
-
-        /* ===== Stock Information Styles ===== */
-        .stock-info-shell {
-            width: 100%;
-            min-height: 620px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98));
-            border-radius: 18px;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            box-shadow: 0 18px 45px rgba(15, 23, 42, 0.7);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .stock-info-header {
-            padding: 18px 24px 12px;
-            border-bottom: 1px solid #1f2937;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .si-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .si-brand-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 12px;
-            background: radial-gradient(circle at 30% 20%, #facc15, #f97316, #f97316);
-            box-shadow: 0 0 18px rgba(249, 115, 22, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 18px;
-            color: #0f172a;
-        }
-
-        .si-brand-text-main {
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            font-size: 16px;
-            color: #e5e7eb;
-        }
-
-        .si-brand-text-sub {
-            font-size: 12px;
-            color: #9ca3af;
-        }
-
-        .si-header-right {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .si-mood-pill {
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(22, 163, 74, 0.08);
-            border: 1px solid rgba(34, 197, 94, 0.35);
-            color: #bbf7d0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .si-mood-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
-            background: #22c55e;
-            box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
-        }
-
-        .si-tag-pill {
-            padding: 4px 10px;
-            font-size: 11px;
-            border-radius: 999px;
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.45);
-            color: #e0f2fe;
-        }
-
-        .stock-info-body {
-            flex: 1;
-            display: grid;
-            grid-template-columns: minmax(240px, 290px) minmax(0, 1fr);
-            overflow: hidden;
-        }
-
-        .si-sidebar {
-            border-right: 1px solid #1f2937;
-            background: radial-gradient(circle at top left, rgba(15, 118, 110, 0.35), #020617 48%);
-            padding: 16px 14px 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .si-sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 4px;
-        }
-
-        .si-sidebar-title {
-            font-size: 13px;
-            color: #9ca3af;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .si-stock-counter {
-            font-size: 11px;
-            color: #9ca3af;
-            padding: 2px 8px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(55, 65, 81, 0.85);
-        }
-
-        .si-stock-counter.highlight {
-            background: rgba(56, 189, 248, 0.2);
-            border-color: rgba(56, 189, 248, 0.5);
-            color: #38bdf8;
-        }
-
-        .si-search-box {
-            position: relative;
-        }
-
-        .si-search-input {
-            width: 100%;
-            padding: 8px 10px 8px 32px;
-            border-radius: 999px;
-            border: 1px solid rgba(55, 65, 81, 0.85);
-            background: rgba(15, 23, 42, 0.9);
-            color: #e5e7eb;
-            font-size: 12px;
-            outline: none;
-        }
-
-        .si-search-input:focus {
-            border-color: #38bdf8;
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
-        }
-
-        .si-search-input::placeholder {
-            color: #4b5563;
-        }
-
-        .si-search-icon {
-            position: absolute;
-            left: 11px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 11px;
-            color: #6b7280;
-            pointer-events: none;
-        }
-
-        .si-clear-search {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(55, 65, 81, 0.5);
-            border: none;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: #9ca3af;
-            font-size: 10px;
-        }
-
-        .si-clear-search.visible {
-            display: flex;
-        }
-
-        .si-stock-list {
-            list-style: none;
-            margin-top: 4px;
-            overflow-y: auto;
-            padding-right: 4px;
-            flex: 1;
-        }
-
-        .si-stock-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .si-stock-list::-webkit-scrollbar-thumb {
-            background: #1f2937;
-            border-radius: 999px;
-        }
-
-        .si-stock-item {
-            margin-bottom: 6px;
-        }
-
-        .si-stock-btn {
-            width: 100%;
-            border: 1px solid transparent;
-            border-radius: 12px;
-            padding: 8px 10px;
-            background: transparent;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 3px;
-            cursor: pointer;
-            transition: all 0.15s;
-            text-align: left;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .si-stock-btn::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 3px;
-            height: 100%;
-            background: #38bdf8;
-            transform: scaleY(0);
-            transition: transform 0.25s;
-        }
-
-        .si-stock-btn:hover {
-            background: rgba(15, 23, 42, 0.9);
-            border-color: rgba(31, 41, 55, 0.9);
-            transform: translateX(2px);
-        }
-
-        .si-stock-btn.active {
-            background: rgba(56, 189, 248, 0.15);
-            border-color: rgba(56, 189, 248, 0.35);
-            transform: translateX(2px);
-        }
-
-        .si-stock-btn.active::before {
-            transform: scaleY(1);
-        }
-
-        .si-stock-main-row {
-            display: flex;
-            gap: 8px;
-            align-items: baseline;
-        }
-
-        .si-stock-code {
-            font-weight: 600;
-            font-size: 13px;
-            color: #e5e7eb;
-        }
-
-        .si-stock-name {
-            font-size: 13px;
-            color: #9ca3af;
-        }
-
-        .si-stock-btn:hover .si-stock-name,
-        .si-stock-btn.active .si-stock-name {
-            color: #e5e7eb;
-        }
-
-        .si-stock-tag-row {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-
-        .si-chip {
-            padding: 2px 6px;
-            font-size: 10px;
-            border-radius: 4px;
-            background: rgba(55, 65, 81, 0.5);
-            color: #9ca3af;
-            border: 1px solid rgba(75, 85, 99, 0.35);
-            white-space: nowrap;
-        }
-
-        .si-chip.highlight {
-            background: rgba(34, 197, 94, 0.12);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #86efac;
-        }
-
-        .si-content-area {
-            padding: 20px 28px 28px;
-            overflow-y: auto;
-            color: #e5e7eb;
-        }
-
-        .si-content-area::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .si-content-area::-webkit-scrollbar-thumb {
-            background: #1f2937;
-            border-radius: 999px;
-        }
-
-        .si-empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 400px;
-            color: #9ca3af;
-            text-align: center;
-            gap: 12px;
-        }
-
-        .si-empty-icon {
-            font-size: 48px;
-            opacity: 0.5;
-        }
-
-        .si-empty-text {
-            font-size: 14px;
-        }
-
-        .si-loading {
-            display: none;
-            justify-content: center;
-            align-items: center;
-            min-height: 400px;
-        }
-
-        .si-loading.active {
-            display: flex;
-        }
-
-        .si-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(56, 189, 248, 0.2);
-            border-top-color: #38bdf8;
-            border-radius: 50%;
-            animation: si-spin 0.8s linear infinite;
-        }
-
-        @keyframes si-spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .si-no-results {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            text-align: center;
-            color: #9ca3af;
-            gap: 12px;
-        }
-
-        .si-no-results.visible {
-            display: flex;
-        }
-
-        .si-section-header {
-            margin-bottom: 16px;
-        }
-
-        .si-stock-badge {
-            display: inline-block;
-            font-size: 11px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(99, 102, 241, 0.12);
-            border: 1px solid rgba(99, 102, 241, 0.4);
-            color: #c7d2fe;
-            margin-bottom: 8px;
-        }
-
-        .si-content-title {
-            font-size: 22px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #e5e7eb;
-        }
-
-        .si-content-subline {
-            font-size: 12px;
-            color: #9ca3af;
-            line-height: 1.5;
-        }
-
-        .si-pill-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .si-info-pill {
-            padding: 10px 14px;
-            border-radius: 12px;
-            border: 1px solid;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .si-info-pill.core {
-            background: rgba(99, 102, 241, 0.1);
-            border-color: rgba(99, 102, 241, 0.4);
-            color: #c7d2fe;
-        }
-
-        .si-info-pill.income {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.4);
-            color: #bbf7d0;
-        }
-
-        .si-info-pill.cycles {
-            background: rgba(251, 191, 36, 0.1);
-            border-color: rgba(251, 191, 36, 0.4);
-            color: #fef3c7;
-        }
-
-        .si-info-pill.risk {
-            background: rgba(249, 115, 115, 0.1);
-            border-color: rgba(249, 115, 115, 0.4);
-            color: #fecaca;
-        }
-
-        .si-content-section {
-            margin: 24px 0;
-            padding: 18px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.5);
-            border: 1px solid #1f2937;
-        }
-
-        .si-section-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #38bdf8;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .si-section-title::before {
-            content: '';
-            width: 4px;
-            height: 16px;
-            background: #38bdf8;
-            border-radius: 2px;
-        }
-
-        .si-section-text {
-            font-size: 13px;
-            color: #9ca3af;
-            line-height: 1.7;
-        }
-
-        .si-tag-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 10px;
-        }
-
-        .si-mini-badge {
-            padding: 4px 10px;
-            font-size: 11px;
-            border-radius: 999px;
-            border: 1px solid;
-        }
-
-        .si-mini-badge.neutral {
-            background: rgba(107, 114, 128, 0.15);
-            border-color: rgba(107, 114, 128, 0.5);
-            color: #d1d5db;
-        }
-
-        .si-mini-badge.bad {
-            background: rgba(239, 68, 68, 0.12);
-            border-color: rgba(239, 68, 68, 0.45);
-            color: #fecaca;
-        }
-
-        .si-bullet-list {
-            list-style: none;
-            margin-top: 10px;
-            padding: 0;
-        }
-
-        .si-bullet-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 10px;
-            font-size: 13px;
-            color: #9ca3af;
-            line-height: 1.6;
-        }
-
-        .si-bullet-dot {
-            min-width: 8px;
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            margin-top: 6px;
-        }
-
-        .si-bullet-dot.good {
-            background: #4ade80;
-            box-shadow: 0 0 8px #4ade80;
-        }
-
-        .si-bullet-dot.warn {
-            background: #facc15;
-            box-shadow: 0 0 8px #facc15;
-        }
-
-        .si-bullet-dot.bad {
-            background: #f97373;
-            box-shadow: 0 0 8px #f97373;
-        }
-
-        @media (max-width: 768px) {
-            .stock-info-body {
-                grid-template-columns: 1fr;
-            }
-
-            .si-sidebar {
-                border-right: none;
-                border-bottom: 1px solid #1f2937;
-                max-height: 300px;
-            }
-
-            .si-pill-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* ===== Notes Styles - Optimized ===== */
-        .notes-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 20px;
-            padding: 0;
-            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(0, 0, 0, 0.04);
-            overflow: hidden;
-        }
-
-        .notes-header {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #3b7cb8 100%);
-            padding: 35px 40px;
-            color: #ffffff;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .notes-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
-            animation: shimmer 15s linear infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .notes-header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            position: relative;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-
-        .notes-header p {
-            font-size: 14px;
-            opacity: 0.9;
-            position: relative;
-        }
-
-        .notes-body {
-            padding: 30px 40px 40px;
-        }
-
-        .notes-form-group {
-            margin-bottom: 18px;
-        }
-
-        .notes-form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 13px;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .notes-form-group input,
-        .notes-form-group select,
-        .notes-form-group textarea {
-            width: 100%;
-            padding: 12px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            font-size: 14px;
-            background: #ffffff;
-            color: #1e293b;
-            transition: all 0.2s ease;
-        }
-
-        .notes-form-group input:focus,
-        .notes-form-group select:focus,
-        .notes-form-group textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-        }
-
-        .notes-form-group input[type="range"] {
-            padding: 0;
-            height: 8px;
-            border: none;
-            background: #e2e8f0;
-            border-radius: 4px;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        .notes-form-group input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            cursor: pointer;
-            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
-        }
-
-        .notes-form-group textarea {
-            min-height: 80px;
-            resize: vertical;
-        }
-
-        .notes-form-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-        }
-
-        .notes-form-grid-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .notes-form-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 600px) {
-            .notes-form-grid, .notes-form-grid-2 { grid-template-columns: 1fr; }
-            .notes-body { padding: 20px; }
-        }
-
-        .notes-section-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: #1e3a5f;
-            margin: 32px 0 18px 0;
-            padding: 12px 16px;
-            background: linear-gradient(90deg, #f0f9ff 0%, transparent 100%);
-            border-left: 4px solid #3b82f6;
-            border-radius: 0 8px 8px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .notes-section-title:first-of-type {
-            margin-top: 0;
-        }
-
-        .notes-calc-section {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            padding: 24px;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border-radius: 16px;
-            margin-top: 24px;
-            border: 1px solid #bae6fd;
-        }
-
-        .notes-calc-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 16px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-
-        .notes-calc-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .notes-calc-value {
-            font-size: 32px;
-            font-weight: 800;
-            color: #1e293b;
-        }
-
-        .notes-btn {
-            padding: 12px 28px;
-            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .notes-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-        }
-
-        .notes-btn:active {
-            transform: translateY(0);
-        }
-
-        .notes-btn-secondary {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
-        }
-
-        .notes-btn-secondary:hover {
-            box-shadow: 0 6px 20px rgba(100, 116, 139, 0.4);
-        }
-
-        .notes-btn-small {
-            padding: 6px 14px;
-            font-size: 12px;
-            margin-right: 8px;
-            border-radius: 6px;
-        }
-
-        .notes-btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
-
-        .notes-btn-danger:hover {
-            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
-        }
-
-        .notes-btn-full {
-            width: 100%;
-            padding: 18px 30px;
-            font-size: 16px;
-            margin-top: 32px;
-            border-radius: 12px;
-        }
-
-        .notes-divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
-            margin: 32px 0;
-        }
-
-        /* Dashboard Stats */
-        .notes-stats-container {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin: 20px 0;
-        }
-
-        @media (max-width: 1000px) {
-            .notes-stats-container { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 600px) {
-            .notes-stats-container { grid-template-columns: 1fr; }
-        }
-
-        .notes-stat-card {
-            background: white;
-            padding: 24px;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.2s ease;
-        }
-
-        .notes-stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
-        }
-
-        .notes-stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-        }
-
-        .notes-stat-card:nth-child(2)::before {
-            background: linear-gradient(90deg, #10b981, #059669);
-        }
-
-        .notes-stat-card:nth-child(3)::before {
-            background: linear-gradient(90deg, #f59e0b, #d97706);
-        }
-
-        .notes-stat-card:nth-child(4)::before {
-            background: linear-gradient(90deg, #ec4899, #db2777);
-        }
-
-        .notes-stat-card h4 {
-            color: #64748b;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-
-        .notes-stat-card .value {
-            font-size: 36px;
-            font-weight: 800;
-            color: #1e293b;
-            line-height: 1;
-        }
-
-        /* Alert */
-        .notes-alert {
-            padding: 16px 20px;
-            border-radius: 12px;
-            margin: 16px 0;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .notes-alert-info {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            color: #1e40af;
-            border: 1px solid #bfdbfe;
-        }
-
-        .notes-alert-success {
-            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        /* Table Styles */
-        .notes-table-wrapper {
-            overflow-x: auto;
-            margin-top: 20px;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            background: white;
-        }
-
-        .notes-strategy-table {
-            width: 100%;
-            min-width: 800px;
-            border-collapse: collapse;
-            margin: 0;
-        }
-
-        .notes-strategy-table th {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 16px 14px;
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        .notes-strategy-table th:first-child {
-            border-radius: 12px 0 0 0;
-        }
-
-        .notes-strategy-table th:last-child {
-            border-radius: 0 12px 0 0;
-        }
-
-        .notes-strategy-table td {
-            padding: 14px;
-            font-size: 13px;
-            color: #475569;
-            border-bottom: 1px solid #f1f5f9;
-            white-space: nowrap;
-        }
-
-        .notes-strategy-table tbody tr {
-            transition: background 0.15s ease;
-        }
-
-        .notes-strategy-table tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .notes-strategy-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Result badges */
-        .notes-result-win {
-            color: #166534;
-            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 11px;
-        }
-
-        .notes-result-loss {
-            color: #991b1b;
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 11px;
-        }
-
-        .notes-pnl-positive {
-            color: #dc2626;
-            font-weight: 700;
-        }
-
-        .notes-pnl-negative {
-            color: #16a34a;
-            font-weight: 700;
-        }
-
-        /* Direction badges */
-        .notes-direction-long {
-            color: #dc2626;
-            background: #fef2f2;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 12px;
-        }
-
-        .notes-direction-short {
-            color: #16a34a;
-            background: #f0fdf4;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 12px;
-        }
-
-        /* Analysis cards in dashboard */
-        .notes-analysis-section {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .notes-analysis-section h3 {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Filter section */
-        .notes-filter-section {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 16px;
-            padding: 24px;
-            margin: 24px 0;
-            border: 1px solid #e2e8f0;
-        }
-
-        .notes-filter-section h3 {
-            font-size: 14px;
-            font-weight: 700;
-            color: #475569;
-            margin-bottom: 16px;
-        }
-
-        .notes-filter-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .notes-filter-grid { grid-template-columns: 1fr; }
-        }
-
-        .notes-action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        /* Slider value display */
-        .notes-slider-value {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 40px;
-            height: 28px;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            font-weight: 700;
-            font-size: 13px;
-            border-radius: 6px;
-            margin-left: 12px;
-        }
-
-        /* 分析區塊三欄響應式 */
-        .notes-analysis-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1100px) {
-            .notes-analysis-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* 分析區塊內的表格簡化 */
-        .notes-analysis-section .notes-strategy-table {
-            min-width: auto;
-            font-size: 12px;
-        }
-
-        .notes-analysis-section .notes-strategy-table th,
-        .notes-analysis-section .notes-strategy-table td {
-            padding: 10px 8px;
-        }
-
-        .notes-analysis-section .notes-strategy-table th:first-child,
-        .notes-analysis-section .notes-strategy-table th:last-child {
-            border-radius: 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>交易 Journal Pro</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="交易日誌">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root {
+      --bg-color: #f4f6f8;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      padding-bottom: 70px;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-color);
+      min-height: 100vh;
+    }
+
+    .header {
+      background: var(--card-bg);
+      padding: 16px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    /* Tab Pages */
+    .tab-page { display: none; }
+    .tab-page.active { display: block; }
+
+    .form-card {
+      background: var(--card-bg);
+      margin: 16px;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input-group { margin-bottom: 16px; }
+    .input-row { display: flex; gap: 12px; }
+    .input-row .input-group { flex: 1; }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fafafa;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    .r-display {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: var(--success);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    .r-display.negative {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: var(--danger);
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn-save:active { opacity: 0.85; }
+
+    /* 底部導航列 */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 480px;
+      background: var(--card-bg);
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 20;
+    }
+
+    .nav-item {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 4px 16px;
+      border-radius: 8px;
+      transition: color 0.2s;
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    /* PWA 安裝提示 Banner */
+    .install-banner {
+      display: none;
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 448px;
+      background: var(--text-main);
+      color: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      align-items: center;
+      gap: 12px;
+      z-index: 30;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    .install-banner .install-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .install-banner .install-text { flex: 1; font-size: 0.88rem; line-height: 1.4; }
+    .install-banner .install-text strong { display: block; font-size: 0.95rem; }
+    .install-banner .install-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    .btn-install {
+      padding: 8px 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-dismiss {
+      padding: 8px 10px;
+      background: transparent;
+      color: #9ca3af;
+      border: none;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    /* 安全區域支援（iPhone 劉海/底部手勢條） */
+    body { padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+    .bottom-nav { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+    /* ============ 盤前分頁 ============ */
+    .condition-tag {
+      display: inline-block;
+      background: #eff6ff;
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.85rem;
+      margin: 4px 4px 0 0;
+      cursor: pointer;
+    }
+    .condition-tag.selected {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .mood-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mood-btn {
+      flex: 1;
+      min-width: 70px;
+      padding: 10px 6px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      background: #fafafa;
+      font-size: 1.3rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .mood-btn.selected {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .mood-btn span {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .plan-watchlist {
+      list-style: none;
+    }
+
+    .plan-watchlist li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+
+    .plan-watchlist li:last-child { border-bottom: none; }
+    .watchlist-symbol { font-weight: bold; color: var(--text-main); }
+    .watchlist-note { font-size: 0.8rem; color: var(--text-muted); }
+    .watchlist-remove { color: var(--danger); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+
+    /* ============ 統計分頁 ============ */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-box {
+      background: var(--bg-color);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: var(--primary);
+    }
+
+    .stat-value.positive { color: var(--success); }
+    .stat-value.negative { color: var(--danger); }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .trade-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .trade-list-item:last-child { border-bottom: none; }
+
+    .trade-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .trade-symbol { font-weight: bold; font-size: 1rem; }
+    .trade-r { font-weight: bold; font-size: 1.1rem; }
+    .trade-r.positive { color: var(--success); }
+    .trade-r.negative { color: var(--danger); }
+
+    .bar-container {
+      margin-bottom: 10px;
+    }
+
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+    }
+
+    .bar-track {
+      background: var(--bg-color);
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--primary);
+      transition: width 0.4s ease;
+    }
+
+    .bar-fill.positive { background: var(--success); }
+    .bar-fill.negative { background: var(--danger); }
+
+    .emotion-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      font-weight: bold;
+    }
+
+    .emotion-tag.calm { background: #d1fae5; color: #065f46; }
+    .emotion-tag.fomo { background: #fef3c7; color: #92400e; }
+    .emotion-tag.panic { background: #fee2e2; color: #991b1b; }
+    .emotion-tag.greed { background: #fce7f3; color: #9d174d; }
+    .emotion-tag.anxious { background: #e0e7ff; color: #3730a3; }
+    .emotion-tag.revenge { background: #f3e8ff; color: #6b21a8; }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .filter-btn {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.82rem;
+      background: #fafafa;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .filter-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* ============ 設定分頁 ============ */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .setting-row:last-child { border-bottom: none; }
+
+    .setting-label { font-size: 0.95rem; }
+    .setting-desc { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+    .setting-input {
+      width: 100px;
+      text-align: right;
+      padding: 6px 10px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+    }
+
+    .toggle-switch input { display: none; }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #d1d5db;
+      border-radius: 24px;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background: white;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+    .strategy-tag-edit {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eff6ff;
+      color: var(--primary);
+      border: 1px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 4px 10px 4px 14px;
+      font-size: 0.85rem;
+      margin: 4px 4px 0 0;
+    }
+
+    .strategy-tag-edit .remove { cursor: pointer; color: var(--text-muted); font-size: 1rem; }
+
+    .btn-outline {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .btn-danger {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px 20px;
+      font-size: 0.95rem;
+    }
+    .empty-state .emoji { font-size: 2.5rem; margin-bottom: 10px; }
+
+    /* ============ 深色模式 ============ */
+    body.dark {
+      --bg-color: #111827;
+      --card-bg: #1f2937;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --border: #374151;
+    }
+    body.dark input,
+    body.dark select,
+    body.dark textarea {
+      background: #111827;
+      color: var(--text-main);
+      border-color: var(--border);
+    }
+    body.dark .stat-box { background: #111827; }
+    body.dark .mood-btn { background: #111827; }
+    body.dark .mood-btn.selected { background: #1d4ed8; }
+    body.dark .filter-btn { background: #1f2937; color: var(--text-muted); }
+    body.dark .condition-tag { background: #1e3a5f; color: #93c5fd; border-color: #1d4ed8; }
+    body.dark .strategy-tag-edit { background: #1e3a5f; color: #93c5fd; border-color: #1d4ed8; }
+
+    /* ============ Toast 通知 ============ */
+    .toast {
+      position: fixed;
+      bottom: 86px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      white-space: pre-line;
+      max-width: calc(100% - 32px);
+      text-align: center;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+      color: white;
+      background: #1f2937;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.success { background: #065f46; }
+    .toast.error   { background: #991b1b; }
+    .toast.warning { background: #92400e; }
+    .toast.info    { background: #1e3a5f; }
+
+    /* ============ 刪除按鈕 ============ */
+    .btn-delete-trade {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-delete-trade:hover { color: var(--danger); }
+
+    /* ============ Autocomplete 下拉 ============ */
+    .autocomplete-wrap { position: relative; }
+
+    .search-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .search-dropdown.active { display: block; }
+
+    .search-dropdown-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    .search-dropdown-item:last-child { border-bottom: none; }
+    .search-dropdown-item:hover,
+    .search-dropdown-item.highlighted {
+      background: #eff6ff;
+    }
+    body.dark .search-dropdown-item:hover,
+    body.dark .search-dropdown-item.highlighted {
+      background: #1e3a5f;
+    }
+    .search-dropdown-item .stock-code {
+      font-weight: bold;
+      color: var(--primary);
+      margin-right: 8px;
+    }
+    .search-dropdown-item .stock-name {
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+    .search-dropdown-item .stock-freq {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+    .search-dropdown-empty {
+      padding: 14px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* ============ 搜尋框 ============ */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .search-wrap input {
+      padding-left: 34px;
+      background: var(--bg-color);
+    }
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+
+    /* ============ 月份統計表 ============ */
+    .month-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .month-table th {
+      text-align: left;
+      color: var(--text-muted);
+      font-weight: 500;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .month-table td {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .month-table tr:last-child td { border-bottom: none; }
+    .month-table .positive { color: var(--success); font-weight: bold; }
+    .month-table .negative { color: var(--danger); font-weight: bold; }
+
+    /* ============ 權益曲線 ============ */
+    .equity-canvas-wrap {
+      position: relative;
+      width: 100%;
+    }
+    #equityCanvas {
+      width: 100%;
+      display: block;
+      border-radius: 8px;
+    }
+
+    /* ============ R:R 預覽 ============ */
+    .rr-preview {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: var(--primary);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    body.dark .rr-preview { background: #1e3a5f; border-color: #1d4ed8; color: #93c5fd; }
+
+  </style>
 </head>
-
 <body>
 
-    <nav class="sidenav">
-        <ul class="main-buttons">
-            <li>
-                <i class="fa fa-circle fa-2x"></i>
-                Stocks
-                <ul class="hidden">
-                    <li data-page="stock-cards-dashboard">stock cards dashboard</li>
-                    <li data-page="stock-information">stock information</li>
-                    <li data-page="stock-news">stock news</li>
-                    <li data-page="stock">stock</li>
-                </ul>
-            </li>
-            <li>
-                <i class="fa fa-circle fa-2x"></i>
-                Notes
-                <ul class="hidden">
-                    <li data-page="notes-add">新增分析筆記</li>
-                    <li data-page="notes-browse">瀏覽 & 統計</li>
-                </ul>
-            </li>
-            <li>
-                <i class="fa fa-circle fa-2x"></i>
-                Consectetur
-                <ul class="hidden">
-                    <li>Lorem</li>
-                    <li>Ipsum</li>
-                    <li>Dolor</li>
-                </ul>
-            </li>
-        </ul>
-        <div class="calendar">
-                    <div class="calendar__month">
-                        <div class="cal-month__previous">&lt;</div>
-                        <div class="cal-month__current"></div>
-                        <div class="cal-month__next">&gt;</div>
-                    </div>
-                    <div class="calendar__head">
-                        <div class="cal-head__day"></div>
-                        <div class="cal-head__day"></div>
-                        <div class="cal-head__day"></div>
-                        <div class="cal-head__day"></div>
-                        <div class="cal-head__day"></div>
-                        <div class="cal-head__day"></div>
-                        <div class="cal-head__day"></div>
-                    </div>
-                    <div class="calendar__body">
-                        <div class="cal-body__week">
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                        </div>
-                        <div class="cal-body__week">
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                        </div>
-                        <div class="cal-body__week">
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                        </div>
-                        <div class="cal-body__week">
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                        </div>
-                        <div class="cal-body__week">
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                        </div>
-                        <div class="cal-body__week">
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                            <div class="cal-body__day"></div>
-                        </div>
-                    </div>
-                </div>
-    </nav>
+<!-- Toast 通知 -->
+<div class="toast" id="toast"></div>
 
-    <!-- Main Content Area -->
-    <div class="main-content">
-        <!-- Stock Cards Dashboard Section -->
-        <div id="stock-cards-dashboard" class="page-section active">
-            <div id="uploadSection">
-                <h1 style="text-align: center; color: #0f172a;">📈 Stock Cards Dashboard</h1>
-                <p style="text-align: center; color: #6b7280; margin-bottom: 30px;">
-                    CSV 上傳版 - 完全離線運行 - 不需要任何伺服器
-                </p>
+<!-- PWA 安裝提示 Banner -->
+<div class="install-banner" id="install-banner">
+  <div class="install-icon">📲</div>
+  <div class="install-text">
+    <strong>加入主畫面</strong>
+    安裝後可離線使用，開啟更快速
+  </div>
+  <div class="install-actions">
+    <button class="btn-install" onclick="installApp()">安裝</button>
+    <button class="btn-dismiss" onclick="dismissInstall()">✕</button>
+  </div>
+</div>
 
-                <div class="upload-zone" id="uploadZone">
-                    <h3>📁 拖放 CSV 檔案到這裡</h3>
-                    <p>或點擊選擇檔案</p>
-                    <p style="font-size: 12px; color: #9ca3af;">
-                        支援多個 CSV 檔案，命名格式: YYYYMMDD.csv
-                    </p>
-                    <button class="btn" onclick="document.getElementById('fileInput').click()">
-                        選擇檔案
-                    </button>
-                    <input type="file" id="fileInput" class="file-input" accept=".csv" multiple />
-                </div>
+<div class="app-container">
+  <div class="header" id="pageTitle">新增交易紀錄</div>
 
-                <div id="loadedFilesSection" style="display: none;" class="loaded-files">
-                    <h4>已載入的檔案:</h4>
-                    <div class="file-list" id="fileList"></div>
-                </div>
-            </div>
+  <!-- ==================== 盤前分頁 ==================== -->
+  <div class="tab-page" id="page-premarket">
 
-            <div id="stockApp">
-                <div class="stock-page">
-                    <header class="toolbar">
-                        <div class="toolbar-left">
-                            <h2>📈 Stock Cards Dashboard</h2>
-                            <div class="toolbar-sub">CSV 上傳版 - 資料已載入</div>
-                        </div>
-                        <div class="toolbar-right">
-                            <button class="btn" onclick="resetStockDashboard()">重新上傳</button>
-                            <select id="dataFileSelect" class="select">
-                                <option value="">選擇日期...</option>
-                            </select>
-                            <input id="searchInput" class="search-input" placeholder="Search by Symbol or Name..." type="text" />
-                            <select id="sortField" class="select">
-                                <option value="ChangePct">Change % (漲跌幅)</option>
-                                <option value="Volume">Volume (成交量)</option>
-                                <option value="Turnover">Turnover (成交金額)</option>
-                            </select>
-                            <select id="sortOrder" class="select">
-                                <option value="desc">Desc ↓</option>
-                                <option value="asc">Asc ↑</option>
-                            </select>
-                        </div>
-                    </header>
-                    <div id="stockGrid" class="stock-grid"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stock Information Section -->
-        <div id="stock-information" class="page-section">
-            <div class="stock-info-shell">
-                <header class="stock-info-header">
-                    <div class="si-brand">
-                        <div class="si-brand-icon">📊</div>
-                        <div>
-                            <div class="si-brand-text-main">個股知識小百科</div>
-                            <div class="si-brand-text-sub">Stock Knowledge Base</div>
-                        </div>
-                    </div>
-                    <div class="si-header-right">
-                        <div class="si-mood-pill">
-                            <span class="si-mood-dot"></span>
-                            <span>即時資料</span>
-                        </div>
-                        <div class="si-tag-pill">v1.0</div>
-                    </div>
-                </header>
-
-                <div class="stock-info-body">
-                    <aside class="si-sidebar">
-                        <div class="si-sidebar-header">
-                            <h2 class="si-sidebar-title">個股清單</h2>
-                            <div class="si-stock-counter" id="si-stock-count">0</div>
-                        </div>
-
-                        <div class="si-search-box">
-                            <input type="text" class="si-search-input" id="si-search-input" placeholder="搜尋代碼或名稱..." />
-                            <span class="si-search-icon">🔍</span>
-                            <button class="si-clear-search" id="si-clear-search">✕</button>
-                        </div>
-
-                        <ul class="si-stock-list" id="si-stock-list"></ul>
-
-                        <div class="si-no-results" id="si-no-results">
-                            <div style="font-size: 48px; opacity: 0.5;">🔍</div>
-                            <div>找不到相關股票</div>
-                        </div>
-                    </aside>
-
-                    <section class="si-content-area" id="si-content-area">
-                        <div class="si-empty-state" id="si-empty-state">
-                            <div class="si-empty-icon">📈</div>
-                            <div class="si-empty-text">請從左側選擇一檔股票查看詳細資訊</div>
-                        </div>
-
-                        <div class="si-loading" id="si-loading">
-                            <div class="si-spinner"></div>
-                        </div>
-
-                        <div id="si-detail-content" style="display: none;">
-                            <div class="si-section-header">
-                                <div class="si-stock-badge" id="si-content-badge">2330 · 上市</div>
-                                <h1 class="si-content-title" id="si-content-title">台積電｜護國神山</h1>
-                                <p class="si-content-subline">以下是從「公司定位 → 商業模式 → 指標重點 → 風險地雷」的思考學式整理，你可以依照自己的理解進一步修改。</p>
-                            </div>
-
-                            <div class="si-pill-row">
-                                <div class="si-info-pill core" id="si-pill-core">核心定位：...</div>
-                                <div class="si-info-pill income" id="si-pill-income">配息輪廓：...</div>
-                                <div class="si-info-pill cycles" id="si-pill-cycles">景氣敏感度：...</div>
-                                <div class="si-info-pill risk" id="si-pill-risk">風險標籤：...</div>
-                            </div>
-
-                            <div class="si-content-section">
-                                <h3 class="si-section-title">💡 公司簡介</h3>
-                                <p class="si-section-text" id="si-intro">...</p>
-                            </div>
-
-                            <div class="si-content-section">
-                                <h3 class="si-section-title">🏢 商業模式</h3>
-                                <p class="si-section-text" id="si-business">...</p>
-                                <div class="si-tag-group" id="si-business-tags"></div>
-                            </div>
-
-                            <div class="si-content-section">
-                                <h3 class="si-section-title">📊 關鍵觀察指標</h3>
-                                <ul class="si-bullet-list" id="si-key-points"></ul>
-                            </div>
-
-                            <div class="si-content-section">
-                                <h3 class="si-section-title">🤔 適合對象建議</h3>
-                                <ul class="si-bullet-list" id="si-profile-points"></ul>
-                            </div>
-
-                            <div class="si-content-section">
-                                <h3 class="si-section-title">⚠️ 風險地雷提醒</h3>
-                                <ul class="si-bullet-list" id="si-risk-points"></ul>
-                                <div class="si-tag-group" id="si-risk-tags"></div>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </div>
-
-        <div id="stock-news" class="page-section">
-            <h1 style="color: #0f172a;">Stock News</h1>
-            <p style="color: #6b7280;">Coming soon...</p>
-        </div>
-
-        <div id="stock" class="page-section">
-            <h1 style="color: #0f172a;">Stock</h1>
-            <p style="color: #6b7280;">Coming soon...</p>
-        </div>
-
-        <!-- Notes Add Section - 新增紀錄 -->
-        <div id="notes-add" class="page-section">
-            <div class="notes-container">
-                <div class="notes-header">
-                    <h1>📝 交易紀錄系統</h1>
-                    <p>策略 × 行為 × 心理</p>
-                </div>
-
-                <div class="notes-body">
-                    <form id="notesRecordForm">
-                        <!-- 基本資料 -->
-                        <h3 class="notes-section-title">📋 基本資料</h3>
-                        <div class="notes-form-grid">
-                            <div class="notes-form-group">
-                                <label>交易日期 <span style="color: #ef4444;">*</span></label>
-                                <input type="date" id="notesTradeDate" required>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>股票代碼 <span style="color: #ef4444;">*</span></label>
-                                <input type="text" id="notesSymbol" placeholder="例: 2330" required>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>股票名稱</label>
-                                <input type="text" id="notesName" placeholder="例: 台積電">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>方向 <span style="color: #ef4444;">*</span></label>
-                                <select id="notesDirection" required>
-                                    <option value="">請選擇</option>
-                                    <option value="多">多</option>
-                                    <option value="空">空</option>
-                                    <option value="觀望">觀望</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>交易類型</label>
-                                <select id="notesTradeType">
-                                    <option value="當沖">當沖</option>
-                                    <option value="隔日沖">隔日沖</option>
-                                    <option value="波段">波段</option>
-                                    <option value="長線">長線</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>信心度</label>
-                                <div style="display: flex; align-items: center;">
-                                    <input type="range" id="notesConfidence" min="1" max="5" value="3"
-                                        oninput="document.getElementById('notesConfidenceValue').textContent = this.value"
-                                        style="flex: 1;">
-                                    <span class="notes-slider-value" id="notesConfidenceValue">3</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 預判理由 -->
-                        <h3 class="notes-section-title">💡 預判理由</h3>
-                        <div class="notes-form-grid-2">
-                            <div class="notes-form-group">
-                                <label>預判理由類型</label>
-                                <select id="notesPreReasonType">
-                                    <option value="資金">資金</option>
-                                    <option value="籌碼">籌碼</option>
-                                    <option value="技術">技術</option>
-                                    <option value="題材">題材</option>
-                                    <option value="財報">財報</option>
-                                    <option value="事件">事件</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>進場設立</label>
-                                <select id="notesEntryPlan">
-                                    <option value="過壓">過壓</option>
-                                    <option value="回測">回測</option>
-                                    <option value="突破">突破</option>
-                                    <option value="摸底">摸底</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="notes-form-group">
-                            <label>預判理由說明</label>
-                            <textarea id="notesPreReasonText" placeholder="簡述你的進場理由" style="min-height: 70px;"></textarea>
-                        </div>
-
-                        <!-- 價格設定 -->
-                        <h3 class="notes-section-title">💰 價格設定</h3>
-                        <div class="notes-form-grid">
-                            <div class="notes-form-group">
-                                <label>目標價</label>
-                                <input type="number" id="notesTargetPrice" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>停損價</label>
-                                <input type="number" id="notesStopPrice" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>部位大小 (張)</label>
-                                <input type="number" id="notesSize" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>實際進場價</label>
-                                <input type="number" id="notesEntryPrice" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>實際出場價</label>
-                                <input type="number" id="notesExitPrice" step="0.01" min="0" placeholder="未出場填 0">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>結果分類</label>
-                                <select id="notesResultType">
-                                    <option value="策略對">策略對</option>
-                                    <option value="策略錯">策略錯</option>
-                                    <option value="執行錯">執行錯</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 自動計算區 -->
-                        <div class="notes-calc-section">
-                            <div class="notes-calc-item">
-                                <span class="notes-calc-label">報酬率</span>
-                                <span class="notes-calc-value" id="notesPnlDisplay">-</span>
-                            </div>
-                            <div class="notes-calc-item">
-                                <span class="notes-calc-label">RR 值</span>
-                                <span class="notes-calc-value" id="notesRRDisplay">-</span>
-                            </div>
-                        </div>
-
-                        <div class="notes-divider"></div>
-
-                        <!-- 執行細節 -->
-                        <h3 class="notes-section-title">📊 執行細節</h3>
-                        <div class="notes-form-grid">
-                            <div class="notes-form-group">
-                                <label>最高價</label>
-                                <input type="number" id="notesHighestPrice" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>最低價</label>
-                                <input type="number" id="notesLowestPrice" step="0.01" min="0" placeholder="0.00">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>持有天數</label>
-                                <input type="number" id="notesHoldingDays" min="0" value="1">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>執行品質</label>
-                                <div style="display: flex; align-items: center;">
-                                    <input type="range" id="notesExecutionQuality" min="1" max="5" value="3"
-                                        oninput="document.getElementById('notesExecQualityValue').textContent = this.value"
-                                        style="flex: 1;">
-                                    <span class="notes-slider-value" id="notesExecQualityValue">3</span>
-                                </div>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>市場環境</label>
-                                <select id="notesMarketEnv">
-                                    <option value="趨勢">趨勢</option>
-                                    <option value="盤整">盤整</option>
-                                    <option value="波動大">波動大</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 心理狀態 -->
-                        <h3 class="notes-section-title">🧠 心理狀態</h3>
-                        <div class="notes-form-grid">
-                            <div class="notes-form-group">
-                                <label>進場情緒</label>
-                                <select id="notesEmotionEntry">
-                                    <option value="冷靜">冷靜</option>
-                                    <option value="興奮">興奮</option>
-                                    <option value="焦慮">焦慮</option>
-                                    <option value="害怕">害怕</option>
-                                    <option value="貪婪">貪婪</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>出場情緒</label>
-                                <select id="notesEmotionExit">
-                                    <option value="冷靜">冷靜</option>
-                                    <option value="興奮">興奮</option>
-                                    <option value="焦慮">焦慮</option>
-                                    <option value="害怕">害怕</option>
-                                    <option value="貪婪">貪婪</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>行為偏誤</label>
-                                <select id="notesBehaviorError">
-                                    <option value="無">無</option>
-                                    <option value="追高">追高</option>
-                                    <option value="太早獲利">太早獲利</option>
-                                    <option value="不停損">不停損</option>
-                                    <option value="過度交易">過度交易</option>
-                                    <option value="其他">其他</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- 分析與改進 -->
-                        <h3 class="notes-section-title">📝 分析與改進</h3>
-                        <div class="notes-form-grid-2">
-                            <div class="notes-form-group">
-                                <label>成功因素</label>
-                                <input type="text" id="notesSuccessFactor" placeholder="技術/資金/風控...">
-                            </div>
-                            <div class="notes-form-group">
-                                <label>失敗原因</label>
-                                <input type="text" id="notesFailureFactor" placeholder="假設錯/執行錯/心理錯...">
-                            </div>
-                        </div>
-                        <div class="notes-form-group">
-                            <label>改進點</label>
-                            <textarea id="notesImprovement" placeholder="下次要怎麼做..." style="min-height: 70px;"></textarea>
-                        </div>
-                        <div class="notes-form-group">
-                            <label>備註</label>
-                            <textarea id="notesNote" placeholder="其他想記的..." style="min-height: 70px;"></textarea>
-                        </div>
-
-                        <button type="submit" class="notes-btn notes-btn-full">💾 儲存紀錄</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Notes Browse Section - 瀏覽分析 -->
-        <div id="notes-browse" class="page-section">
-            <div class="notes-container">
-                <div class="notes-header">
-                    <h1>📊 交易紀錄 Dashboard</h1>
-                    <p>策略 × 行為 × 心理</p>
-                </div>
-
-                <div class="notes-body">
-                    <!-- 核心統計卡片 -->
-                    <div id="notesDashboardInfo" class="notes-alert notes-alert-info">
-                        📦 共 <strong id="notesTotalRecords">0</strong> 筆交易
-                    </div>
-
-                    <div class="notes-stats-container">
-                        <div class="notes-stat-card">
-                            <h4>勝率</h4>
-                            <div class="value" id="notesWinRate">--%</div>
-                        </div>
-                        <div class="notes-stat-card">
-                            <h4>平均 RR</h4>
-                            <div class="value" id="notesAvgRR">--</div>
-                        </div>
-                        <div class="notes-stat-card">
-                            <h4>平均報酬率</h4>
-                            <div class="value" id="notesAvgPnl">--%</div>
-                        </div>
-                        <div class="notes-stat-card">
-                            <h4>執行品質</h4>
-                            <div class="value" id="notesAvgExecQuality">--</div>
-                        </div>
-                    </div>
-
-                    <div class="notes-divider"></div>
-
-                    <!-- 分析區塊 - 三欄並排 -->
-                    <div class="notes-analysis-grid">
-                        <!-- 策略統計 -->
-                        <div class="notes-analysis-section">
-                            <h3>🎯 策略面</h3>
-                            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">預判理由類型 vs 勝率</p>
-                            <div id="notesStrategyStats"></div>
-                        </div>
-
-                        <!-- 行為統計 -->
-                        <div class="notes-analysis-section">
-                            <h3>🧠 行為面</h3>
-                            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">行為偏誤 vs 報酬</p>
-                            <div id="notesBehaviorStats"></div>
-                        </div>
-
-                        <!-- 心理統計 -->
-                        <div class="notes-analysis-section">
-                            <h3>💭 心理面</h3>
-                            <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">進場情緒 vs 勝率</p>
-                            <div id="notesEmotionStats"></div>
-                        </div>
-                    </div>
-
-                    <!-- 篩選區 -->
-                    <div class="notes-filter-section">
-                        <h3>🔍 篩選條件</h3>
-                        <div class="notes-filter-grid">
-                            <div class="notes-form-group">
-                                <label>股票代碼</label>
-                                <select id="notesFilterSymbol" onchange="notesUpdateDashboard()">
-                                    <option value="">全部</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>預判理由類型</label>
-                                <select id="notesFilterReasonType" onchange="notesUpdateDashboard()">
-                                    <option value="">全部</option>
-                                </select>
-                            </div>
-                            <div class="notes-form-group">
-                                <label>市場環境</label>
-                                <select id="notesFilterMarketEnv" onchange="notesUpdateDashboard()">
-                                    <option value="">全部</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="notes-action-buttons">
-                            <button class="notes-btn notes-btn-secondary" onclick="notesExportCSV()">📤 匯出 CSV</button>
-                            <button class="notes-btn" onclick="notesExportJSON()">💾 備份 JSON</button>
-                            <button class="notes-btn notes-btn-secondary" onclick="document.getElementById('notesImportJsonInput').click()">
-                                📥 匯入還原
-                            </button>
-                            <input type="file" id="notesImportJsonInput" accept="application/json" style="display:none"
-                                onchange="notesImportJSON(event)">
-                        </div>
-                    </div>
-
-                    <!-- 交易明細 -->
-                    <div class="notes-analysis-section" style="padding: 0; overflow: hidden;">
-                        <div style="padding: 20px 24px; border-bottom: 1px solid #e2e8f0;">
-                            <h3 style="margin: 0;">📋 交易明細</h3>
-                        </div>
-                        <div class="notes-table-wrapper" style="margin: 0; border: none; border-radius: 0;">
-                            <table class="notes-strategy-table" id="notesRecordsTable" style="margin: 0;">
-                                <thead>
-                                    <tr>
-                                        <th>日期</th>
-                                        <th>代碼</th>
-                                        <th>名稱</th>
-                                        <th>方向</th>
-                                        <th>類型</th>
-                                        <th>理由</th>
-                                        <th>進場價</th>
-                                        <th>出場價</th>
-                                        <th>報酬%</th>
-                                        <th>RR</th>
-                                        <th>結果</th>
-                                        <th>偏誤</th>
-                                        <th>情緒</th>
-                                        <th>操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="notesRecordsBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="form-card">
+      <div class="section-title">今日狀態評估</div>
+      <label>開盤前心理狀態</label>
+      <div class="mood-selector" id="moodSelector">
+        <div class="mood-btn" data-mood="great" onclick="selectMood(this)">😄<span>狀態絕佳</span></div>
+        <div class="mood-btn" data-mood="good" onclick="selectMood(this)">🙂<span>狀態良好</span></div>
+        <div class="mood-btn" data-mood="ok" onclick="selectMood(this)">😐<span>普通</span></div>
+        <div class="mood-btn" data-mood="tired" onclick="selectMood(this)">😴<span>疲倦</span></div>
+        <div class="mood-btn" data-mood="anxious" onclick="selectMood(this)">😰<span>焦慮</span></div>
+      </div>
     </div>
 
-    <script>
-        class Calendar {
-            constructor() {
-                this.monthDiv = document.querySelector('.cal-month__current');
-                this.headDivs = document.querySelectorAll('.cal-head__day');
-                this.bodyDivs = document.querySelectorAll('.cal-body__day');
-                this.nextDiv = document.querySelector('.cal-month__next');
-                this.prevDiv = document.querySelector('.cal-month__previous');
-            }
+    <div class="form-card">
+      <div class="section-title">市場環境判斷</div>
+      <div class="input-group">
+        <label>大盤趨勢</label>
+        <select id="marketTrend">
+          <option value="uptrend">上升趨勢 📈</option>
+          <option value="downtrend">下降趨勢 📉</option>
+          <option value="sideways">盤整 ↔️</option>
+          <option value="volatile">高波動 ⚡</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>今日交易許可</label>
+        <select id="tradingPermission">
+          <option value="full">完整交易 ✅</option>
+          <option value="reduced">縮小規模 ⚠️</option>
+          <option value="observe">僅觀察，不交易 🔍</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>今日備忘（重要事件/財報/法說會）</label>
+        <textarea id="marketNotes" rows="2" placeholder="例如：下午2點 Fed 利率決議..."></textarea>
+      </div>
+    </div>
 
-            init() {
-                moment.locale(window.navigator.userLanguage || window.navigator.language);
+    <div class="form-card">
+      <div class="section-title">今日觀察清單</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>標的代號</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="watchSymbol" placeholder="例如：2330" autocomplete="off">
+            <div class="search-dropdown" id="dropdown-watchSymbol"></div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>觀察理由</label>
+          <input type="text" id="watchReason" placeholder="例如：突破整理區">
+        </div>
+      </div>
+      <button class="btn-outline" onclick="addWatchItem()">＋ 加入觀察清單</button>
+      <ul class="plan-watchlist" id="watchlist" style="margin-top:14px;">
+        <!-- 動態產生 -->
+      </ul>
+    </div>
 
-                this.month = moment();
-                this.today = this.selected = this.month.clone();
-                this.weekDays = moment.weekdaysShort(true);
+    <div class="form-card">
+      <div class="section-title">今日操作規則提醒（自設）</div>
+      <div id="rulesDisplay" style="margin-bottom:12px; display:flex; flex-wrap:wrap;">
+        <!-- 從設定讀取規則並顯示 -->
+      </div>
+      <div class="input-group">
+        <label>今日額外提醒</label>
+        <textarea id="todayReminder" rows="2" placeholder="例如：今天不追高，只等回測..."></textarea>
+      </div>
+      <button class="btn-save" onclick="savePremarket()">儲存今日盤前計劃</button>
+    </div>
 
-                this.headDivs.forEach((day, index) => {
-                    day.innerText = this.weekDays[index];
-                });
+  </div>
 
-                this.nextDiv.addEventListener('click', _ => { this.addMonth(); });
-                this.prevDiv.addEventListener('click', _ => { this.removeMonth(); });
+  <!-- ==================== 交易分頁 ==================== -->
+  <div class="tab-page active" id="page-trade">
 
-                this.bodyDivs.forEach(day => {
-                    day.addEventListener('click', e => {
-                        const date = +e.target.innerHTML < 10 ? `0${e.target.innerHTML}` : e.target.innerHTML;
+    <div class="form-card">
+      <div class="section-title">基本資料</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>標的代號</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="symbol" placeholder="例如：2330" autocomplete="off">
+            <div class="search-dropdown" id="dropdown-symbol"></div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>方向</label>
+          <select id="direction">
+            <option value="long">做多 (Long)</option>
+            <option value="short">做空 (Short)</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label>策略分類</label>
+        <select id="strategy" class="strategy-select-dynamic">
+          <!-- 從設定動態載入 -->
+        </select>
+      </div>
+    </div>
 
-                        if (e.target.classList.contains('cal-day__month--next')) {
-                            this.selected = moment(`${this.month.add(1, 'month').format('YYYY-MM')}-${date}`);
-                        } else if (e.target.classList.contains('cal-day__month--previous')) {
-                            this.selected = moment(`${this.month.subtract(1, 'month').format('YYYY-MM')}-${date}`);
-                        } else {
-                            this.selected = moment(`${this.month.format('YYYY-MM')}-${date}`);
-                        }
+    <div class="form-card">
+      <div class="section-title">價格與 R 倍數 (自動計算)</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>進場價 (Entry)</label>
+          <input type="number" step="0.01" id="entryPrice" placeholder="0.00">
+        </div>
+        <div class="input-group">
+          <label>停損價 (Stop Loss)</label>
+          <input type="number" step="0.01" id="stopLoss" placeholder="0.00">
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>出場價 (Exit)</label>
+          <input type="number" step="0.01" id="exitPrice" placeholder="0.00">
+        </div>
+        <div class="input-group">
+          <label>目標價 (Target) <small style="color:var(--text-muted)">選填</small></label>
+          <input type="number" step="0.01" id="targetPrice" placeholder="0.00">
+        </div>
+      </div>
+      <div id="rDisplay" class="r-display">0.00 R</div>
+      <div id="rrPreview" class="rr-preview" style="display:none">
+        <span>預期 R:R</span>
+        <span id="rrValue">—</span>
+      </div>
+    </div>
 
-                        this.update();
-                    });
-                });
+    <div class="form-card">
+      <div class="section-title">心理與行為審查</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>進場情緒</label>
+          <select id="entryEmotion">
+            <option value="calm">冷靜 / 照計畫</option>
+            <option value="fomo">FOMO / 怕錯過</option>
+            <option value="anxious">焦慮 / 猶豫</option>
+            <option value="revenge">報復性交易</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>出場情緒</label>
+          <select id="exitEmotion">
+            <option value="calm">冷靜 / 達標出場</option>
+            <option value="greed">貪婪 / 想賺更多</option>
+            <option value="panic">恐慌 / 提早平倉</option>
+          </select>
+        </div>
+      </div>
 
-                this.update();
-            }
+      <div class="input-group">
+        <label>是否完全遵守計畫？</label>
+        <select id="planFollowed">
+          <option value="true">✅ 是，完全遵守</option>
+          <option value="false">❌ 否，發生紀律偏移</option>
+        </select>
+      </div>
 
-            update() {
-                this.calendarDays = {
-                    first: this.month.clone().startOf('month').startOf('week').date(),
-                    last: this.month.clone().endOf('month').date()
-                };
+      <div class="input-group">
+        <label>盤後檢討與備註</label>
+        <textarea id="notes" rows="3" placeholder="寫下這筆交易的反思..."></textarea>
+      </div>
 
-                this.monthDays = {
-                    lastPrevious: this.month.clone().subtract(1, 'months').endOf('month').date(),
-                    lastCurrent: this.month.clone().endOf('month').date()
-                };
+      <button class="btn-save" onclick="saveTrade()">儲存紀錄</button>
+    </div>
 
-                this.monthString = this.month.clone().format('MMMM YYYY');
+  </div>
 
-                this.draw();
-            }
+  <!-- ==================== 統計分頁 ==================== -->
+  <div class="tab-page" id="page-stats">
 
-            addMonth() {
-                this.month.add(1, 'month');
-                this.update();
-            }
+    <div class="form-card">
+      <div class="section-title">整體績效摘要</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">總交易筆數</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-winrate">0%</div>
+          <div class="stat-label">勝率</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-avgr">0.00R</div>
+          <div class="stat-label">平均 R 倍數</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-planfollow">0%</div>
+          <div class="stat-label">計畫遵守率</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="bar-label">
+          <span>獲利 R 加總</span>
+          <span id="stat-totalr">0.00R</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill positive" id="stat-totalr-bar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
 
-            removeMonth() {
-                this.month.subtract(1, 'month');
-                this.update();
-            }
+    <div class="form-card">
+      <div class="section-title">權益曲線</div>
+      <div class="equity-canvas-wrap">
+        <canvas id="equityCanvas" height="160"></canvas>
+      </div>
+    </div>
 
-            draw() {
-                this.monthDiv.innerText = this.monthString;
+    <div class="form-card">
+      <div class="section-title">策略績效分析</div>
+      <div id="strategy-stats">
+        <!-- 動態產生每個策略的勝率條 -->
+      </div>
+    </div>
 
-                let index = 0;
+    <div class="form-card">
+      <div class="section-title">月份統計</div>
+      <div id="monthly-stats">
+        <!-- 動態產生 -->
+      </div>
+    </div>
 
-                if (this.calendarDays.first > 1) {
-                    for (let day = this.calendarDays.first; day <= this.monthDays.lastPrevious; index++) {
-                        this.bodyDivs[index].innerText = day++;
-                        this.cleanCssClasses(false, index);
-                        this.bodyDivs[index].classList.add('cal-day__month--previous');
-                    }
-                }
+    <div class="form-card">
+      <div class="section-title">情緒 vs 結果</div>
+      <div id="emotion-stats">
+        <!-- 不同進場情緒對應的平均 R -->
+      </div>
+    </div>
 
-                let isNextMonth = false;
-                for (let day = 1; index <= this.bodyDivs.length - 1; index++) {
-                    if (day > this.monthDays.lastCurrent) {
-                        day = 1;
-                        isNextMonth = true;
-                    }
+    <div class="form-card">
+      <div class="section-title">篩選</div>
+      <div class="filter-row">
+        <div class="filter-btn active" onclick="setFilter('all', this)">全部</div>
+        <div class="filter-btn" onclick="setFilter('win', this)">獲利</div>
+        <div class="filter-btn" onclick="setFilter('loss', this)">虧損</div>
+        <div class="filter-btn" onclick="setFilter('plan-yes', this)">遵守計畫</div>
+        <div class="filter-btn" onclick="setFilter('plan-no', this)">未遵守</div>
+      </div>
+    </div>
 
-                    this.cleanCssClasses(true, index);
+    <div class="form-card" id="trade-list-card">
+      <div class="section-title">交易紀錄列表</div>
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchSymbol" placeholder="搜尋標的代號..." oninput="renderTradeList()">
+      </div>
+      <div id="trade-list">
+        <div class="empty-state">
+          <div class="emoji">📭</div>
+          尚無交易紀錄<br>到「交易」分頁新增第一筆吧！
+        </div>
+      </div>
+    </div>
 
-                    if (!isNextMonth) {
-                        if (day === this.today.date() && this.today.isSame(this.month, 'month')) {
-                            this.bodyDivs[index].classList.add('cal-day__day--today');
-                        }
+  </div>
 
-                        if (day === this.selected.date() && this.selected.isSame(this.month, 'month')) {
-                            this.bodyDivs[index].classList.add('cal-day__day--selected');
-                        }
+  <!-- ==================== 設定分頁 ==================== -->
+  <div class="tab-page" id="page-settings">
 
-                        this.bodyDivs[index].classList.add('cal-day__month--current');
-                    } else {
-                        this.bodyDivs[index].classList.add('cal-day__month--next');
-                    }
+    <div class="form-card">
+      <div class="section-title">風險管理參數</div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">每筆最大風險 (%)</div>
+          <div class="setting-desc">佔帳戶資金比例</div>
+        </div>
+        <input type="number" class="setting-input" id="cfg-maxRisk" value="1" min="0.1" max="10" step="0.1">
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">每日最大虧損上限 (R)</div>
+          <div class="setting-desc">達到後停止交易</div>
+        </div>
+        <input type="number" class="setting-input" id="cfg-dailyMaxLoss" value="-3" max="0" step="0.5">
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">最低勝率警示 (%)</div>
+          <div class="setting-desc">低於此值顯示警告</div>
+        </div>
+        <input type="number" class="setting-input" id="cfg-minWinRate" value="40" min="0" max="100">
+      </div>
+    </div>
 
-                    this.bodyDivs[index].innerText = day++;
-                }
-            }
+    <div class="form-card">
+      <div class="section-title">策略清單管理</div>
+      <div id="strategy-tags" style="margin-bottom: 14px;">
+        <!-- 動態產生 -->
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <input type="text" id="newStrategy" placeholder="輸入新策略名稱...">
+        </div>
+        <div style="flex-shrink:0; padding-top:0px;">
+          <button class="btn-save" style="margin-top:0; padding:10px 18px; width:auto;" onclick="addStrategy()">新增</button>
+        </div>
+      </div>
+    </div>
 
-            cleanCssClasses(selected, index) {
-                this.bodyDivs[index].classList.remove('cal-day__month--next');
-                this.bodyDivs[index].classList.remove('cal-day__month--previous');
-                this.bodyDivs[index].classList.remove('cal-day__month--current');
-                this.bodyDivs[index].classList.remove('cal-day__day--today');
-                if (selected) {
-                    this.bodyDivs[index].classList.remove('cal-day__day--selected');
-                }
-            }
-        }
+    <div class="form-card">
+      <div class="section-title">紀律提醒規則</div>
+      <div id="rule-tags" style="margin-bottom: 14px;"></div>
+      <div class="input-row">
+        <div class="input-group">
+          <input type="text" id="newRule" placeholder="例如：不追高，只等回測...">
+        </div>
+        <div style="flex-shrink:0;">
+          <button class="btn-save" style="margin-top:0; padding:10px 18px; width:auto;" onclick="addRule()">新增</button>
+        </div>
+      </div>
+    </div>
 
-        const cal = new Calendar();
-        cal.init();
+    <div class="form-card">
+      <div class="section-title">外觀</div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">深色模式</div>
+          <div class="setting-desc">深色背景，適合夜間使用</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="cfg-darkMode" onchange="toggleDarkMode(this.checked)">
+          <div class="toggle-slider"></div>
+        </label>
+      </div>
+    </div>
 
-        // ===== Page Navigation =====
-        document.querySelectorAll('.hidden li[data-page]').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const pageId = e.target.getAttribute('data-page');
-                document.querySelectorAll('.page-section').forEach(section => {
-                    section.classList.remove('active');
-                });
-                const targetPage = document.getElementById(pageId);
-                if (targetPage) {
-                    targetPage.classList.add('active');
-                }
-            });
+    <div class="form-card">
+      <div class="section-title">通知設定</div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">盤前計劃提醒</div>
+          <div class="setting-desc">每日 8:30 提醒填寫盤前計劃</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="cfg-premktReminder" checked>
+          <div class="toggle-slider"></div>
+        </label>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label">每日虧損達上限提醒</div>
+          <div class="setting-desc">超出設定的每日虧損後警示</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="cfg-lossAlert" checked>
+          <div class="toggle-slider"></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="section-title">資料管理</div>
+      <button class="btn-outline" onclick="exportData()">📥 匯出所有資料 (JSON)</button>
+      <button class="btn-outline" onclick="importData()">📤 匯入資料 (JSON)</button>
+      <button class="btn-danger" onclick="clearAllData()">🗑️ 清除所有交易紀錄</button>
+    </div>
+
+    <div style="padding: 0 16px 8px;">
+      <button class="btn-save" onclick="saveSettings()">儲存設定</button>
+    </div>
+
+  </div>
+
+  <!-- 底部導航列 -->
+  <div class="bottom-nav">
+    <div class="nav-item" id="nav-premarket" onclick="switchTab('premarket')">📋<br>盤前</div>
+    <div class="nav-item active" id="nav-trade" onclick="switchTab('trade')">⚡️<br>交易</div>
+    <div class="nav-item" id="nav-stats" onclick="switchTab('stats')">📊<br>統計</div>
+    <div class="nav-item" id="nav-settings" onclick="switchTab('settings')">⚙️<br>設定</div>
+  </div>
+</div>
+
+<script>
+
+// =====================================================
+// 資料層：localStorage (後續可換成 IndexedDB)
+// =====================================================
+
+const DB = {
+  getTrades: () => JSON.parse(localStorage.getItem('trades') || '[]'),
+  saveTrades: (arr) => localStorage.setItem('trades', JSON.stringify(arr)),
+  getSettings: () => JSON.parse(localStorage.getItem('settings') || 'null') || defaultSettings(),
+  saveSettings: (cfg) => localStorage.setItem('settings', JSON.stringify(cfg)),
+  getPremarket: (date) => JSON.parse(localStorage.getItem('premarket_' + date) || 'null'),
+  savePremarket: (date, data) => localStorage.setItem('premarket_' + date, JSON.stringify(data)),
+};
+
+function defaultSettings() {
+  return {
+    maxRisk: 1,
+    dailyMaxLoss: -3,
+    minWinRate: 40,
+    strategies: ['突破前高/低', '均線回檔', '乖離反彈'],
+    rules: ['不追高，只等回測', '進場前確認停損位置'],
+    premktReminder: true,
+    lossAlert: true,
+  };
+}
+
+// =====================================================
+// 分頁切換
+// =====================================================
+
+const TAB_TITLES = {
+  premarket: '📋 今日盤前計劃',
+  trade: '新增交易紀錄',
+  stats: '📊 交易統計',
+  settings: '⚙️ 設定',
+};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  document.getElementById('pageTitle').textContent = TAB_TITLES[tab];
+
+  if (tab === 'stats') renderStats();
+  if (tab === 'settings') renderSettingsPage();
+  if (tab === 'premarket') renderPremarketPage();
+  if (tab === 'trade') renderStrategyOptions();
+}
+
+// =====================================================
+// 交易分頁
+// =====================================================
+
+const priceInputs = ['direction', 'entryPrice', 'stopLoss', 'exitPrice', 'targetPrice'];
+priceInputs.forEach(id => document.getElementById(id).addEventListener('input', calculateR));
+
+function calculateR() {
+  const direction = document.getElementById('direction').value;
+  const entry = parseFloat(document.getElementById('entryPrice').value);
+  const stop = parseFloat(document.getElementById('stopLoss').value);
+  const exit = parseFloat(document.getElementById('exitPrice').value);
+  const target = parseFloat(document.getElementById('targetPrice').value);
+  const rDisplay = document.getElementById('rDisplay');
+  const rrPreview = document.getElementById('rrPreview');
+  const rrValue = document.getElementById('rrValue');
+
+  if (isNaN(entry) || isNaN(stop) || isNaN(exit)) {
+    rDisplay.innerText = '0.00 R';
+    rDisplay.className = 'r-display';
+    rrPreview.style.display = 'none';
+    return;
+  }
+
+  let risk, rMultiple;
+  if (direction === 'long') {
+    risk = entry - stop;
+    if (risk <= 0) { rDisplay.innerText = '停損設定錯誤'; rrPreview.style.display = 'none'; return; }
+    rMultiple = (exit - entry) / risk;
+  } else {
+    risk = stop - entry;
+    if (risk <= 0) { rDisplay.innerText = '停損設定錯誤'; rrPreview.style.display = 'none'; return; }
+    rMultiple = (entry - exit) / risk;
+  }
+
+  rDisplay.innerText = rMultiple.toFixed(2) + ' R';
+  rDisplay.className = rMultiple < 0 ? 'r-display negative' : 'r-display';
+
+  // R:R 預覽（需有目標價）
+  if (!isNaN(target) && target > 0) {
+    let reward;
+    if (direction === 'long') reward = target - entry;
+    else reward = entry - target;
+    const rr = reward / risk;
+    rrPreview.style.display = 'flex';
+    rrValue.textContent = rr >= 0 ? `1 : ${rr.toFixed(2)}` : '目標價設定錯誤';
+  } else {
+    rrPreview.style.display = 'none';
+  }
+}
+
+function renderStrategyOptions() {
+  const cfg = DB.getSettings();
+  const sel = document.getElementById('strategy');
+  sel.innerHTML = cfg.strategies.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+function saveTrade() {
+  const symbol = document.getElementById('symbol').value.trim();
+  const entry = parseFloat(document.getElementById('entryPrice').value);
+  const stop = parseFloat(document.getElementById('stopLoss').value);
+  const exit = parseFloat(document.getElementById('exitPrice').value);
+
+  if (!symbol) { showToast('請填寫標的代號', 'error'); return; }
+  if (isNaN(entry) || isNaN(stop) || isNaN(exit)) { showToast('請填寫完整價格資訊', 'error'); return; }
+
+  const rText = document.getElementById('rDisplay').innerText;
+  const rMultiple = parseFloat(rText.replace(' R', '')) || 0;
+
+  const tradeData = {
+    id: crypto.randomUUID(),
+    date: new Date().toISOString().split('T')[0],
+    symbol: symbol.toUpperCase(),
+    direction: document.getElementById('direction').value,
+    strategy: document.getElementById('strategy').value,
+    entry,
+    stop,
+    exit,
+    rMultiple,
+    entryEmotion: document.getElementById('entryEmotion').value,
+    exitEmotion: document.getElementById('exitEmotion').value,
+    planFollowed: document.getElementById('planFollowed').value === 'true',
+    notes: document.getElementById('notes').value,
+  };
+
+  const trades = DB.getTrades();
+  trades.unshift(tradeData);
+  DB.saveTrades(trades);
+
+  showToast(`已記錄 ${tradeData.symbol}  ${rMultiple >= 0 ? '+' : ''}${rMultiple.toFixed(2)}R`, 'success');
+
+  // 每日虧損上限警示
+  checkDailyLossAlert(trades);
+
+  // 連敗警示
+  checkConsecutiveLossAlert(trades);
+
+  // 清空表單
+  ['symbol', 'entryPrice', 'stopLoss', 'exitPrice', 'targetPrice', 'notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('rDisplay').innerText = '0.00 R';
+  document.getElementById('rDisplay').className = 'r-display';
+  document.getElementById('rrPreview').style.display = 'none';
+}
+
+function checkDailyLossAlert(trades) {
+  const cfg = DB.getSettings();
+  if (!cfg.lossAlert) return;
+  const today = new Date().toISOString().split('T')[0];
+  const todayR = trades
+    .filter(t => t.date === today)
+    .reduce((s, t) => s + t.rMultiple, 0);
+  if (todayR <= cfg.dailyMaxLoss) {
+    setTimeout(() => showToast(
+      `⚠️ 今日虧損已達 ${todayR.toFixed(2)}R\n已觸及每日上限，建議停止交易`, 'warning'
+    ), 1200);
+  }
+}
+
+function checkConsecutiveLossAlert(trades) {
+  if (trades.length < 3) return;
+  const last3 = trades.slice(0, 3);
+  if (last3.every(t => t.rMultiple < 0)) {
+    setTimeout(() => showToast(
+      '🔴 連續 3 筆虧損\n建議今日暫停交易，冷靜檢視', 'warning'
+    ), 2400);
+  }
+}
+
+// =====================================================
+// 盤前分頁
+// =====================================================
+
+let watchlist = [];
+let selectedMood = '';
+
+function selectMood(el) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMood = el.dataset.mood;
+}
+
+function addWatchItem() {
+  const symbol = document.getElementById('watchSymbol').value.trim().toUpperCase();
+  const reason = document.getElementById('watchReason').value.trim();
+  if (!symbol) return;
+  watchlist.push({ symbol, reason });
+  document.getElementById('watchSymbol').value = '';
+  document.getElementById('watchReason').value = '';
+  renderWatchlist();
+}
+
+function renderWatchlist() {
+  const ul = document.getElementById('watchlist');
+  if (watchlist.length === 0) {
+    ul.innerHTML = '<li style="color:var(--text-muted); font-size:0.85rem; padding:8px 0;">尚未加入任何標的</li>';
+    return;
+  }
+  ul.innerHTML = watchlist.map((item, i) => `
+    <li>
+      <div>
+        <div class="watchlist-symbol">${item.symbol}</div>
+        <div class="watchlist-note">${item.reason || '無備註'}</div>
+      </div>
+      <span class="watchlist-remove" onclick="removeWatch(${i})">✕</span>
+    </li>
+  `).join('');
+}
+
+function removeWatch(i) {
+  watchlist.splice(i, 1);
+  renderWatchlist();
+}
+
+function renderPremarketPage() {
+  const today = new Date().toISOString().split('T')[0];
+  const saved = DB.getPremarket(today);
+  const cfg = DB.getSettings();
+
+  // 顯示紀律規則
+  const rulesDiv = document.getElementById('rulesDisplay');
+  rulesDiv.innerHTML = cfg.rules.map(r => `<span class="condition-tag">${r}</span>`).join('');
+
+  if (saved) {
+    // 回填已儲存的盤前計劃
+    document.getElementById('marketTrend').value = saved.marketTrend || 'uptrend';
+    document.getElementById('tradingPermission').value = saved.tradingPermission || 'full';
+    document.getElementById('marketNotes').value = saved.marketNotes || '';
+    document.getElementById('todayReminder').value = saved.todayReminder || '';
+    watchlist = saved.watchlist || [];
+    selectedMood = saved.mood || '';
+    document.querySelectorAll('.mood-btn').forEach(b => {
+      b.classList.toggle('selected', b.dataset.mood === selectedMood);
+    });
+    renderWatchlist();
+  } else {
+    watchlist = [];
+    renderWatchlist();
+  }
+}
+
+function savePremarket() {
+  const today = new Date().toISOString().split('T')[0];
+  const data = {
+    date: today,
+    mood: selectedMood,
+    marketTrend: document.getElementById('marketTrend').value,
+    tradingPermission: document.getElementById('tradingPermission').value,
+    marketNotes: document.getElementById('marketNotes').value,
+    todayReminder: document.getElementById('todayReminder').value,
+    watchlist: [...watchlist],
+  };
+  DB.savePremarket(today, data);
+  showToast('盤前計劃已儲存', 'success');
+}
+
+// =====================================================
+// 統計分頁
+// =====================================================
+
+let currentFilter = 'all';
+
+function setFilter(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTradeList();
+}
+
+function renderStats() {
+  const trades = DB.getTrades();
+  if (trades.length === 0) {
+    document.getElementById('stat-total').textContent = '0';
+    document.getElementById('stat-winrate').textContent = '0%';
+    document.getElementById('stat-avgr').textContent = '0.00R';
+    document.getElementById('stat-planfollow').textContent = '0%';
+    document.getElementById('stat-totalr').textContent = '0.00R';
+    document.getElementById('stat-totalr-bar').style.width = '0%';
+    document.getElementById('strategy-stats').innerHTML = '<div class="empty-state"><div class="emoji">📊</div>尚無資料</div>';
+    document.getElementById('monthly-stats').innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">尚無資料</div>';
+    document.getElementById('emotion-stats').innerHTML = '';
+    drawEquityCurve([]);
+    renderTradeList();
+    return;
+  }
+
+  const wins = trades.filter(t => t.rMultiple > 0);
+  const winRate = (wins.length / trades.length * 100).toFixed(1);
+  const avgR = (trades.reduce((s, t) => s + t.rMultiple, 0) / trades.length).toFixed(2);
+  const totalR = trades.reduce((s, t) => s + t.rMultiple, 0).toFixed(2);
+  const planFollowRate = (trades.filter(t => t.planFollowed).length / trades.length * 100).toFixed(1);
+
+  document.getElementById('stat-total').textContent = trades.length;
+  document.getElementById('stat-winrate').textContent = winRate + '%';
+  document.getElementById('stat-winrate').className = 'stat-value ' + (winRate >= 50 ? 'positive' : 'negative');
+  document.getElementById('stat-avgr').textContent = avgR + 'R';
+  document.getElementById('stat-avgr').className = 'stat-value ' + (avgR >= 0 ? 'positive' : 'negative');
+  document.getElementById('stat-planfollow').textContent = planFollowRate + '%';
+  document.getElementById('stat-totalr').textContent = totalR + 'R';
+  const barPct = Math.min(Math.abs(totalR) / Math.max(trades.length * 2, 1) * 100, 100);
+  document.getElementById('stat-totalr-bar').style.width = barPct + '%';
+  document.getElementById('stat-totalr-bar').className = 'bar-fill ' + (totalR >= 0 ? 'positive' : 'negative');
+
+  // 策略統計
+  renderStrategyStats(trades);
+  renderMonthlyStats(trades);
+  renderEmotionStats(trades);
+  drawEquityCurve(trades);
+  renderTradeList();
+}
+
+function renderStrategyStats(trades) {
+  const cfg = DB.getSettings();
+  const container = document.getElementById('strategy-stats');
+
+  const stratMap = {};
+  trades.forEach(t => {
+    if (!stratMap[t.strategy]) stratMap[t.strategy] = { wins: 0, total: 0, totalR: 0 };
+    stratMap[t.strategy].total++;
+    stratMap[t.strategy].totalR += t.rMultiple;
+    if (t.rMultiple > 0) stratMap[t.strategy].wins++;
+  });
+
+  if (Object.keys(stratMap).length === 0) {
+    container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem;">尚無資料</div>';
+    return;
+  }
+
+  container.innerHTML = Object.entries(stratMap).map(([name, s]) => {
+    const wr = (s.wins / s.total * 100).toFixed(0);
+    const avgR = (s.totalR / s.total).toFixed(2);
+    return `
+      <div class="bar-container">
+        <div class="bar-label">
+          <span>${name} <small style="color:var(--text-muted)">(${s.total}筆, avg ${avgR}R)</small></span>
+          <span>${wr}%</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill ${wr >= 50 ? 'positive' : 'negative'}" style="width:${wr}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+const EMOTION_LABELS = {
+  calm: '冷靜', fomo: 'FOMO', anxious: '焦慮', revenge: '報復性', greed: '貪婪', panic: '恐慌'
+};
+
+function renderEmotionStats(trades) {
+  const container = document.getElementById('emotion-stats');
+  const emotionMap = {};
+
+  trades.forEach(t => {
+    const e = t.entryEmotion;
+    if (!emotionMap[e]) emotionMap[e] = { total: 0, totalR: 0 };
+    emotionMap[e].total++;
+    emotionMap[e].totalR += t.rMultiple;
+  });
+
+  container.innerHTML = Object.entries(emotionMap).map(([emotion, s]) => {
+    const avgR = (s.totalR / s.total).toFixed(2);
+    return `
+      <div class="setting-row" style="padding:10px 0;">
+        <span class="emotion-tag ${emotion}">${EMOTION_LABELS[emotion] || emotion}</span>
+        <div style="text-align:right">
+          <div style="font-weight:bold; color:${avgR >= 0 ? 'var(--success)' : 'var(--danger)'}">平均 ${avgR}R</div>
+          <div style="font-size:0.78rem; color:var(--text-muted)">${s.total} 筆</div>
+        </div>
+      </div>
+    `;
+  }).join('') || '<div style="color:var(--text-muted); font-size:0.85rem;">尚無資料</div>';
+}
+
+// =====================================================
+// 月份統計
+// =====================================================
+
+function renderMonthlyStats(trades) {
+  const container = document.getElementById('monthly-stats');
+  if (!trades.length) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">尚無資料</div>';
+    return;
+  }
+
+  const monthMap = {};
+  trades.forEach(t => {
+    const ym = t.date.slice(0, 7); // "2025-01"
+    if (!monthMap[ym]) monthMap[ym] = { wins: 0, total: 0, totalR: 0 };
+    monthMap[ym].total++;
+    monthMap[ym].totalR += t.rMultiple;
+    if (t.rMultiple > 0) monthMap[ym].wins++;
+  });
+
+  const rows = Object.entries(monthMap)
+    .sort((a, b) => b[0].localeCompare(a[0]))  // 最新在上
+    .map(([ym, s]) => {
+      const wr = (s.wins / s.total * 100).toFixed(0);
+      const rSum = s.totalR.toFixed(2);
+      const cls = s.totalR >= 0 ? 'positive' : 'negative';
+      return `<tr>
+        <td>${ym}</td>
+        <td>${s.total} 筆</td>
+        <td>${wr}%</td>
+        <td class="${cls}">${s.totalR >= 0 ? '+' : ''}${rSum}R</td>
+      </tr>`;
+    }).join('');
+
+  container.innerHTML = `
+    <table class="month-table">
+      <thead>
+        <tr>
+          <th>月份</th><th>筆數</th><th>勝率</th><th>累積 R</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// =====================================================
+// 權益曲線圖 (Canvas)
+// =====================================================
+
+function drawEquityCurve(trades) {
+  const canvas = document.getElementById('equityCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth || canvas.parentElement.offsetWidth || 320;
+  const h = 160;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+
+  const isDark = document.body.classList.contains('dark');
+  const bg      = isDark ? '#1f2937' : '#f8fafc';
+  const gridClr = isDark ? '#374151' : '#e5e7eb';
+  const textClr = isDark ? '#9ca3af' : '#6b7280';
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  if (!trades.length) {
+    ctx.fillStyle = textClr;
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('尚無交易資料', w / 2, h / 2);
+    return;
+  }
+
+  // 累積 R 點陣列（時間升序）
+  const sorted = [...trades].sort((a, b) => a.date.localeCompare(b.date));
+  const points = [0];
+  let cum = 0;
+  sorted.forEach(t => { cum += t.rMultiple; points.push(cum); });
+
+  const minVal = Math.min(...points);
+  const maxVal = Math.max(...points);
+  const range  = maxVal - minVal || 1;
+
+  const padL = 42, padR = 12, padT = 14, padB = 28;
+  const cw = w - padL - padR;
+  const ch = h - padT - padB;
+
+  // 格線
+  ctx.strokeStyle = gridClr;
+  ctx.lineWidth = 0.5;
+  const gridLines = 4;
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padT + ch - (i / gridLines) * ch;
+    const val = minVal + (i / gridLines) * range;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+    ctx.fillStyle = textClr;
+    ctx.font = `10px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(1) + 'R', padL - 4, y + 3.5);
+  }
+
+  // 零軸標示
+  const zeroY = padT + ch - ((0 - minVal) / range) * ch;
+  if (zeroY > padT && zeroY < padT + ch) {
+    ctx.strokeStyle = isDark ? '#4b5563' : '#d1d5db';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, zeroY); ctx.lineTo(w - padR, zeroY); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 曲線
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  points.forEach((v, i) => {
+    const x = padL + (i / (points.length - 1)) * cw;
+    const y = padT + ch - ((v - minVal) / range) * ch;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+
+  const finalR = points[points.length - 1];
+  const lineColor = finalR >= 0 ? '#10b981' : '#ef4444';
+  ctx.strokeStyle = lineColor;
+  ctx.stroke();
+
+  // 漸層填充
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
+  grad.addColorStop(0, finalR >= 0 ? 'rgba(16,185,129,0.22)' : 'rgba(239,68,68,0.22)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.lineTo(w - padR, padT + ch);
+  ctx.lineTo(padL, padT + ch);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // X 軸標籤（最多顯示 5 個日期）
+  const step = Math.max(1, Math.floor((sorted.length - 1) / 4));
+  ctx.fillStyle = textClr;
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  sorted.forEach((t, i) => {
+    if (i % step !== 0 && i !== sorted.length - 1) return;
+    const x = padL + ((i + 1) / (points.length - 1)) * cw;
+    ctx.fillText(t.date.slice(5), x, h - 6); // "MM-DD"
+  });
+}
+
+function renderTradeList() {
+  const allTrades = DB.getTrades();
+  let trades = allTrades;
+
+  if (currentFilter === 'win') trades = allTrades.filter(t => t.rMultiple > 0);
+  else if (currentFilter === 'loss') trades = allTrades.filter(t => t.rMultiple < 0);
+  else if (currentFilter === 'plan-yes') trades = allTrades.filter(t => t.planFollowed);
+  else if (currentFilter === 'plan-no') trades = allTrades.filter(t => !t.planFollowed);
+
+  // 搜尋過濾
+  const searchEl = document.getElementById('searchSymbol');
+  if (searchEl) {
+    const q = searchEl.value.trim().toUpperCase();
+    if (q) trades = trades.filter(t => t.symbol.includes(q));
+  }
+
+  const container = document.getElementById('trade-list');
+  if (trades.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="emoji">📭</div>此篩選條件下無紀錄</div>';
+    return;
+  }
+
+  container.innerHTML = trades.map(t => `
+    <div class="trade-list-item">
+      <div style="flex:1; min-width:0;">
+        <div class="trade-symbol">${t.symbol} <small style="color:var(--text-muted);font-weight:normal">${t.direction === 'long' ? '↑多' : '↓空'}</small></div>
+        <div class="trade-meta">${t.date} · ${t.strategy}</div>
+        <div class="trade-meta" style="margin-top:2px;">
+          <span class="emotion-tag ${t.entryEmotion}" style="font-size:0.72rem; padding:2px 7px;">${EMOTION_LABELS[t.entryEmotion]||t.entryEmotion}</span>
+          ${!t.planFollowed ? '<span style="color:var(--danger);font-size:0.75rem;margin-left:4px;">⚠️ 偏移</span>' : ''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <div class="trade-r ${t.rMultiple >= 0 ? 'positive' : 'negative'}">${t.rMultiple >= 0 ? '+' : ''}${t.rMultiple.toFixed(2)}R</div>
+        <button class="btn-delete-trade" onclick="deleteTrade('${t.id}')" title="刪除">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// =====================================================
+// 設定分頁
+// =====================================================
+
+function renderSettingsPage() {
+  const cfg = DB.getSettings();
+  document.getElementById('cfg-maxRisk').value = cfg.maxRisk;
+  document.getElementById('cfg-dailyMaxLoss').value = cfg.dailyMaxLoss;
+  document.getElementById('cfg-minWinRate').value = cfg.minWinRate;
+  document.getElementById('cfg-premktReminder').checked = cfg.premktReminder;
+  document.getElementById('cfg-lossAlert').checked = cfg.lossAlert;
+  document.getElementById('cfg-darkMode').checked = document.body.classList.contains('dark');
+
+  // 策略標籤
+  const stDiv = document.getElementById('strategy-tags');
+  stDiv.innerHTML = cfg.strategies.map((s, i) => `
+    <span class="strategy-tag-edit">${s}
+      <span class="remove" onclick="removeStrategy(${i})">✕</span>
+    </span>
+  `).join('');
+
+  // 規則標籤
+  const rDiv = document.getElementById('rule-tags');
+  rDiv.innerHTML = cfg.rules.map((r, i) => `
+    <span class="strategy-tag-edit">${r}
+      <span class="remove" onclick="removeRule(${i})">✕</span>
+    </span>
+  `).join('');
+}
+
+function addStrategy() {
+  const val = document.getElementById('newStrategy').value.trim();
+  if (!val) return;
+  const cfg = DB.getSettings();
+  cfg.strategies.push(val);
+  DB.saveSettings(cfg);
+  document.getElementById('newStrategy').value = '';
+  renderSettingsPage();
+}
+
+function removeStrategy(i) {
+  const cfg = DB.getSettings();
+  cfg.strategies.splice(i, 1);
+  DB.saveSettings(cfg);
+  renderSettingsPage();
+}
+
+function addRule() {
+  const val = document.getElementById('newRule').value.trim();
+  if (!val) return;
+  const cfg = DB.getSettings();
+  cfg.rules.push(val);
+  DB.saveSettings(cfg);
+  document.getElementById('newRule').value = '';
+  renderSettingsPage();
+}
+
+function removeRule(i) {
+  const cfg = DB.getSettings();
+  cfg.rules.splice(i, 1);
+  DB.saveSettings(cfg);
+  renderSettingsPage();
+}
+
+function deleteTrade(id) {
+  const trades = DB.getTrades().filter(t => t.id !== id);
+  DB.saveTrades(trades);
+  renderStats();
+  showToast('已刪除該筆紀錄', 'info');
+}
+
+function saveSettings() {
+  const cfg = DB.getSettings();
+  cfg.maxRisk = parseFloat(document.getElementById('cfg-maxRisk').value);
+  cfg.dailyMaxLoss = parseFloat(document.getElementById('cfg-dailyMaxLoss').value);
+  cfg.minWinRate = parseFloat(document.getElementById('cfg-minWinRate').value);
+  cfg.premktReminder = document.getElementById('cfg-premktReminder').checked;
+  cfg.lossAlert = document.getElementById('cfg-lossAlert').checked;
+  DB.saveSettings(cfg);
+  showToast('設定已儲存', 'success');
+}
+
+function exportData() {
+  const data = {
+    trades: DB.getTrades(),
+    settings: DB.getSettings(),
+    exportedAt: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'trade_journal_' + new Date().toISOString().split('T')[0] + '.json';
+  a.click();
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.trades) DB.saveTrades(data.trades);
+        if (data.settings) DB.saveSettings(data.settings);
+        showToast('資料匯入成功', 'success');
+        renderSettingsPage();
+      } catch {
+        showToast('檔案格式錯誤，請確認是正確的 JSON 備份檔', 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function clearAllData() {
+  if (!confirm('⚠️ 確定要刪除所有交易紀錄？此操作無法復原！')) return;
+  DB.saveTrades([]);
+  showToast('已清除所有交易紀錄', 'info');
+}
+
+// =====================================================
+// Autocomplete 股票搜尋
+// =====================================================
+
+// 股票清單（從 stock.json 載入，fallback 空陣列）
+let _stockJsonCache = null;
+
+async function loadStockJson() {
+  if (_stockJsonCache) return _stockJsonCache;
+  try {
+    const res = await fetch('stock.json');
+    if (!res.ok) throw new Error('fetch failed');
+    _stockJsonCache = await res.json();
+  } catch {
+    _stockJsonCache = [];
+    console.warn('[autocomplete] stock.json 載入失敗，退回空清單');
+  }
+  return _stockJsonCache;
+}
+
+// 合併 stock.json + 歷史交易頻率
+async function buildDynamicStockList() {
+  const baseList = await loadStockJson();
+  const trades = DB.getTrades();
+  const freq = {};
+  trades.forEach(t => { freq[t.symbol] = (freq[t.symbol] || 0) + 1; });
+
+  // 以 code 為 key 合併
+  const map = Object.fromEntries(baseList.map(s => [s.code, { ...s, freq: 0 }]));
+  Object.entries(freq).forEach(([code, f]) => {
+    if (map[code]) map[code].freq = f;
+    else map[code] = { code, name: '', freq: f };
+  });
+  // 有交易紀錄的排前面，其餘維持原順序
+  return Object.values(map).sort((a, b) => b.freq - a.freq);
+}
+
+function escHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+function setupAutocomplete(inputId, dropdownId, onSelect) {
+  const input    = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  if (!input || !dropdown) return;
+
+  let hiIdx = -1;
+  let stockList = [];
+
+  // 初次 focus 或 input 時才載入（避免阻塞啟動）
+  async function refresh() {
+    stockList = await buildDynamicStockList();
+  }
+
+  function filter(q) {
+    if (!q) return [];
+    const ql = q.toLowerCase();
+    return stockList
+      .filter(s => s.code.startsWith(ql) || s.code.includes(ql) || s.name.includes(q))
+      .slice(0, 50);
+  }
+
+  function renderDrop(matches) {
+    hiIdx = -1;
+    if (!matches.length) {
+      dropdown.innerHTML = '<div class="search-dropdown-empty">找不到符合的股票</div>';
+    } else {
+      dropdown.innerHTML = matches.map(s =>
+        `<div class="search-dropdown-item" data-code="${escHtml(s.code)}">` +
+        `<span><span class="stock-code">${escHtml(s.code)}</span>` +
+        `<span class="stock-name">${escHtml(s.name)}</span></span>` +
+        (s.freq ? `<span class="stock-freq">${s.freq}筆</span>` : '') +
+        `</div>`
+      ).join('');
+      dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          input.value = item.dataset.code;
+          hideDrop();
+          onSelect && onSelect(item.dataset.code);
         });
-
-        // ===== Stock Cards Dashboard =====
-        let uploadedData = {};
-        let availableFiles = [];
-
-        const uploadZone = document.getElementById('uploadZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileList = document.getElementById('fileList');
-        const loadedFilesSection = document.getElementById('loadedFilesSection');
-        const uploadSection = document.getElementById('uploadSection');
-        const stockApp = document.getElementById('stockApp');
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadZone.addEventListener(eventName, (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadZone.addEventListener(eventName, () => {
-                uploadZone.classList.add('dragover');
-            }, false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadZone.addEventListener(eventName, () => {
-                uploadZone.classList.remove('dragover');
-            }, false);
-        });
-
-        uploadZone.addEventListener('drop', (e) => {
-            handleFiles(e.dataTransfer.files);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-        });
-
-        function handleFiles(files) {
-            const csvFiles = Array.from(files).filter(f => f.name.endsWith('.csv'));
-            if (csvFiles.length === 0) {
-                alert('請選擇 CSV 檔案！');
-                return;
-            }
-
-            let processedCount = 0;
-            csvFiles.forEach(file => {
-                Papa.parse(file, {
-                    header: true,
-                    complete: (results) => {
-                        const fileName = file.name;
-                        const dateKey = fileName.replace('.csv', '');
-                        uploadedData[dateKey] = results.data.filter(r => r && r.Symbol && r.Date);
-                        if (!availableFiles.includes(fileName)) {
-                            availableFiles.push(fileName);
-                        }
-                        processedCount++;
-                        if (processedCount === csvFiles.length) {
-                            availableFiles.sort();
-                            updateFileList();
-                            showStockApp();
-                        }
-                    },
-                    error: (err) => {
-                        console.error('解析錯誤:', err);
-                        alert(`檔案 ${file.name} 解析失敗！`);
-                    }
-                });
-            });
-        }
-
-        function updateFileList() {
-            fileList.innerHTML = '';
-            availableFiles.forEach(file => {
-                const tag = document.createElement('div');
-                tag.className = 'file-tag';
-                tag.innerHTML = `${file.replace('.csv', '')} <button onclick="removeFile('${file}')">×</button>`;
-                fileList.appendChild(tag);
-            });
-            loadedFilesSection.style.display = 'block';
-        }
-
-        function removeFile(fileName) {
-            const dateKey = fileName.replace('.csv', '');
-            delete uploadedData[dateKey];
-            availableFiles = availableFiles.filter(f => f !== fileName);
-            if (availableFiles.length === 0) {
-                resetStockDashboard();
-            } else {
-                updateFileList();
-                initializeStockApp();
-            }
-        }
-
-        function resetStockDashboard() {
-            uploadedData = {};
-            availableFiles = [];
-            uploadSection.style.display = 'block';
-            stockApp.classList.remove('active');
-            loadedFilesSection.style.display = 'none';
-            fileList.innerHTML = '';
-            fileInput.value = '';
-        }
-
-        function showStockApp() {
-            uploadSection.style.display = 'none';
-            stockApp.classList.add('active');
-            initializeStockApp();
-        }
-
-        const stockState = {
-            rows: [],
-            history: {},
-            search: '',
-            sortField: 'ChangePct',
-            sortOrder: 'desc'
-        };
-
-        const CHART_WIDTH = 120;
-        const CHART_HEIGHT = 60;
-        const CHART_PADDING = 4;
-        const MAX_CANDLES = 6;
-
-        function initializeStockApp() {
-            populateFileSelect();
-            const latestFile = availableFiles[availableFiles.length - 1];
-            document.getElementById('dataFileSelect').value = latestFile;
-            loadDataFile(latestFile);
-            setupStockEventListeners();
-        }
-
-        function populateFileSelect() {
-            const select = document.getElementById('dataFileSelect');
-            select.innerHTML = '';
-            availableFiles.forEach(file => {
-                const option = document.createElement('option');
-                option.value = file;
-                option.textContent = file.replace('.csv', '');
-                select.appendChild(option);
-            });
-        }
-
-        function loadDataFile(filename) {
-            const dateKey = filename.replace('.csv', '');
-            const dateIndex = availableFiles.indexOf(filename);
-            const startIndex = Math.max(0, dateIndex - 5);
-            const filesToLoad = availableFiles.slice(startIndex, dateIndex + 1);
-
-            const allData = [];
-            const loadedDates = [];
-
-            filesToLoad.forEach(file => {
-                const fileKey = file.replace('.csv', '');
-                const data = uploadedData[fileKey];
-                if (data && data.length > 0) {
-                    const fileDate = data[0].Date;
-                    loadedDates.push(fileDate);
-                    allData.push(...data);
-                }
-            });
-
-            const needPadding = 6 - loadedDates.length;
-            if (needPadding > 0 && loadedDates.length > 0) {
-                const firstDate = loadedDates[0];
-                const firstDayData = allData.filter(r => r.Date === firstDate);
-                for (let i = 1; i <= needPadding; i++) {
-                    const padDate = `${firstDate}_pad${i}`;
-                    firstDayData.forEach(row => {
-                        allData.push({ ...row, Date: padDate });
-                    });
-                    loadedDates.unshift(padDate);
-                }
-            }
-
-            const historyMap = {};
-            for (const r of allData) {
-                const sym = r.Symbol;
-                if (!historyMap[sym]) historyMap[sym] = [];
-                historyMap[sym].push({
-                    Date: r.Date,
-                    Open: r.Open,
-                    High: r.High,
-                    Low: r.Low,
-                    Avg: r.Avg,
-                    Close: r.Close
-                });
-            }
-
-            Object.keys(historyMap).forEach(sym => {
-                historyMap[sym].sort((a, b) => (a.Date > b.Date ? 1 : -1));
-            });
-
-            const selectedDate = loadedDates[loadedDates.length - 1 - needPadding];
-            const latestRows = allData.filter(r => r.Date === selectedDate);
-
-            stockState.rows = latestRows;
-            stockState.history = historyMap;
-
-            renderStockGrid();
-        }
-
-        function getFilteredRows() {
-            return stockState.rows.filter(r => {
-                if (!stockState.search.trim()) return true;
-                const q = stockState.search.trim().toLowerCase();
-                const sym = (r.Symbol || '').toString().toLowerCase();
-                const name = (r.Name || '').toString().toLowerCase();
-                return sym.includes(q) || name.includes(q);
-            });
-        }
-
-        function getSortedRows(filtered) {
-            return [...filtered].sort((a, b) => {
-                const dir = stockState.sortOrder === 'asc' ? 1 : -1;
-                let va = 0, vb = 0;
-                if (stockState.sortField === 'ChangePct') {
-                    va = parseFloat(String(a.ChangePct || '0').replace('%', ''));
-                    vb = parseFloat(String(b.ChangePct || '0').replace('%', ''));
-                } else if (stockState.sortField === 'Volume') {
-                    va = Number(a.Volume || 0);
-                    vb = Number(b.Volume || 0);
-                } else if (stockState.sortField === 'Turnover') {
-                    va = Number(a.Turnover || 0);
-                    vb = Number(b.Turnover || 0);
-                }
-                if (isNaN(va)) va = 0;
-                if (isNaN(vb)) vb = 0;
-                return (vb - va) * dir;
-            });
-        }
-
-        function createStockCard(row, history) {
-            const pct = row.ChangePct || '0%';
-            const sign = pct.includes('-') ? '▼' : '▲';
-            const color = pct.includes('-') ? '#00a508' : '#ca1414e5';
-
-            const card = document.createElement('div');
-            card.className = 'stock-card';
-
-            const parsedHistory = (history || [])
-                .map(h => ({
-                    date: h.Date,
-                    open: parseFloat(h.Open),
-                    high: parseFloat(h.High),
-                    low: parseFloat(h.Low),
-                    avg: parseFloat(h.Avg),
-                    close: parseFloat(h.Close)
-                }))
-                .filter(h => [h.open, h.high, h.low, h.close].every(v => !isNaN(v)));
-
-            const candles = parsedHistory.slice(-MAX_CANDLES);
-            const hasHistory = candles.length >= 1;
-
-            const close = parseFloat(row.Close) || 0;
-            const volume = Number(row.Volume || 0);
-            const turnover = Number(row.Turnover || 0);
-            const netvolume = Number(row.NetVolume || 0);
-
-            card.innerHTML = `
-                <div class="card-front">
-                    <div class="card-header">
-                        <div class="stock-title" data-flip-trigger>${row.Symbol} ${row.Name} (${row.Market})</div>
-                        <div class="stock-date">${row.Date}</div>
-                    </div>
-                    <div class="main-row">
-                        <div class="main-left">
-                            <div class="price-row">
-                                <div class="price-value">${close}</div>
-                                <div class="price-change" style="color: ${color}">${pct} ${sign}</div>
-                            </div>
-                            <div class="sub">Volume: ${volume.toLocaleString()}</div>
-                            <div class="sub">NetVolume%: ${(netvolume / turnover * 100).toFixed(2)}%</div>
-                        </div>
-                        <div class="main-right">
-                            ${hasHistory ? createCandlestickChart(candles) : '<div style="color: #cbd5e1; font-size: 10px;">No history</div>'}
-                        </div>
-                    </div>
-                </div>
-                <div class="card-back">
-                    <div class="back-header" data-flip-trigger>${row.Symbol} ${row.Name}</div>
-                    <div class="info-row">
-                        <span class="info-label">開盤 (Open)</span>
-                        <span class="info-value">${parseFloat(row.Open).toFixed(2)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">最高 (High)</span>
-                        <span class="info-value">${parseFloat(row.High).toFixed(2)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">最低 (Low)</span>
-                        <span class="info-value">${parseFloat(row.Low).toFixed(2)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">收盤 (Close)</span>
-                        <span class="info-value">${close.toFixed(2)}</span>
-                    </div>
-                    <div class="flip-hint">點擊標題返回</div>
-                </div>
-            `;
-
-            setupCardFlip(card);
-            if (hasHistory) setupCandlestickInteraction(card, candles);
-
-            return card;
-        }
-
-        function setupCardFlip(card) {
-            card.querySelectorAll('[data-flip-trigger]').forEach(trigger => {
-                trigger.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    card.classList.toggle('flipped');
-                });
-            });
-        }
-
-        function createCandlestickChart(candles) {
-            const highs = candles.map(c => c.high);
-            const lows = candles.map(c => c.low);
-            const minLow = Math.min(...lows);
-            const maxHigh = Math.max(...highs);
-            const range = maxHigh - minLow || 1;
-            const candleWidth = CHART_WIDTH / candles.length;
-            const bodyWidth = Math.max(1, candleWidth * 0.6);
-
-            const scaleY = value =>
-                CHART_PADDING + ((maxHigh - value) / range) * (CHART_HEIGHT - CHART_PADDING * 2);
-
-            let svgContent = '';
-            candles.forEach((c, i) => {
-                const xCenter = i * candleWidth + candleWidth / 2;
-                const yOpen = scaleY(c.open);
-                const yClose = scaleY(c.close);
-                const yHigh = scaleY(c.high);
-                const yLow = scaleY(c.low);
-                const isUp = c.close >= c.open;
-                const candleColor = isUp ? '#c52222' : '#44ef77be';
-                const bodyTop = Math.min(yOpen, yClose);
-                const bodyHeight = Math.max(1, Math.abs(yOpen - yClose));
-
-                svgContent += `
-                    <g class="candle-group" data-index="${i}">
-                        <line x1="${xCenter}" x2="${xCenter}" y1="${yHigh}" y2="${yLow}" stroke="${candleColor}" stroke-width="1" />
-                        <rect x="${xCenter - bodyWidth / 2}" y="${bodyTop}" width="${bodyWidth}" height="${bodyHeight}" fill="${candleColor}" />
-                    </g>
-                `;
-            });
-
-            return `
-                <div class="candlestick-wrap">
-                    <svg class="candlestick" viewBox="0 0 ${CHART_WIDTH} ${CHART_HEIGHT}">${svgContent}</svg>
-                </div>
-            `;
-        }
-
-        function setupCandlestickInteraction(card, candles) {
-            const wrap = card.querySelector('.candlestick-wrap');
-            const svg = card.querySelector('.candlestick');
-            const groups = svg.querySelectorAll('.candle-group');
-            let tooltip = null;
-
-            const showTooltip = (c, x, y) => {
-                if (!tooltip) {
-                    tooltip = document.createElement('div');
-                    tooltip.className = 'candle-tooltip';
-                    wrap.appendChild(tooltip);
-                }
-                tooltip.innerHTML = `<div style="font-weight: 600; margin-bottom: 2px;">${c.date}</div><div>O:${c.open} H:${c.high} L:${c.low} C:${c.close}</div>`;
-                tooltip.style.left = `${x}px`;
-                tooltip.style.top = `${Math.max(CHART_PADDING, y)}px`;
-                tooltip.style.display = 'block';
-            };
-
-            const hideTooltip = () => {
-                if (tooltip) tooltip.style.display = 'none';
-            };
-
-            groups.forEach((group, index) => {
-                const candle = candles[index];
-                const candleWidth = CHART_WIDTH / candles.length;
-                const xCenter = index * candleWidth + candleWidth / 2;
-                const highs = candles.map(c => c.high);
-                const lows = candles.map(c => c.low);
-                const minLow = Math.min(...lows);
-                const maxHigh = Math.max(...highs);
-                const range = maxHigh - minLow || 1;
-                const yHigh = CHART_PADDING + ((maxHigh - candle.high) / range) * (CHART_HEIGHT - CHART_PADDING * 2);
-
-                group.addEventListener('mouseenter', () => showTooltip(candle, xCenter, yHigh));
-                group.addEventListener('mousemove', () => showTooltip(candle, xCenter, yHigh));
-            });
-
-            svg.addEventListener('mouseleave', hideTooltip);
-        }
-
-        function renderStockGrid() {
-            const filtered = getFilteredRows();
-            const sorted = getSortedRows(filtered);
-            const gridEl = document.getElementById('stockGrid');
-
-            gridEl.innerHTML = '';
-            sorted.forEach(row => {
-                const card = createStockCard(row, stockState.history[row.Symbol] || []);
-                gridEl.appendChild(card);
-            });
-        }
-
-        function setupStockEventListeners() {
-            document.getElementById('dataFileSelect').addEventListener('change', (e) => {
-                loadDataFile(e.target.value);
-            });
-
-            document.getElementById('searchInput').addEventListener('input', (e) => {
-                stockState.search = e.target.value;
-                renderStockGrid();
-            });
-
-            document.getElementById('sortField').addEventListener('change', (e) => {
-                stockState.sortField = e.target.value;
-                renderStockGrid();
-            });
-
-            document.getElementById('sortOrder').addEventListener('change', (e) => {
-                stockState.sortOrder = e.target.value;
-                renderStockGrid();
-            });
-        }
-
-        // ===== Stock Information =====
-        const siStockData = {
-            "2330": {
-                code: "2330",
-                name: "台積電",
-                market: "上市",
-                coreRole: "晶圓代工龍頭 · 護國神山",
-                incomeProfile: "穩定配息，股價波動屬於成長股範疇",
-                cycleProfile: "半導體景氣週期有影響，但長期趨勢向上",
-                riskProfile: "技術領先優勢若被追趕，可能影響估值與獲利",
-                intro: "台積電是全球最大的晶圓代工公司，幫各大廠的設計公司（如 Apple、Nvidia、AMD 等）生產晶片，本身不設計產品，只負責製造。",
-                business: "收入主要依賴代工費用，技術越先進（例如 3nm、5nm 製程），利潤率越高。因為資本支出極大（新廠單價數千億），進入門檻非常高，形成寡占市場。",
-                businessTags: ["晶圓代工", "高資本密集", "技術護城河", "全球化布局"],
-                keyPoints: [
-                    "觀察先進製程（7nm 以下）的產能利用率與訂單。",
-                    "留意資本支出計劃，通常會提前數年佈局新廠與新製程。",
-                    "注意客戶結構，是否過度依賴單一客戶。",
-                    "關注地緣政治風險，例如美中科技戰、台海局勢等。"
-                ],
-                profilePoints: [
-                    "適合長期投資、相信科技產業成長趨勢的人。",
-                    "能承受短期股價波動，不會因為修正 20%～30% 就恐慌。",
-                    "願意花時間了解半導體產業動態與技術趨勢。"
-                ],
-                riskPoints: [
-                    "技術領先優勢若被三星或英特爾追趕，可能影響毛利率。",
-                    "地緣政治風險，台海局勢、美中貿易戰、技術出口管制等。",
-                    "資本支出龐大，若景氣急轉直下，可能出現產能閒置或現金流吃緊。"
-                ],
-                riskTags: ["技術競爭", "地緣政治", "資本支出風險"]
-            },
-            "2886": {
-                code: "2886",
-                name: "兆豐金",
-                market: "上市",
-                coreRole: "綜合金控 · 銀行為主 + 壽險為輔",
-                incomeProfile: "穩定配息股，適合領股息的存股族",
-                cycleProfile: "金融股屬於景氣循環產業，獲利與景氣影響大",
-                riskProfile: "利率反轉變動、壽險虧損、景氣衰退皆須留意",
-                intro: "兆豐金是台灣前三大金控之一，旗下有兆豐銀行、兆豐證券、兆豐保險等子公司。主要賺利差（銀行）與手續費（證券），也有壽險投資收益。",
-                business: "銀行部分賺的是「存放款利差」與「手續費」，壽險部分則是保費收入與資產投資收益。金融股獲利會隨著利率環境、景氣好壞而上下波動。",
-                businessTags: ["銀行業務", "利差收入", "保險與投資收益", "景氣敏感"],
-                keyPoints: [
-                    "關注整體獲利是否穩定，而不是只看單一年份大賺或大虧。",
-                    "留意壽險部位的未實現損益與資本適足率。",
-                    "觀察股利政策是否穩定，是否有「特別股利」或一次性因素。",
-                    "留意利率環境變化，因為會影響利差與債券評價。"
-                ],
-                profilePoints: [
-                    "適合可以理解「金融獲利會跟景氣、利率一起上上下下」的投資人。",
-                    "對股價波動有一定承受度，不會金融股跌完就存。",
-                    "願意用 3～5 年的時間看一個完整景氣循環。"
-                ],
-                riskPoints: [
-                    "利率反轉變動可能造成債券評價大幅調整，影響獲利。",
-                    "壽險部位長年期負債，若資產配置不佳，有資本虧損風險。",
-                    "景氣衰退、失業率上升時，呆帳與逾放呆帳會增加。"
-                ],
-                riskTags: ["利率風險", "資本適足壓力", "景氣循環"]
-            },
-            "2603": {
-                code: "2603",
-                name: "長榮",
-                market: "上市",
-                coreRole: "貨櫃航運公司 · 典型景氣循環股",
-                incomeProfile: "獲利與配息高度依賴運價與景氣，波動很大",
-                cycleProfile: "極高景氣循環性，淡旺季差異大",
-                riskProfile: "容易出現「景氣好大賺翻、壞時大虧」的情況",
-                intro: "長榮是遠洋貨櫃航運公司，賺的是全球貨物運輸的運費。運價會隨著景氣、供給量、塞港狀況而劇烈波動。",
-                business: "收入主要依賴海運貨櫃運輸服務，船隊與航線佈局會影響成本與運價談判能力。景氣好時運價飆漲，獲利非常亮眼，景氣不好時運價崩盤，獲利可能大幅衰退。",
-                businessTags: ["貨櫃航運", "極端景氣循環", "運價波動", "資本密集產業"],
-                keyPoints: [
-                    "第一個要看的是貨櫃運價指數，例如全球運價指數、各航線運價。",
-                    "留意船隊供給量是否過多，以及新船交付狀況。",
-                    "注意公司在好景氣時如何運用現金（還債、配息、擴張船隊）。",
-                    "辨識自己是在「景氣高峰追價」還是「谷底慢慢佈局」。"
-                ],
-                profilePoints: [
-                    "適合清楚知道自己在玩景氣循環的人，而不是當存股。",
-                    "能接受大起大落、甚至幾個月內股價腰斬的風險。",
-                    "願意花時間追蹤運價指數、產業供需與景氣循環。"
-                ],
-                riskPoints: [
-                    "景氣反轉時，運價大跌，獲利可能從暴利變虧損。",
-                    "船隊投資週期長，若在高運價時大量擴張，可能埋下未來供給過多的種子。",
-                    "地緣政治、港口塞港、油價波動等都會影響營運成本與收益。"
-                ],
-                riskTags: ["高度景氣循環", "資本投資風險", "地緣政治與成本風險"]
-            }
-        };
-
-        let siState = {
-            currentCode: null,
-            filteredStocks: [],
-            selectedIndex: -1
-        };
-
-        function siEscapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function siRenderStockList(filterText = "") {
-            const normalizedFilter = filterText.trim().toLowerCase();
-            const stockList = document.getElementById("si-stock-list");
-            stockList.innerHTML = "";
-
-            siState.filteredStocks = Object.values(siStockData).filter(stock => {
-                if (!normalizedFilter) return true;
-                const target = `${stock.code}${stock.name}${stock.market}`.toLowerCase();
-                return target.includes(normalizedFilter);
-            });
-
-            document.getElementById("si-stock-count").textContent = siState.filteredStocks.length;
-            if (siState.filteredStocks.length > 0) {
-                document.getElementById("si-stock-count").classList.add('highlight');
-            } else {
-                document.getElementById("si-stock-count").classList.remove('highlight');
-            }
-
-            if (siState.filteredStocks.length === 0 && normalizedFilter) {
-                document.getElementById("si-no-results").classList.add('visible');
-            } else {
-                document.getElementById("si-no-results").classList.remove('visible');
-            }
-
-            siState.filteredStocks.forEach((stock, index) => {
-                const li = document.createElement("li");
-                li.className = "si-stock-item";
-
-                const button = document.createElement("button");
-                button.type = "button";
-                button.className = "si-stock-btn";
-                button.dataset.stockCode = stock.code;
-                button.dataset.index = index;
-
-                const roleText = stock.coreRole.length > 12 ? stock.coreRole.slice(0, 12) + '...' : stock.coreRole;
-
-                button.innerHTML = `
-                    <div class="si-stock-main-row">
-                        <span class="si-stock-code">${siEscapeHtml(stock.code)}</span>
-                        <span class="si-stock-name">${siEscapeHtml(stock.name)}</span>
-                    </div>
-                    <div class="si-stock-tag-row">
-                        <span class="si-chip highlight">${siEscapeHtml(stock.market)}</span>
-                        <span class="si-chip">${siEscapeHtml(roleText)}</span>
-                    </div>
-                `;
-
-                button.addEventListener("click", () => {
-                    siSetActiveStock(stock.code);
-                });
-
-                li.appendChild(button);
-                stockList.appendChild(li);
-            });
-
-            if (normalizedFilter) {
-                document.getElementById("si-clear-search").classList.add('visible');
-            } else {
-                document.getElementById("si-clear-search").classList.remove('visible');
-            }
-        }
-
-        function siSetActiveStock(code) {
-            const stock = siStockData[code];
-            if (!stock) return;
-
-            document.getElementById("si-empty-state").style.display = 'none';
-            document.getElementById("si-loading").classList.add('active');
-
-            setTimeout(() => {
-                siState.currentCode = code;
-
-                document.querySelectorAll(".si-stock-btn").forEach(btn => {
-                    btn.classList.remove("active");
-                });
-
-                const targetBtn = document.querySelector(`.si-stock-btn[data-stock-code="${code}"]`);
-                if (targetBtn) {
-                    targetBtn.classList.add("active");
-                    siState.selectedIndex = parseInt(targetBtn.dataset.index);
-                    targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-
-                siUpdateDetailContent(stock);
-
-                document.getElementById("si-loading").classList.remove('active');
-                document.getElementById("si-detail-content").style.display = 'block';
-                document.getElementById("si-content-area").scrollTop = 0;
-            }, 150);
-        }
-
-        function siUpdateDetailContent(stock) {
-            document.getElementById("si-content-badge").textContent = `${stock.code} · ${stock.market}`;
-            document.getElementById("si-content-title").textContent = `${stock.name}｜${stock.coreRole}`;
-
-            document.getElementById("si-pill-core").textContent = `核心定位：${stock.coreRole}`;
-            document.getElementById("si-pill-income").textContent = `配息輪廓：${stock.incomeProfile}`;
-            document.getElementById("si-pill-cycles").textContent = `景氣敏感度：${stock.cycleProfile}`;
-            document.getElementById("si-pill-risk").textContent = `風險標籤：${stock.riskProfile}`;
-
-            document.getElementById("si-intro").textContent = stock.intro;
-            document.getElementById("si-business").textContent = stock.business;
-
-            const businessTags = document.getElementById("si-business-tags");
-            businessTags.innerHTML = "";
-            (stock.businessTags || []).forEach(tag => {
-                const span = document.createElement("span");
-                span.className = "si-mini-badge neutral";
-                span.textContent = tag;
-                businessTags.appendChild(span);
-            });
-
-            const keyPoints = document.getElementById("si-key-points");
-            keyPoints.innerHTML = "";
-            (stock.keyPoints || []).forEach(text => {
-                const li = document.createElement("li");
-                li.className = "si-bullet-item";
-                li.innerHTML = `<span class="si-bullet-dot good"></span><span>${siEscapeHtml(text)}</span>`;
-                keyPoints.appendChild(li);
-            });
-
-            const profilePoints = document.getElementById("si-profile-points");
-            profilePoints.innerHTML = "";
-            (stock.profilePoints || []).forEach(text => {
-                const li = document.createElement("li");
-                li.className = "si-bullet-item";
-                li.innerHTML = `<span class="si-bullet-dot warn"></span><span>${siEscapeHtml(text)}</span>`;
-                profilePoints.appendChild(li);
-            });
-
-            const riskPoints = document.getElementById("si-risk-points");
-            riskPoints.innerHTML = "";
-            (stock.riskPoints || []).forEach(text => {
-                const li = document.createElement("li");
-                li.className = "si-bullet-item";
-                li.innerHTML = `<span class="si-bullet-dot bad"></span><span>${siEscapeHtml(text)}</span>`;
-                riskPoints.appendChild(li);
-            });
-
-            const riskTags = document.getElementById("si-risk-tags");
-            riskTags.innerHTML = "";
-            (stock.riskTags || []).forEach(tag => {
-                const span = document.createElement("span");
-                span.className = "si-mini-badge bad";
-                span.textContent = tag;
-                riskTags.appendChild(span);
-            });
-        }
-
-        function siClearSearch() {
-            document.getElementById("si-search-input").value = '';
-            document.getElementById("si-clear-search").classList.remove('visible');
-            siRenderStockList();
-        }
-
-        function initStockInformation() {
-            siRenderStockList();
-
-            document.getElementById("si-search-input").addEventListener("input", (e) => {
-                siRenderStockList(e.target.value);
-            });
-
-            document.getElementById("si-clear-search").addEventListener("click", siClearSearch);
-
-            if (siStockData["2330"]) {
-                setTimeout(() => {
-                    siSetActiveStock("2330");
-                }, 100);
-            }
-        }
-
-        // Initialize Stock Information when page becomes active
-        document.querySelectorAll('.hidden li[data-page]').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const pageId = e.target.getAttribute('data-page');
-                if (pageId === 'stock-information' && !siState.currentCode) {
-                    setTimeout(initStockInformation, 100);
-                }
-                if (pageId === 'notes-add' || pageId === 'notes-browse') {
-                    setTimeout(initNotesSystem, 100);
-                }
-            });
-        });
-
-        // ===== Notes System - Trading Record System =====
-        let notesRecords = [];
-        let notesInitialized = false;
-
-        // 欄位定義
-        const NOTES_RECORD_COLS = [
-            "date", "symbol", "name", "direction", "trade_type",
-            "pre_reason_type", "pre_reason_text", "entry_plan",
-            "target_price", "stop_price", "size", "confidence",
-            "entry_price", "exit_price", "pnl_percent", "rr", "result_type"
-        ];
-
-        const NOTES_TRADE_COLS = [
-            "highest_price", "lowest_price", "execution_quality",
-            "emotion_entry", "emotion_exit", "behavior_error",
-            "market_env", "holding_days",
-            "success_factor", "failure_factor", "improvement", "note"
-        ];
-
-        function initNotesSystem() {
-            if (notesInitialized) {
-                notesUpdateDashboard();
-                return;
-            }
-            notesInitialized = true;
-
-            notesLoadFromStorage();
-            document.getElementById('notesTradeDate').valueAsDate = new Date();
-            document.getElementById('notesRecordForm').addEventListener('submit', notesAddRecord);
-
-            // 設定價格變動監聽
-            ['notesEntryPrice', 'notesExitPrice', 'notesStopPrice', 'notesDirection'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('input', notesCalcPnlRR);
-                if (el) el.addEventListener('change', notesCalcPnlRR);
-            });
-
-            notesUpdateDashboard();
-        }
-
-        // 自動計算報酬率和 RR
-        function notesCalcPnlRR() {
-            const entryPrice = parseFloat(document.getElementById('notesEntryPrice').value) || 0;
-            const exitPrice = parseFloat(document.getElementById('notesExitPrice').value) || 0;
-            const stopPrice = parseFloat(document.getElementById('notesStopPrice').value) || 0;
-            const direction = document.getElementById('notesDirection').value;
-
-            let pnlPercent = null;
-            let rr = null;
-
-            if (entryPrice > 0 && exitPrice > 0) {
-                pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
-                if (direction === '空') {
-                    pnlPercent = -pnlPercent;
-                }
-                document.getElementById('notesPnlDisplay').textContent = pnlPercent.toFixed(2) + '%';
-                document.getElementById('notesPnlDisplay').style.color = pnlPercent >= 0 ? '#c53030' : '#2f855a';
-            } else {
-                document.getElementById('notesPnlDisplay').textContent = '-';
-                document.getElementById('notesPnlDisplay').style.color = '#333';
-            }
-
-            if (entryPrice > 0 && stopPrice > 0 && exitPrice > 0) {
-                const risk = Math.abs(entryPrice - stopPrice);
-                const reward = Math.abs(exitPrice - entryPrice);
-                rr = risk > 0 ? reward / risk : 0;
-                document.getElementById('notesRRDisplay').textContent = rr.toFixed(2);
-            } else {
-                document.getElementById('notesRRDisplay').textContent = '-';
-            }
-
-            return { pnlPercent, rr };
-        }
-
-        function notesAddRecord(e) {
-            e.preventDefault();
-
-            const { pnlPercent, rr } = notesCalcPnlRR();
-
-            const record = {
-                // 基本資料
-                date: document.getElementById('notesTradeDate').value,
-                symbol: document.getElementById('notesSymbol').value.trim(),
-                name: document.getElementById('notesName').value.trim(),
-                direction: document.getElementById('notesDirection').value,
-                trade_type: document.getElementById('notesTradeType').value,
-                confidence: parseInt(document.getElementById('notesConfidence').value),
-
-                // 預判理由
-                pre_reason_type: document.getElementById('notesPreReasonType').value,
-                pre_reason_text: document.getElementById('notesPreReasonText').value.trim(),
-                entry_plan: document.getElementById('notesEntryPlan').value,
-
-                // 價格
-                target_price: parseFloat(document.getElementById('notesTargetPrice').value) || null,
-                stop_price: parseFloat(document.getElementById('notesStopPrice').value) || null,
-                size: parseFloat(document.getElementById('notesSize').value) || null,
-                entry_price: parseFloat(document.getElementById('notesEntryPrice').value) || null,
-                exit_price: parseFloat(document.getElementById('notesExitPrice').value) || null,
-                pnl_percent: pnlPercent,
-                rr: rr,
-                result_type: document.getElementById('notesResultType').value,
-
-                // 執行細節
-                highest_price: parseFloat(document.getElementById('notesHighestPrice').value) || null,
-                lowest_price: parseFloat(document.getElementById('notesLowestPrice').value) || null,
-                execution_quality: parseInt(document.getElementById('notesExecutionQuality').value),
-                holding_days: parseInt(document.getElementById('notesHoldingDays').value) || 1,
-                market_env: document.getElementById('notesMarketEnv').value,
-
-                // 心理狀態
-                emotion_entry: document.getElementById('notesEmotionEntry').value,
-                emotion_exit: document.getElementById('notesEmotionExit').value,
-                behavior_error: document.getElementById('notesBehaviorError').value,
-
-                // 分析改進
-                success_factor: document.getElementById('notesSuccessFactor').value.trim() || null,
-                failure_factor: document.getElementById('notesFailureFactor').value.trim() || null,
-                improvement: document.getElementById('notesImprovement').value.trim() || null,
-                note: document.getElementById('notesNote').value.trim() || null,
-
-                createdAt: new Date().toISOString()
-            };
-
-            notesRecords.push(record);
-            notesSaveToStorage();
-
-            alert('✅ 紀錄已成功儲存！');
-
-            // 重置表單
-            document.getElementById('notesRecordForm').reset();
-            document.getElementById('notesTradeDate').valueAsDate = new Date();
-            document.getElementById('notesConfidence').value = 3;
-            document.getElementById('notesConfidenceValue').textContent = '3';
-            document.getElementById('notesExecutionQuality').value = 3;
-            document.getElementById('notesExecQualityValue').textContent = '3';
-            document.getElementById('notesPnlDisplay').textContent = '-';
-            document.getElementById('notesRRDisplay').textContent = '-';
-        }
-
-        function notesUpdateDashboard() {
-            const filterSymbol = document.getElementById('notesFilterSymbol')?.value || '';
-            const filterReasonType = document.getElementById('notesFilterReasonType')?.value || '';
-            const filterMarketEnv = document.getElementById('notesFilterMarketEnv')?.value || '';
-
-            let filtered = notesRecords.filter(r => {
-                if (filterSymbol && r.symbol !== filterSymbol) return false;
-                if (filterReasonType && r.pre_reason_type !== filterReasonType) return false;
-                if (filterMarketEnv && r.market_env !== filterMarketEnv) return false;
-                return true;
-            });
-
-            // 更新總數
-            document.getElementById('notesTotalRecords').textContent = filtered.length;
-
-            // 核心統計
-            const withPnl = filtered.filter(r => r.pnl_percent !== null);
-            const winCount = withPnl.filter(r => r.pnl_percent > 0).length;
-            const winRate = withPnl.length > 0 ? ((winCount / withPnl.length) * 100).toFixed(1) : 0;
-            document.getElementById('notesWinRate').textContent = `${winRate}%`;
-
-            const withRR = filtered.filter(r => r.rr !== null);
-            const avgRR = withRR.length > 0 ? (withRR.reduce((s, r) => s + r.rr, 0) / withRR.length).toFixed(2) : '-';
-            document.getElementById('notesAvgRR').textContent = avgRR;
-
-            const avgPnl = withPnl.length > 0 ? (withPnl.reduce((s, r) => s + r.pnl_percent, 0) / withPnl.length).toFixed(2) : '-';
-            document.getElementById('notesAvgPnl').textContent = avgPnl !== '-' ? `${avgPnl}%` : '-';
-
-            const withExec = filtered.filter(r => r.execution_quality);
-            const avgExec = withExec.length > 0 ? (withExec.reduce((s, r) => s + r.execution_quality, 0) / withExec.length).toFixed(2) : '-';
-            document.getElementById('notesAvgExecQuality').textContent = avgExec;
-
-            // 策略統計
-            notesUpdateStrategyStats(filtered);
-
-            // 行為統計
-            notesUpdateBehaviorStats(filtered);
-
-            // 心理統計
-            notesUpdateEmotionStats(filtered);
-
-            // 更新篩選器選項
-            notesUpdateFilters();
-
-            // 更新明細表
-            notesUpdateRecordsTable(filtered);
-        }
-
-        function notesUpdateStrategyStats(data) {
-            const stratGroup = {};
-            data.forEach(r => {
-                const key = r.pre_reason_type || '未分類';
-                if (!stratGroup[key]) stratGroup[key] = { trades: 0, wins: 0, totalPnl: 0, totalRR: 0, rrCount: 0 };
-                stratGroup[key].trades++;
-                if (r.pnl_percent !== null) {
-                    if (r.pnl_percent > 0) stratGroup[key].wins++;
-                    stratGroup[key].totalPnl += r.pnl_percent;
-                }
-                if (r.rr !== null) {
-                    stratGroup[key].totalRR += r.rr;
-                    stratGroup[key].rrCount++;
-                }
-            });
-
-            const entries = Object.entries(stratGroup).sort((a, b) => b[1].trades - a[1].trades);
-
-            if (entries.length === 0) {
-                document.getElementById('notesStrategyStats').innerHTML = '<div class="notes-alert notes-alert-info">尚無資料可分析</div>';
-                return;
-            }
-
-            document.getElementById('notesStrategyStats').innerHTML = `
-                <table class="notes-strategy-table">
-                    <thead><tr><th>預判理由</th><th>次數</th><th>勝率</th><th>平均報酬</th><th>平均RR</th></tr></thead>
-                    <tbody>
-                        ${entries.map(([k, v]) => {
-                            const wr = v.trades > 0 ? ((v.wins / v.trades) * 100).toFixed(1) : 0;
-                            const avgP = v.trades > 0 ? (v.totalPnl / v.trades).toFixed(2) : '-';
-                            const avgR = v.rrCount > 0 ? (v.totalRR / v.rrCount).toFixed(2) : '-';
-                            return `<tr><td>${notesEscapeHTML(k)}</td><td>${v.trades}</td><td>${wr}%</td><td>${avgP}%</td><td>${avgR}</td></tr>`;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function notesUpdateBehaviorStats(data) {
-            const behGroup = {};
-            data.forEach(r => {
-                const key = r.behavior_error || '無';
-                if (!behGroup[key]) behGroup[key] = { trades: 0, totalPnl: 0 };
-                behGroup[key].trades++;
-                if (r.pnl_percent !== null) behGroup[key].totalPnl += r.pnl_percent;
-            });
-
-            const entries = Object.entries(behGroup).sort((a, b) => b[1].trades - a[1].trades);
-
-            if (entries.length === 0) {
-                document.getElementById('notesBehaviorStats').innerHTML = '<div class="notes-alert notes-alert-info">尚無行為偏誤資料</div>';
-                return;
-            }
-
-            document.getElementById('notesBehaviorStats').innerHTML = `
-                <table class="notes-strategy-table">
-                    <thead><tr><th>行為偏誤</th><th>次數</th><th>平均報酬</th></tr></thead>
-                    <tbody>
-                        ${entries.map(([k, v]) => {
-                            const avgP = v.trades > 0 ? (v.totalPnl / v.trades).toFixed(2) : '-';
-                            return `<tr><td>${notesEscapeHTML(k)}</td><td>${v.trades}</td><td>${avgP}%</td></tr>`;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function notesUpdateEmotionStats(data) {
-            const emoGroup = {};
-            data.forEach(r => {
-                const key = r.emotion_entry || '未填';
-                if (!emoGroup[key]) emoGroup[key] = { trades: 0, wins: 0, totalPnl: 0 };
-                emoGroup[key].trades++;
-                if (r.pnl_percent !== null) {
-                    if (r.pnl_percent > 0) emoGroup[key].wins++;
-                    emoGroup[key].totalPnl += r.pnl_percent;
-                }
-            });
-
-            const entries = Object.entries(emoGroup).sort((a, b) => b[1].trades - a[1].trades);
-
-            if (entries.length === 0) {
-                document.getElementById('notesEmotionStats').innerHTML = '<div class="notes-alert notes-alert-info">尚無進場情緒資料</div>';
-                return;
-            }
-
-            document.getElementById('notesEmotionStats').innerHTML = `
-                <table class="notes-strategy-table">
-                    <thead><tr><th>進場情緒</th><th>次數</th><th>勝率</th><th>平均報酬</th></tr></thead>
-                    <tbody>
-                        ${entries.map(([k, v]) => {
-                            const wr = v.trades > 0 ? ((v.wins / v.trades) * 100).toFixed(1) : 0;
-                            const avgP = v.trades > 0 ? (v.totalPnl / v.trades).toFixed(2) : '-';
-                            return `<tr><td>${notesEscapeHTML(k)}</td><td>${v.trades}</td><td>${wr}%</td><td>${avgP}%</td></tr>`;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function notesUpdateFilters() {
-            const symbols = [...new Set(notesRecords.map(r => r.symbol).filter(Boolean))].sort();
-            const reasonTypes = [...new Set(notesRecords.map(r => r.pre_reason_type).filter(Boolean))].sort();
-            const marketEnvs = [...new Set(notesRecords.map(r => r.market_env).filter(Boolean))].sort();
-
-            const symbolSelect = document.getElementById('notesFilterSymbol');
-            if (symbolSelect) {
-                const current = symbolSelect.value;
-                symbolSelect.innerHTML = '<option value="">全部</option>' +
-                    symbols.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
-            }
-
-            const reasonSelect = document.getElementById('notesFilterReasonType');
-            if (reasonSelect) {
-                const current = reasonSelect.value;
-                reasonSelect.innerHTML = '<option value="">全部</option>' +
-                    reasonTypes.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
-            }
-
-            const envSelect = document.getElementById('notesFilterMarketEnv');
-            if (envSelect) {
-                const current = envSelect.value;
-                envSelect.innerHTML = '<option value="">全部</option>' +
-                    marketEnvs.map(s => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
-            }
-        }
-
-        function notesUpdateRecordsTable(data) {
-            const sorted = [...data].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-
-            const tbody = document.getElementById('notesRecordsBody');
-            if (!tbody) return;
-
-            if (sorted.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="14" style="text-align: center; padding: 30px;">尚無交易紀錄</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = sorted.map(r => {
-                const pnlClass = r.pnl_percent > 0 ? 'notes-pnl-positive' : (r.pnl_percent < 0 ? 'notes-pnl-negative' : '');
-                const resultClass = r.result_type === '策略對' ? 'notes-result-win' : (r.result_type === '策略錯' || r.result_type === '執行錯' ? 'notes-result-loss' : '');
-
-                return `
-                    <tr>
-                        <td>${r.date || '-'}</td>
-                        <td>${notesEscapeHTML(r.symbol) || '-'}</td>
-                        <td>${notesEscapeHTML(r.name) || '-'}</td>
-                        <td>${r.direction || '-'}</td>
-                        <td>${r.trade_type || '-'}</td>
-                        <td>${r.pre_reason_type || '-'}</td>
-                        <td>${r.entry_price ? r.entry_price.toFixed(2) : '-'}</td>
-                        <td>${r.exit_price ? r.exit_price.toFixed(2) : '-'}</td>
-                        <td class="${pnlClass}">${r.pnl_percent !== null ? r.pnl_percent.toFixed(2) + '%' : '-'}</td>
-                        <td>${r.rr !== null ? r.rr.toFixed(2) : '-'}</td>
-                        <td><span class="${resultClass}">${r.result_type || '-'}</span></td>
-                        <td>${r.behavior_error !== '無' ? r.behavior_error : '-'}</td>
-                        <td>${r.emotion_entry || '-'}</td>
-                        <td>
-                            <button class="notes-btn notes-btn-small notes-btn-danger" onclick="notesDeleteRecord('${r.createdAt}')">刪除</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        window.notesDeleteRecord = function(createdAt) {
-            if (!confirm('確定要刪除此紀錄？')) return;
-            notesRecords = notesRecords.filter(r => r.createdAt !== createdAt);
-            notesSaveToStorage();
-            notesUpdateDashboard();
-        };
-
-        function notesSaveToStorage() {
-            localStorage.setItem('notesTradeRecords', JSON.stringify(notesRecords));
-        }
-
-        function notesLoadFromStorage() {
-            const stored = localStorage.getItem('notesTradeRecords');
-            if (stored) {
-                try {
-                    notesRecords = JSON.parse(stored);
-                    console.log(`✅ 成功載入 ${notesRecords.length} 筆交易記錄`);
-                } catch (e) {
-                    console.error('載入記錄失敗:', e);
-                    notesRecords = [];
-                }
-            }
-        }
-
-        window.notesExportCSV = function() {
-            if (notesRecords.length === 0) {
-                alert('沒有紀錄可匯出');
-                return;
-            }
-            const allCols = [...NOTES_RECORD_COLS, ...NOTES_TRADE_COLS, 'createdAt'];
-            const rows = [allCols.join(',')].concat(
-                notesRecords.map(r => {
-                    return allCols.map(col => notesQuoteForCSV(r[col])).join(',');
-                })
-            ).join('\n');
-
-            notesDownloadText('trade_records.csv', rows);
-        };
-
-        window.notesExportJSON = function() {
-            if (notesRecords.length === 0) {
-                alert('沒有紀錄可匯出');
-                return;
-            }
-            const dataStr = JSON.stringify({
-                version: '5.0',
-                exportedAt: new Date().toISOString(),
-                records: notesRecords
-            }, null, 2);
-            notesDownloadText('trade_records_backup.json', dataStr);
-        };
-
-        window.notesImportJSON = function(event) {
-            const file = event.target.files[0];
-            if (!file) {
-                alert('請先選擇 JSON 檔案');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                try {
-                    const parsed = JSON.parse(ev.target.result);
-                    if (parsed.records && Array.isArray(parsed.records)) {
-                        notesRecords = notesRecords.concat(parsed.records);
-                    } else if (Array.isArray(parsed)) {
-                        notesRecords = notesRecords.concat(parsed);
-                    } else {
-                        alert('匯入格式不符合預期');
-                        return;
-                    }
-                    notesSaveToStorage();
-                    notesUpdateDashboard();
-                    alert('✅ 匯入完成');
-                } catch (e) {
-                    alert('JSON 解析失敗：' + e.message);
-                }
-            };
-            reader.readAsText(file, 'utf-8');
-            event.target.value = '';
-        };
-
-        function notesEscapeHTML(str) {
-            if (!str && str !== 0) return '';
-            return String(str)
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;");
-        }
-
-        function notesQuoteForCSV(val) {
-            if (val == null) return '';
-            const s = String(val).replace(/"/g, '""');
-            return `"${s}"`;
-        }
-
-        function notesDownloadText(filename, text) {
-            const blob = new Blob(['\ufeff' + text], { type: 'text/csv;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    </script>
+      });
+    }
+    dropdown.classList.add('active');
+  }
+
+  function hideDrop() {
+    dropdown.classList.remove('active');
+    dropdown.innerHTML = '';
+    hiIdx = -1;
+  }
+
+  function highlight(dir) {
+    const items = dropdown.querySelectorAll('.search-dropdown-item');
+    if (!items.length) return;
+    hiIdx = Math.max(0, Math.min(hiIdx + dir, items.length - 1));
+    items.forEach((el, i) => el.classList.toggle('highlighted', i === hiIdx));
+    items[hiIdx]?.scrollIntoView({ block: 'nearest' });
+  }
+
+  input.addEventListener('input', debounce(async () => {
+    await refresh();
+    const q = input.value.trim();
+    if (!q) { hideDrop(); return; }
+    renderDrop(filter(q));
+  }, 180));
+
+  input.addEventListener('focus', async () => {
+    await refresh();
+    const q = input.value.trim();
+    if (q) renderDrop(filter(q));
+  });
+
+  input.addEventListener('blur', () => setTimeout(hideDrop, 160));
+
+  input.addEventListener('keydown', e => {
+    if (!dropdown.classList.contains('active')) return;
+    if (e.key === 'ArrowDown')  { e.preventDefault(); highlight(1); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); highlight(-1); }
+    else if (e.key === 'Enter' && hiIdx >= 0) {
+      e.preventDefault();
+      const code = dropdown.querySelectorAll('.search-dropdown-item')[hiIdx]?.dataset.code;
+      if (code) { input.value = code; hideDrop(); onSelect && onSelect(code); }
+    }
+    else if (e.key === 'Escape') hideDrop();
+  });
+}
+
+// =====================================================
+// Toast 通知
+// =====================================================
+
+let _toastTimer = null;
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    el.classList.remove('show');
+  }, type === 'warning' ? 4000 : 2200);
+
+  // 觸覺反饋
+  if ('vibrate' in navigator) {
+    if (type === 'success')      navigator.vibrate(40);
+    else if (type === 'error')   navigator.vibrate([60, 50, 60]);
+    else if (type === 'warning') navigator.vibrate([80, 60, 80, 60, 80]);
+  }
+}
+
+// =====================================================
+// 深色模式
+// =====================================================
+
+function toggleDarkMode(enabled) {
+  document.body.classList.toggle('dark', enabled);
+  localStorage.setItem('darkMode', enabled ? '1' : '0');
+  // 重繪 Canvas（顏色跟隨深色/淺色模式）
+  const trades = DB.getTrades();
+  if (trades.length) drawEquityCurve(trades);
+}
+
+function applyDarkModeOnLoad() {
+  const saved = localStorage.getItem('darkMode');
+  // 未設定時，跟隨系統
+  const prefersDark = saved !== null
+    ? saved === '1'
+    : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (prefersDark) document.body.classList.add('dark');
+}
+
+// =====================================================
+// 手勢滑動切換分頁
+// =====================================================
+
+const TAB_ORDER = ['premarket', 'trade', 'stats', 'settings'];
+let _touchStartX = 0;
+let _touchStartY = 0;
+
+document.querySelector('.app-container').addEventListener('touchstart', e => {
+  _touchStartX = e.touches[0].clientX;
+  _touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.querySelector('.app-container').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _touchStartX;
+  const dy = e.changedTouches[0].clientY - _touchStartY;
+  // 水平滑動才觸發（避免誤觸垂直捲動）
+  if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
+  const activeNav = document.querySelector('.nav-item.active');
+  if (!activeNav) return;
+  const currentTab = activeNav.id.replace('nav-', '');
+  const idx = TAB_ORDER.indexOf(currentTab);
+  if (dx < 0 && idx < TAB_ORDER.length - 1) switchTab(TAB_ORDER[idx + 1]); // 左滑 → 下一頁
+  if (dx > 0 && idx > 0) switchTab(TAB_ORDER[idx - 1]);                     // 右滑 → 上一頁
+}, { passive: true });
+
+// =====================================================
+// 初始化
+// =====================================================
+
+applyDarkModeOnLoad();
+renderStrategyOptions();
+
+// 交易頁 symbol 輸入 autocomplete
+setupAutocomplete('symbol', 'dropdown-symbol');
+
+// 盤前頁 watchSymbol 輸入 autocomplete
+setupAutocomplete('watchSymbol', 'dropdown-watchSymbol');
+
+// =====================================================
+// PWA：Service Worker 註冊
+// =====================================================
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('[SW] 已註冊', reg.scope))
+      .catch(err => console.warn('[SW] 註冊失敗', err));
+  });
+}
+
+// PWA：安裝提示 Banner
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') {
+      document.getElementById('install-banner').style.display = 'none';
+    }
+    deferredPrompt = null;
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('install-banner').style.display = 'none';
+  deferredPrompt = null;
+}
+
+// 已安裝後隱藏 Banner
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+});
+
+</script>
 </body>
-
 </html>
