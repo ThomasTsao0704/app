@@ -43,8 +43,7 @@ body {
   flex-shrink: 0;
 }
 #header h1 { font-size: 13px; font-weight: 600; white-space: nowrap; }
-#refresh-btn {
-  margin-left: auto;
+.header-btn {
   background: var(--bg3);
   border: 1px solid var(--border);
   color: var(--accent);
@@ -54,7 +53,8 @@ body {
   font-size: 12px;
   font-family: inherit;
 }
-#refresh-btn:hover { background: #21262d; }
+.header-btn:hover { background: #21262d; }
+#refresh-btn { margin-left: auto; }
 #refresh-btn:disabled { opacity: .5; cursor: default; }
 #updated { font-size: 11px; color: var(--muted); white-space: nowrap; }
 #sync-badge {
@@ -184,6 +184,65 @@ body {
 .rf-rise  { font-size: 11px; color: var(--red);   }
 .rf-fall  { font-size: 11px; color: var(--green); }
 .rf-lbl   { font-size: 10px; color: var(--muted); }
+
+/* ─── 指標線樣式設定視窗 ─────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.6);
+  display: none;
+  align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 380px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { font-size: 13px; font-weight: 600; }
+.modal-close {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 14px; line-height: 1;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.setting-row { display: flex; align-items: center; gap: 10px; }
+.setting-row .lbl { width: 64px; font-size: 12px; flex-shrink: 0; }
+.setting-row input[type="color"] {
+  width: 30px; height: 24px; padding: 0; border: 1px solid var(--border);
+  border-radius: 4px; background: none; cursor: pointer;
+}
+.setting-row select {
+  flex: 1;
+  background: var(--bg3); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 11px; font-family: inherit; padding: 4px 6px;
+}
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+.modal-footer button {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  padding: 5px 14px; border-radius: 5px; cursor: pointer;
+  font-size: 12px; font-family: inherit;
+}
+.modal-footer button:hover { background: #21262d; }
+#settings-save { color: var(--accent); border-color: rgba(88,166,255,.4); }
 </style>
 </head>
 <body>
@@ -192,7 +251,8 @@ body {
   <h1>🇹🇼 台灣股市 60分K</h1>
   <span id="sync-badge">⇄ 準備中</span>
   <span id="updated"></span>
-  <button id="refresh-btn" onclick="refreshAll(true)">⟳ 更新</button>
+  <button id="refresh-btn" class="header-btn" onclick="refreshAll(true)">⟳ 更新</button>
+  <button id="settings-btn" class="header-btn" onclick="openSettings()">⚙ 設定</button>
 </div>
 
 <div id="summary-bar">
@@ -293,10 +353,26 @@ body {
 
 </div><!-- /charts-area -->
 
+<!-- ── 指標線樣式設定視窗 ── -->
+<div id="settings-modal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>指標線顏色 / 樣式設定</h2>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body" id="settings-body"></div>
+    <div class="modal-footer">
+      <button id="settings-reset" onclick="resetSettings()">還原預設</button>
+      <button id="settings-save" onclick="saveSettings()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API             = "https://script.google.com/macros/s/AKfycbzOlOQ40V42Ib3hIFl6EAtmKmGkadm5SIhj0fmcIyMCK8DfIw2Us_sAtOyLKdhVIUkv/exec";
 const MARKETS         = ["TSE", "OTC", "FITXN"];
 const AUTO_REFRESH_MS = 60000;   // 自動更新間隔（對齊後端 60 秒快取）；設 0 可關閉
+const DEFAULT_DAYS    = 5;       // 三張圖首次載入時固定顯示最近幾個交易日
 
 // FITXN 台股現貨開盤時段（09:00–13:30）底色：黑底換白底
 // ★ 此色塊圖層現在畫在圖表「下方」（圖表背景已設透明），K棒/格線會疊在上面完整顯示，不會被蓋住
@@ -308,17 +384,28 @@ const series    = {};   // { market: { candle, vol, lines: {key: series} } }
 const fitted    = {};   // { market: bool } 只在首次載入時 fitContent，之後保留使用者縮放
 
 /* 疊在 K 線上的指標線（EMA / AVG 家族）。
-   key 需對應後端資料欄位；新增/移除線只要改這張表即可。 */
+   key 需對應後端資料欄位；新增/移除線只要改這張表即可。
+   color / style 可在「⚙ 設定」視窗中調整，會存進 localStorage。
+   style 對應 LightweightCharts.LineStyle：0實線 1點線 2虛線 3長虛線 4疏點線 */
 const LINE_SERIES = [
-  { key: 'ema17',  label: 'EMA17',  color: '#f85149', dashed: false },
-  { key: 'ema34',  label: 'EMA34',  color: '#3fb950', dashed: false },
-  { key: 'avg',    label: 'AVG',    color: '#34d399', dashed: true  },
-  { key: 'avg01',  label: 'AVG01',  color: '#ff8c42', dashed: false },
-  { key: 'avg12',  label: 'AVG12',  color: '#38bdf8', dashed: false },
-  { key: 'avg23',  label: 'AVG23',  color: '#f472b6', dashed: false },
-  { key: 'avg012', label: 'AVG012', color: '#a3e635', dashed: true  },
-  { key: 'avg123', label: 'AVG123', color: '#94a3b8', dashed: true  }
+  { key: 'ema17',  label: 'EMA17',  color: '#f85149', style: LightweightCharts.LineStyle.Solid  },
+  { key: 'ema34',  label: 'EMA34',  color: '#3fb950', style: LightweightCharts.LineStyle.Solid  },
+  { key: 'avg',    label: 'AVG',    color: '#34d399', style: LightweightCharts.LineStyle.Dashed },
+  { key: 'avg01',  label: 'AVG01',  color: '#ff8c42', style: LightweightCharts.LineStyle.Solid  },
+  { key: 'avg12',  label: 'AVG12',  color: '#38bdf8', style: LightweightCharts.LineStyle.Solid  },
+  { key: 'avg23',  label: 'AVG23',  color: '#f472b6', style: LightweightCharts.LineStyle.Solid  },
+  { key: 'avg012', label: 'AVG012', color: '#a3e635', style: LightweightCharts.LineStyle.Dashed },
+  { key: 'avg123', label: 'AVG123', color: '#94a3b8', style: LightweightCharts.LineStyle.Dashed }
 ];
+const DEFAULT_LINE_SERIES = LINE_SERIES.map(cfg => ({ ...cfg }));   // 供「還原預設」使用
+const LINE_STYLE_OPTIONS = [
+  { value: LightweightCharts.LineStyle.Solid,        label: '實線'   },
+  { value: LightweightCharts.LineStyle.Dotted,       label: '點線'   },
+  { value: LightweightCharts.LineStyle.Dashed,       label: '虛線'   },
+  { value: LightweightCharts.LineStyle.LargeDashed,  label: '長虛線' },
+  { value: LightweightCharts.LineStyle.SparseDotted, label: '疏點線' }
+];
+const LINE_SETTINGS_KEY = 'twDashboardLineSettings';
 const hiddenKeys = new Set();   // 全域隱藏的線（點圖例切換，三張圖一致）
 let isSyncingCross = false;
 let isSyncingRange = false;
@@ -436,6 +523,26 @@ function lineData(data, key) {
     data.filter(d => d[key] != null)
         .map(d => ({ time: toUnix(d.date, d.time), value: d[key] }))
   );
+}
+
+// 台灣時間的年月日字串（fake-UTC 直接讀 UTC 即為台灣時間），用來切分交易日
+function dayKey(ts) {
+  const d = new Date(ts * 1000);
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+}
+
+// 依「已排序的 K 棒時間」算出最近 n 個交易日的時間範圍（給 setVisibleRange 用）
+function lastNDaysRange(times, n = DEFAULT_DAYS) {
+  if (!times.length) return null;
+  const dayStarts = [];
+  let lastKey = null;
+  for (const t of times) {
+    const key = dayKey(t);
+    if (key !== lastKey) { dayStarts.push(t); lastKey = key; }   // 每個交易日的第一根K棒
+  }
+  const from = dayStarts.length > n ? dayStarts[dayStarts.length - n] : dayStarts[0];
+  const to   = times[times.length - 1];
+  return { from, to };
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -583,6 +690,97 @@ function toggleLine(key) {
 }
 
 /* ══════════════════════════════════════════════════════════
+   指標線顏色 / 樣式設定視窗（⚙ 設定按鈕）
+   設定值存進 localStorage，重新整理頁面後仍會套用
+══════════════════════════════════════════════════════════ */
+function loadSavedLineSettings() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(LINE_SETTINGS_KEY)); }
+  catch (e) { return; }
+  if (!saved) return;
+  LINE_SERIES.forEach(cfg => {
+    const s = saved[cfg.key];
+    if (s?.color) cfg.color = s.color;
+    if (s?.style != null) cfg.style = s.style;
+  });
+}
+
+function persistLineSettings() {
+  const out = {};
+  LINE_SERIES.forEach(cfg => { out[cfg.key] = { color: cfg.color, style: cfg.style }; });
+  localStorage.setItem(LINE_SETTINGS_KEY, JSON.stringify(out));
+}
+
+// 把 LINE_SERIES 目前的顏色/樣式套到已存在的圖表線條與圖例上（不重建圖表）
+function applyLineSettingsToCharts() {
+  LINE_SERIES.forEach(cfg => {
+    MARKETS.forEach(m => {
+      series[m]?.lines?.[cfg.key]?.applyOptions({ color: cfg.color, lineStyle: cfg.style });
+    });
+  });
+  MARKETS.forEach(m => buildLegend(m));
+}
+
+function buildSettingsBody() {
+  const body = document.getElementById('settings-body');
+  body.innerHTML = '';
+  LINE_SERIES.forEach(cfg => {
+    const row = document.createElement('div');
+    row.className = 'setting-row';
+    row.innerHTML = `
+      <span class="lbl">${cfg.label}</span>
+      <input type="color" data-key="${cfg.key}" data-field="color" value="${cfg.color}">
+      <select data-key="${cfg.key}" data-field="style">
+        ${LINE_STYLE_OPTIONS.map(o =>
+          `<option value="${o.value}"${o.value === cfg.style ? ' selected' : ''}>${o.label}</option>`
+        ).join('')}
+      </select>
+    `;
+    body.appendChild(row);
+  });
+}
+
+function openSettings() {
+  buildSettingsBody();
+  document.getElementById('settings-modal').style.display = 'flex';
+}
+
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+
+function saveSettings() {
+  const body = document.getElementById('settings-body');
+  body.querySelectorAll('input[data-field="color"]').forEach(inp => {
+    const cfg = LINE_SERIES.find(c => c.key === inp.dataset.key);
+    if (cfg) cfg.color = inp.value;
+  });
+  body.querySelectorAll('select[data-field="style"]').forEach(sel => {
+    const cfg = LINE_SERIES.find(c => c.key === sel.dataset.key);
+    if (cfg) cfg.style = Number(sel.value);
+  });
+  applyLineSettingsToCharts();
+  persistLineSettings();
+  closeSettings();
+}
+
+function resetSettings() {
+  LINE_SERIES.forEach((cfg, i) => {
+    cfg.color = DEFAULT_LINE_SERIES[i].color;
+    cfg.style = DEFAULT_LINE_SERIES[i].style;
+  });
+  applyLineSettingsToCharts();
+  localStorage.removeItem(LINE_SETTINGS_KEY);
+  buildSettingsBody();
+}
+
+document.getElementById('settings-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'settings-modal') closeSettings();
+});
+
+loadSavedLineSettings();   // 頁面載入時先套用先前存的設定，之後才建立圖表
+
+/* ══════════════════════════════════════════════════════════
    建立圖表（每個 market 只執行一次）
    ★ 修正原本每次更新都 remove + 重建、且 ResizeObserver
      持續累積不釋放的記憶體洩漏問題。
@@ -659,8 +857,7 @@ function createChart(market) {
     lines[cfg.key] = chart.addLineSeries({
       color:            cfg.color,
       lineWidth:        1,
-      lineStyle:        cfg.dashed ? LightweightCharts.LineStyle.Dashed
-                                   : LightweightCharts.LineStyle.Solid,
+      lineStyle:        cfg.style,
       priceLineVisible: false,
       lastValueVisible: false,
       visible:          !hiddenKeys.has(cfg.key)
@@ -715,8 +912,11 @@ function applyData(market, data) {
   if (market === 'FITXN') fitxnBarTimes = cData.map(c => c.time);
 
   // 只在首次載入自動縮放，之後保留使用者當下的縮放/位移
+  // 固定顯示最近 DEFAULT_DAYS 個交易日的區間（沒有足夠天數就顯示全部）
   if (!fitted[market]) {
-    charts[market].timeScale().fitContent();
+    const range = lastNDaysRange(cData.map(c => c.time));
+    if (range) charts[market].timeScale().setVisibleRange(range);
+    else       charts[market].timeScale().fitContent();
     fitted[market] = true;
   }
 
