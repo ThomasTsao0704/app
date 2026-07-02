@@ -1,1 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台灣股市 60分K 分析儀表板</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root {
+  --bg:      #0d1117;
+  --bg2:     #161b22;
+  --bg3:     #1c2128;
+  --border:  #30363d;
+  --text:    #e6edf3;
+  --muted:   #7d8590;
+  --accent:  #58a6ff;
+  --green:   #3fb950;
+  --red:     #f85149;
+  --ema17:   var(--red);
+  --ema34:   var(--green);
+  --avg:     #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'SF Mono','Fira Code','Consolas',monospace;
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#header h1 { font-size: 13px; font-weight: 600; white-space: nowrap; }
+#refresh-btn {
+  margin-left: auto;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 4px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+}
+#refresh-btn:hover { background: #21262d; }
+#refresh-btn:disabled { opacity: .5; cursor: default; }
+#updated { font-size: 11px; color: var(--muted); white-space: nowrap; }
+#sync-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(88,166,255,.1);
+  color: var(--accent);
+  border: 1px solid rgba(88,166,255,.3);
+  white-space: nowrap;
+}
+
+#summary-bar {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 20px;
+  border-right: 1px solid var(--border);
+  min-width: 160px;
+}
+.summary-card .lbl  { font-size: 10px; color: var(--muted); letter-spacing: .6px; }
+.summary-card .price{ font-size: 17px; font-weight: 600; }
+.summary-card .sub  { font-size: 11px; color: var(--muted); }
+.up   { color: var(--red);   }
+.down { color: var(--green); }
+.flat { color: var(--muted); }
+
+/* ─── 圖表區 ─────────────────────────────────────────
+   Row 1 (上排): TSE | OTC  → grid 兩欄，各佔 50%
+   Row 2 (下排): FITXN      → 全寬
+─────────────────────────────────────────────────── */
+#charts-area {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  min-height: 0;
+  gap: 1px;
+  background: var(--border);
+}
+#row-stocks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  min-height: 0;
+}
+#row-futures {
+  min-height: 0;
+  display: flex;
+}
+
+.chart-panel {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.market-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  padding: 2px 7px; border-radius: 4px;
+  background: var(--bg3); border: 1px solid var(--border);
+}
+.chart-info { font-size: 11px; color: var(--muted); }
+.ohlc-display { display: flex; gap: 8px; margin-left: auto; font-size: 11px; }
+.ohlc-display span  { color: var(--muted); }
+.ohlc-display strong{ color: var(--text); }
+
+.legend {
+  display: flex; gap: 10px;
+  padding: 3px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); cursor: pointer; user-select: none; }
+.legend-item.static { cursor: default; }
+.legend-item.off { opacity: .3; }
+.legend-item:not(.static):hover { color: var(--text); }
+.legend-dot  { width: 12px; height: 2px; border-radius: 1px; }
+
+.chart-body { flex: 1; position: relative; min-height: 0; }
+.chart-container { position: absolute; inset: 0; z-index: 1; }
+
+.loading-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg); z-index: 10;
+  font-size: 12px; color: var(--muted);
+  flex-direction: column; gap: 10px;
+}
+.spinner {
+  width: 22px; height: 22px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.rf-bar {
+  display: none;
+  align-items: center; gap: 8px;
+  padding: 3px 10px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.rf-track { flex: 1; height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.rf-fill  { height: 100%; background: var(--red);   border-radius: 2px; transition: width .3s; }
+.rf-rise  { font-size: 11px; color: var(--red);   }
+.rf-fall  { font-size: 11px; color: var(--green); }
+.rf-lbl   { font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>🇹🇼 台灣股市 60分K</h1>
+  <span id="sync-badge">⇄ 準備中</span>
+  <span id="updated"></span>
+  <button id="refresh-btn" onclick="refreshAll(true)">⟳ 更新</button>
+</div>
+
+<div id="summary-bar">
+  <div class="summary-card">
+    <div class="lbl">TSE 加權指數</div>
+    <div class="price flat" id="sum-TSE-price">—</div>
+    <div class="sub" id="sum-TSE-sub">載入中…</div>
+  </div>
+  <div class="summary-card">
+    <div class="lbl">OTC 櫃買指數</div>
+    <div class="price flat" id="sum-OTC-price">—</div>
+    <div class="sub" id="sum-OTC-sub">載入中…</div>
+  </div>
+  <div class="summary-card">
+    <div class="lbl">FITXN 台股期貨近月</div>
+    <div class="price flat" id="sum-FITXN-price">—</div>
+    <div class="sub" id="sum-FITXN-sub">載入中…</div>
+  </div>
+</div>
+
+<div id="charts-area">
+
+  <!-- ── 上排：TSE | OTC 並排 ── -->
+  <div id="row-stocks">
+
+    <div class="chart-panel" id="panel-TSE">
+      <div class="chart-header">
+        <span class="market-tag">TSE</span>
+        <span class="chart-info">加權指數 · 60分K</span>
+        <div class="ohlc-display">
+          <span>O <strong id="o-TSE">—</strong></span>
+          <span>H <strong id="h-TSE">—</strong></span>
+          <span>L <strong id="l-TSE">—</strong></span>
+          <span>C <strong id="c-TSE">—</strong></span>
+        </div>
+      </div>
+      <div class="legend" id="legend-TSE"></div>
+      <div class="chart-body">
+        <div class="loading-overlay" id="load-TSE"><div class="spinner"></div>載入 TSE…</div>
+        <div class="chart-container" id="chart-TSE"></div>
+      </div>
+      <div class="rf-bar" id="rf-TSE">
+        <span class="rf-rise" id="rf-rise-TSE">↑ 0</span>
+        <div class="rf-track"><div class="rf-fill" id="rf-fill-TSE" style="width:50%"></div></div>
+        <span class="rf-fall" id="rf-fall-TSE">↓ 0</span>
+        <span class="rf-lbl">漲跌家數</span>
+      </div>
+    </div>
+
+    <div class="chart-panel" id="panel-OTC">
+      <div class="chart-header">
+        <span class="market-tag">OTC</span>
+        <span class="chart-info">櫃買指數 · 60分K</span>
+        <div class="ohlc-display">
+          <span>O <strong id="o-OTC">—</strong></span>
+          <span>H <strong id="h-OTC">—</strong></span>
+          <span>L <strong id="l-OTC">—</strong></span>
+          <span>C <strong id="c-OTC">—</strong></span>
+        </div>
+      </div>
+      <div class="legend" id="legend-OTC"></div>
+      <div class="chart-body">
+        <div class="loading-overlay" id="load-OTC"><div class="spinner"></div>載入 OTC…</div>
+        <div class="chart-container" id="chart-OTC"></div>
+      </div>
+      <div class="rf-bar" id="rf-OTC">
+        <span class="rf-rise" id="rf-rise-OTC">↑ 0</span>
+        <div class="rf-track"><div class="rf-fill" id="rf-fill-OTC" style="width:50%"></div></div>
+        <span class="rf-fall" id="rf-fall-OTC">↓ 0</span>
+        <span class="rf-lbl">漲跌家數</span>
+      </div>
+    </div>
+
+  </div><!-- /row-stocks -->
+
+  <!-- ── 下排：FITXN 全寬 ── -->
+  <div id="row-futures">
+    <div class="chart-panel" id="panel-FITXN">
+      <div class="chart-header">
+        <span class="market-tag">FITXN</span>
+        <span class="chart-info">台股期貨近月 · 60分K</span>
+        <div class="ohlc-display">
+          <span>O <strong id="o-FITXN">—</strong></span>
+          <span>H <strong id="h-FITXN">—</strong></span>
+          <span>L <strong id="l-FITXN">—</strong></span>
+          <span>C <strong id="c-FITXN">—</strong></span>
+        </div>
+      </div>
+      <div class="legend" id="legend-FITXN"></div>
+      <div class="chart-body">
+        <div class="loading-overlay" id="load-FITXN"><div class="spinner"></div>載入 FITXN…</div>
+        <!-- 台股現貨開盤時段底色（09:00–13:30），pointer-events:none 不影響互動 -->
+        <canvas id="bg-canvas-FITXN" style="position:absolute;inset:0;pointer-events:none;z-index:0;"></canvas>
+        <div class="chart-container" id="chart-FITXN"></div>
+      </div>
+    </div>
+  </div><!-- /row-futures -->
+
+</div><!-- /charts-area -->
+
+<script>
+const API             = "https://script.google.com/macros/s/AKfycbzOlOQ40V42Ib3hIFl6EAtmKmGkadm5SIhj0fmcIyMCK8DfIw2Us_sAtOyLKdhVIUkv/exec";
+const MARKETS         = ["TSE", "OTC", "FITXN"];
+const AUTO_REFRESH_MS = 60000;   // 自動更新間隔（對齊後端 60 秒快取）；設 0 可關閉
+
+// FITXN 台股現貨開盤時段（09:00–13:30）底色：黑底換白底
+// ★ 此色塊圖層現在畫在圖表「下方」（圖表背景已設透明），K棒/格線會疊在上面完整顯示，不會被蓋住
+const SESSION_BG_COLOR = 'rgba(255,255,255,1)';
+let   fitxnBarTimes    = [];   // FITXN 每根 K 棒的時間戳（畫開盤底色用）
+
+const charts    = {};   // { market: IChartApi }
+const series    = {};   // { market: { candle, vol, lines: {key: series} } }
+const fitted    = {};   // { market: bool } 只在首次載入時 fitContent，之後保留使用者縮放
+
+/* 疊在 K 線上的指標線（EMA / AVG 家族）。
+   key 需對應後端資料欄位；新增/移除線只要改這張表即可。 */
+const LINE_SERIES = [
+  { key: 'ema17',  label: 'EMA17',  color: '#f85149', dashed: false },
+  { key: 'ema34',  label: 'EMA34',  color: '#3fb950', dashed: false },
+  { key: 'avg',    label: 'AVG',    color: '#34d399', dashed: true  },
+  { key: 'avg01',  label: 'AVG01',  color: '#ff8c42', dashed: false },
+  { key: 'avg12',  label: 'AVG12',  color: '#38bdf8', dashed: false },
+  { key: 'avg23',  label: 'AVG23',  color: '#f472b6', dashed: false },
+  { key: 'avg012', label: 'AVG012', color: '#a3e635', dashed: true  },
+  { key: 'avg123', label: 'AVG123', color: '#94a3b8', dashed: true  }
+];
+const hiddenKeys = new Set();   // 全域隱藏的線（點圖例切換，三張圖一致）
+let isSyncingCross = false;
+let isSyncingRange = false;
+let autoTimer      = null;
+
+/* ══════════════════════════════════════════════════════════
+   時間解析
+   ★ Fake-UTC trick：
+     台灣時間 09:00 → 存成 09:00Z（假裝是 UTC）
+     → lightweight-charts 顯示 "09:00"（正確！）
+     不用 +08:00，否則圖表會顯示 01:00（UTC）
+══════════════════════════════════════════════════════════ */
+function normalizeDate(raw) {
+  if (!raw) return null;
+  if (raw instanceof Date) {
+    const y = raw.getFullYear();
+    const m = String(raw.getMonth()+1).padStart(2,'0');
+    const d = String(raw.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(raw).trim();
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(s)) return s.replace(/\//g,'-');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s))   return s;
+  return null;
+}
+
+function normalizeTime(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  // Google Sheets 小數時間（0~1 代表一天）
+  if (typeof raw === 'number' && raw >= 0 && raw < 1) {
+    const totalMin = Math.round(raw * 24 * 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  }
+  const s = String(raw).trim();
+  // "H:mm" 或 "HH:mm" 或 "HH:mm:ss"
+  if (/^\d{1,2}:\d{2}/.test(s)) {
+    const [h, mi] = s.split(':');
+    return String(parseInt(h)).padStart(2,'0') + ':' + mi.substring(0,2);
+  }
+  // 純數字 930 / 0930 / 1300
+  if (/^\d{3,4}$/.test(s)) {
+    const p = s.padStart(4,'0');
+    return p.substring(0,2) + ':' + p.substring(2,4);
+  }
+  return null;
+}
+
+function toUnix(date, time) {
+  const d = normalizeDate(date);
+  const t = normalizeTime(time);
+  if (!d || !t) return null;
+  const ts = Date.parse(`${d}T${t}:00Z`);  // ← fake-UTC
+  return isNaN(ts) ? null : Math.floor(ts / 1000);
+}
+
+/* ══════════════════════════════════════════════════════════
+   tickMarkFormatter — 直接讀 UTC 欄位就是台灣時間
+══════════════════════════════════════════════════════════ */
+function twTickFormatter(unixTs, tickMarkType) {
+  const d  = new Date(unixTs * 1000);
+  const Y  = d.getUTCFullYear();
+  const Mo = String(d.getUTCMonth()+1).padStart(2,'0');
+  const D  = String(d.getUTCDate()).padStart(2,'0');
+  const H  = String(d.getUTCHours()).padStart(2,'0');
+  const Mi = String(d.getUTCMinutes()).padStart(2,'0');
+  // 0=Year 1=Month 2=DayOfMonth 3=Time
+  if (tickMarkType <= 1) return `${Y}/${Mo}`;
+  if (tickMarkType === 2) return `${Mo}/${D}`;
+  return `${H}:${Mi}`;
+}
+
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('zh-TW',{ minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+/* ══════════════════════════════════════════════════════════
+   資料整形共用函式（取代原本重複 5 次的去重/排序）
+══════════════════════════════════════════════════════════ */
+// 為每筆資料算好 time，過濾無效值，依時間排序並去重（同一時間留第一筆）
+function dedupSort(arr) {
+  arr.sort((a, b) => a.time - b.time);
+  const seen = new Set();
+  const out  = [];
+  for (const it of arr) {
+    if (it.time == null || seen.has(it.time)) continue;
+    seen.add(it.time);
+    out.push(it);
+  }
+  return out;
+}
+
+function candleData(data) {
+  return dedupSort(
+    data.filter(d => d.open != null)
+        .map(d => ({ time: toUnix(d.date, d.time),
+                     open: d.open, high: d.high, low: d.low, close: d.close }))
+  );
+}
+
+function volData(data) {
+  return dedupSort(
+    data.map(d => ({
+      time:  toUnix(d.date, d.time),
+      value: d.volume || 0,
+      color: d.close >= d.open ? 'rgba(239,83,80,.4)' : 'rgba(38,166,154,.4)'
+    }))
+  );
+}
+
+function lineData(data, key) {
+  return dedupSort(
+    data.filter(d => d[key] != null)
+        .map(d => ({ time: toUnix(d.date, d.time), value: d[key] }))
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   同步十字線
+══════════════════════════════════════════════════════════ */
+function syncCrosshair(srcMarket, param) {
+  if (isSyncingCross) return;
+  isSyncingCross = true;
+  MARKETS.forEach(m => {
+    if (m === srcMarket) return;
+    const ch  = charts[m];
+    const ser = series[m]?.candle;
+    if (!ch || !ser) return;
+    if (!param.time || param.point === undefined) {
+      ch.clearCrosshairPosition();
+    } else {
+      try { ch.setCrosshairPosition(param.point.y, param.time, ser); }
+      catch(e) {}
+    }
+  });
+  isSyncingCross = false;
+}
+
+/* ══════════════════════════════════════════════════════════
+   同步時間軸範圍（用實際時間戳 setVisibleRange）
+   → 不管 TSE/OTC/FITXN 圖表寬度是否相同，
+     三張圖顯示的起訖日期區間都完全一致
+══════════════════════════════════════════════════════════ */
+function syncRange(srcMarket, timeRange) {
+  if (isSyncingRange || !timeRange) return;
+  isSyncingRange = true;
+  MARKETS.forEach(m => {
+    if (m === srcMarket) return;
+    try { charts[m]?.timeScale().setVisibleRange(timeRange); }
+    catch(e) {}
+  });
+  isSyncingRange = false;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FITXN 台股現貨開盤時段底色
+   逐根 K 棒判斷：時間落在 09:00–13:30 才上色，
+   相鄰的開盤棒會連成一條連續的淡白底帶。
+   使用 canvas overlay，pointer-events:none 不影響圖表
+══════════════════════════════════════════════════════════ */
+function todMinutes(ts) {                 // 台灣時間的「當日分鐘數」（fake-UTC 直接讀 UTC 即為台灣時間）
+  const d = new Date(ts * 1000);
+  return d.getUTCHours() * 60 + d.getUTCMinutes();
+}
+
+function drawSessionBg() {
+  const ch  = charts['FITXN'];
+  const cvs = document.getElementById('bg-canvas-FITXN');
+  if (!ch || !cvs) return;
+
+  const container = document.getElementById('chart-FITXN');
+  cvs.width  = container.clientWidth;
+  cvs.height = container.clientHeight;
+
+  const ctx = cvs.getContext('2d');
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  if (!fitxnBarTimes.length) return;
+
+  const OPEN = 9 * 60;          // 09:00
+  const CLOSE = 13 * 60 + 30;   // 13:30（不含）
+  const ts = ch.timeScale();
+
+  // 取得可見範圍內每根 K 棒的 x 座標
+  const pts = [];
+  for (const t of fitxnBarTimes) {
+    const x = ts.timeToCoordinate(t);
+    if (x === null) continue;
+    pts.push({ t, x });
+  }
+  if (pts.length < 2) return;
+
+  ctx.fillStyle = SESSION_BG_COLOR;
+
+  for (let i = 0; i < pts.length; i++) {
+    const m = todMinutes(pts[i].t);
+    if (m < OPEN || m >= CLOSE) continue;   // 只畫開盤時段的棒
+
+    // 以與左右鄰棒的中點作為色塊邊界，相鄰開盤棒即可連成一片
+    const x    = pts[i].x;
+    const prev = i > 0                ? pts[i-1].x : x - (pts[i+1].x - x);
+    const next = i < pts.length - 1   ? pts[i+1].x : x + (x - pts[i-1].x);
+    const left  = (prev + x) / 2;
+    const right = (x + next) / 2;
+
+    ctx.fillRect(Math.round(left), 0, Math.round(right - left) + 1, cvs.height);
+  }
+}
+
+function initSessionBg() {
+  const ch = charts['FITXN'];
+  if (!ch) return;
+
+  drawSessionBg();
+
+  // 每次滾動 / 縮放都重繪（圖表只建立一次，故只訂閱一次，不會累積）
+  ch.timeScale().subscribeVisibleTimeRangeChange(drawSessionBg);
+
+  // Resize 重繪（同上，只註冊一次）
+  const container = document.getElementById('chart-FITXN');
+  new ResizeObserver(drawSessionBg).observe(container);
+}
+
+/* ══════════════════════════════════════════════════════════
+   動態圖例（可點擊開關指標線，三張圖一起切換）
+══════════════════════════════════════════════════════════ */
+function buildLegend(market) {
+  const el = document.getElementById(`legend-${market}`);
+  if (!el) return;
+  el.innerHTML = '';
+
+  // K 棒（固定顯示，不可切換）
+  const k = document.createElement('div');
+  k.className = 'legend-item static';
+  k.innerHTML = '<div class="legend-dot" style="background:#ef5350"></div>K棒';
+  el.appendChild(k);
+
+  LINE_SERIES.forEach(cfg => {
+    const item = document.createElement('div');
+    item.className = 'legend-item' + (hiddenKeys.has(cfg.key) ? ' off' : '');
+    item.dataset.key = cfg.key;
+    item.innerHTML =
+      `<div class="legend-dot" style="background:${cfg.color}"></div>${cfg.label}`;
+    item.addEventListener('click', () => toggleLine(cfg.key));
+    el.appendChild(item);
+  });
+}
+
+function toggleLine(key) {
+  if (hiddenKeys.has(key)) hiddenKeys.delete(key);
+  else                     hiddenKeys.add(key);
+  const visible = !hiddenKeys.has(key);
+
+  MARKETS.forEach(m => {
+    series[m]?.lines?.[key]?.applyOptions({ visible });
+    const item = document
+      .getElementById(`legend-${m}`)
+      ?.querySelector(`.legend-item[data-key="${key}"]`);
+    if (item) item.classList.toggle('off', !visible);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   建立圖表（每個 market 只執行一次）
+   ★ 修正原本每次更新都 remove + 重建、且 ResizeObserver
+     持續累積不釋放的記憶體洩漏問題。
+══════════════════════════════════════════════════════════ */
+function createChart(market) {
+  const container = document.getElementById(`chart-${market}`);
+  if (!container || charts[market]) return;
+
+  const chart = LightweightCharts.createChart(container, {
+    layout: {
+      background: { color: 'rgba(0,0,0,0)' },   // 透明，讓底下的面板背景 / FITXN 時段色塊透出來
+      textColor:  '#7d8590',
+      fontFamily: "'SF Mono','Fira Code','Consolas',monospace"
+    },
+    grid: {
+      vertLines: { color: '#1c2128' },
+      horzLines: { color: '#1c2128' }
+    },
+    crosshair: {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: {
+        width: 1, color: 'rgba(88,166,255,.55)',
+        style: LightweightCharts.LineStyle.Dashed,
+        labelBackgroundColor: '#21262d'
+      },
+      horzLine: {
+        width: 1, color: 'rgba(88,166,255,.35)',
+        style: LightweightCharts.LineStyle.Dashed,
+        labelBackgroundColor: '#21262d'
+      }
+    },
+    rightPriceScale: {
+      borderColor: '#30363d',
+      scaleMargins: { top: 0.06, bottom: 0.20 }
+    },
+    timeScale: {
+      borderColor:       '#30363d',
+      timeVisible:       true,
+      secondsVisible:    false,
+      tickMarkFormatter: twTickFormatter
+    },
+    localization: {
+      timeFormatter: (ts) => {
+        const d  = new Date(ts * 1000);
+        const Mo = String(d.getUTCMonth()+1).padStart(2,'0');
+        const D  = String(d.getUTCDate()).padStart(2,'0');
+        const H  = String(d.getUTCHours()).padStart(2,'0');
+        const Mi = String(d.getUTCMinutes()).padStart(2,'0');
+        return `${Mo}/${D} ${H}:${Mi}`;
+      }
+    },
+    width:  container.clientWidth,
+    height: container.clientHeight
+  });
+
+  charts[market] = chart;
+
+  // ─ K 棒
+  const candle = chart.addCandlestickSeries({
+    upColor:'#ef5350', downColor:'#26a69a',
+    borderUpColor:'#ef5350', borderDownColor:'#26a69a',
+    wickUpColor:'#ef5350', wickDownColor:'#26a69a'
+  });
+
+  // ─ 成交量
+  const vol = chart.addHistogramSeries({
+    priceFormat: { type:'volume' }, priceScaleId:'vol'
+  });
+  chart.priceScale('vol').applyOptions({ scaleMargins:{ top:0.82, bottom:0 } });
+
+  // ─ 指標線（EMA / AVG 家族，依 LINE_SERIES 設定表產生）
+  const lines = {};
+  LINE_SERIES.forEach(cfg => {
+    lines[cfg.key] = chart.addLineSeries({
+      color:            cfg.color,
+      lineWidth:        1,
+      lineStyle:        cfg.dashed ? LightweightCharts.LineStyle.Dashed
+                                   : LightweightCharts.LineStyle.Solid,
+      priceLineVisible: false,
+      lastValueVisible: false,
+      visible:          !hiddenKeys.has(cfg.key)
+    });
+  });
+
+  series[market] = { candle, vol, lines };
+
+  buildLegend(market);
+
+  // ─ Crosshair：OHLC + 同步
+  chart.subscribeCrosshairMove(param => {
+    if (param.time && param.seriesData) {
+      const c = param.seriesData.get(candle);
+      if (c) {
+        document.getElementById(`o-${market}`).textContent = fmt(c.open);
+        document.getElementById(`h-${market}`).textContent = fmt(c.high);
+        document.getElementById(`l-${market}`).textContent = fmt(c.low);
+        document.getElementById(`c-${market}`).textContent = fmt(c.close);
+      }
+    }
+    syncCrosshair(market, param);
+  });
+
+  // ─ 時間軸同步（用實際時間戳）
+  chart.timeScale().subscribeVisibleTimeRangeChange(range => {
+    syncRange(market, range);
+  });
+
+  // ─ Resize（只註冊一次）
+  new ResizeObserver(() => {
+    chart.applyOptions({ width:container.clientWidth, height:container.clientHeight });
+  }).observe(container);
+
+  // FITXN：初始化台股現貨開盤時段底色
+  if (market === 'FITXN') initSessionBg();
+}
+
+/* ══════════════════════════════════════════════════════════
+   套用資料到既有 series（更新只 setData，不重建圖表）
+══════════════════════════════════════════════════════════ */
+function applyData(market, data) {
+  const s = series[market];
+  if (!s) return;
+
+  const cData = candleData(data);
+  s.candle.setData(cData);
+  s.vol.setData(volData(data));
+  LINE_SERIES.forEach(cfg => s.lines[cfg.key].setData(lineData(data, cfg.key)));
+
+  // FITXN：記下每根 K 棒的時間戳，供開盤時段底色逐根判斷
+  if (market === 'FITXN') fitxnBarTimes = cData.map(c => c.time);
+
+  // 只在首次載入自動縮放，之後保留使用者當下的縮放/位移
+  if (!fitted[market]) {
+    charts[market].timeScale().fitContent();
+    fitted[market] = true;
+  }
+
+  // FITXN：資料更新後重繪開盤時段底色（自動更新時視圖沒變不會自動觸發）
+  if (market === 'FITXN') drawSessionBg();
+}
+
+/* ══════════════════════════════════════════════════════════
+   UI 更新
+══════════════════════════════════════════════════════════ */
+function updateSummary(market, data) {
+  if (!data?.length) return;
+  const last = data.at(-1), prev = data.at(-2);
+  const p = document.getElementById(`sum-${market}-price`);
+  const s = document.getElementById(`sum-${market}-sub`);
+  p.textContent = fmt(last.close);
+  if (prev?.close) {
+    const diff = last.close - prev.close;
+    const sign = diff >= 0 ? '+' : '';
+    p.className = `price ${diff >= 0 ? 'up':'down'}`;
+    s.textContent = `${sign}${fmt(diff)}  (${sign}${(diff/prev.close*100).toFixed(2)}%)`;
+  }
+}
+
+function updateRF(market, data) {
+  const bar = document.getElementById(`rf-${market}`);
+  if (!bar) return;
+  const last = data?.at(-1);
+  if (!last || last.rise_stocks == null) return;
+  bar.style.display = 'flex';
+  const r = last.rise_stocks||0, f = last.falling_stocks||0;
+  document.getElementById(`rf-rise-${market}`).textContent = `↑ ${r}`;
+  document.getElementById(`rf-fall-${market}`).textContent = `↓ ${f}`;
+  document.getElementById(`rf-fill-${market}`).style.width = `${Math.round(r/(r+f||1)*100)}%`;
+}
+
+function updateOHLC(market, data) {
+  const last = data?.at(-1); if (!last) return;
+  document.getElementById(`o-${market}`).textContent = fmt(last.open);
+  document.getElementById(`h-${market}`).textContent = fmt(last.high);
+  document.getElementById(`l-${market}`).textContent = fmt(last.low);
+  document.getElementById(`c-${market}`).textContent = fmt(last.close);
+}
+
+function setBadge(state) {
+  const b = document.getElementById('sync-badge');
+  if (!b) return;
+  if      (state === 'syncing') b.textContent = '⇄ 更新中…';
+  else if (state === 'ok')      b.textContent = '✓ 已同步';
+  else if (state === 'error')   b.textContent = '⚠ 連線失敗';
+}
+
+/* ══════════════════════════════════════════════════════════
+   載入：單一 action=all 請求取回三個市場（原本要打 3 次）
+   force=true → 加 nocache 略過後端 60 秒快取（手動更新用）
+══════════════════════════════════════════════════════════ */
+async function refreshAll(force = false) {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) btn.disabled = true;
+  setBadge('syncing');
+
+  // 首次進來先把三張圖建好（只會建一次）
+  MARKETS.forEach(m => { if (!charts[m]) createChart(m); });
+
+  const url = `${API}?action=all${force ? '&nocache=1' : ''}`;
+
+  try {
+    const res  = await fetch(url);
+    const json = await res.json();
+    const results = json.results || {};
+
+    MARKETS.forEach(m => {
+      const load = document.getElementById(`load-${m}`);
+      const r    = results[m];
+
+      if (!r || r.error) {
+        if (load) load.innerHTML =
+          `<span style="color:var(--red)">⚠ ${m}：${(r && r.message) || '無資料'}</span>`;
+        return;
+      }
+
+      const data = (r.data || []).filter(d => d.date && d.close != null);
+      applyData(m, data);
+      updateSummary(m, data);
+      updateRF(m, data);
+      updateOHLC(m, data);
+      if (load) load.style.display = 'none';
+    });
+
+    document.getElementById('updated').textContent =
+      `最後更新：${json.updated || new Date().toLocaleString('zh-TW')}`;
+    setBadge('ok');
+  } catch (err) {
+    console.error('refreshAll error:', err);
+    setBadge('error');
+    MARKETS.forEach(m => {
+      const load = document.getElementById(`load-${m}`);
+      if (load && load.style.display !== 'none') {
+        load.innerHTML = `<span style="color:var(--red)">⚠ ${err.message}</span>`;
+      }
+    });
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   自動更新（分頁不可見時暫停，回到前景再恢復，省流量與配額）
+══════════════════════════════════════════════════════════ */
+function startAuto() {
+  if (!AUTO_REFRESH_MS || autoTimer) return;
+  autoTimer = setInterval(() => {
+    if (!document.hidden) refreshAll(false);   // 自動更新走快取
+  }, AUTO_REFRESH_MS);
+}
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  refreshAll(false);   // 回到前景立即更新一次
+});
+
+refreshAll(true);   // 首次載入取最新
+startAuto();
+</script>
+</body>
+</html>
